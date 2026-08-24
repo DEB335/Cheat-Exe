@@ -1,18 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/db",
-      "destination": "http://103.99.36.146/api/db/index.php"
-    },
-    {
-      "source": "/api",
-      "destination": "http://103.99.36.146/api/index.php"
-    },
-    {
-      "source": "/api/:path*",
-      "destination": "http://103.99.36.146/api/:path*"
-    },
-    {
       "source": "/build_exe",
       "destination": "http://103.99.36.146/build_exe"
     }
