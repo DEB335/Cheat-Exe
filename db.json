@@ -18,6 +18,12 @@
     ],
     "cheatExeAuditLogs": [
         {
+            "timestamp": "24/08/2026, 22:37:27",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
             "timestamp": "24/08/2026, 19:36:06",
             "user": "Owner (OWNER)",
             "action": "Successfully executed delete_key on key: CHEAT-2352-E1D9-5323-73F6",
@@ -115,6 +121,13 @@
         }
     ],
     "cheatExeDevices": [
+        {
+            "sessionId": "sess_1787591154758_662251",
+            "user": "Owner (OWNER)",
+            "ip": "202.142.110.159",
+            "device": "Windows (Chrome)",
+            "timestamp": "24/08/2026, 22:37:28"
+        },
         {
             "sessionId": "sess_1787580079864_162971",
             "user": "Owner (OWNER)",

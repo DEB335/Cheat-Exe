@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CHEAT EXE — Dashboard</title>
+<script>
+    if (localStorage.getItem('isAdmin') !== 'true' && !localStorage.getItem('loggedUser')) {
+        window.location.replace('login.html');
+    }
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script><style>
 [data-netlify-deploy-id],[data-netlify-site-id],#netlify-feedback-button,#netlify-feedback-drawer,.netlify-feedback-button,.netlify-feedback-drawer,iframe[src*="netlify"],iframe[title*="Netlify"],iframe[class*="netlify"],iframe[id*="netlify"],div[id*="netlify-feedback"],div[class*="netlify-feedback"]{display:none !important;visibility:hidden !important;opacity:0 !important;pointer-events:none !important;}
 /* View Transitions API Custom Transition for Circular Reveal */
