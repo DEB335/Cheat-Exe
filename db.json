@@ -1,0 +1,171 @@
+{
+    "cheatExeUsers": {},
+    "cheatExeKeyHistory": [
+        {
+            "key": "CHEAT-2352-E1D9-5323-73F6",
+            "package": "EXTERNAL PANEL",
+            "duration": "30",
+            "creator": "admin",
+            "date": "24/08/2026, 19:35:59"
+        },
+        {
+            "key": "CHEAT-15AB-7DAC-EFAC-E61B",
+            "package": "BASIC PANEL",
+            "duration": "30",
+            "creator": "admin",
+            "date": "24/08/2026, 17:42:31"
+        }
+    ],
+    "cheatExeAuditLogs": [
+        {
+            "timestamp": "24/08/2026, 19:36:06",
+            "user": "Owner (OWNER)",
+            "action": "Successfully executed delete_key on key: CHEAT-2352-E1D9-5323-73F6",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 19:35:59",
+            "user": "Owner (OWNER)",
+            "action": "Generated 1 key(s) for EXTERNAL PANEL",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 19:35:33",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 19:31:18",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 19:24:54",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 17:51:10",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged out successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 17:50:40",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 17:47:35",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 17:42:31",
+            "user": "Owner (OWNER)",
+            "action": "Generated 1 key(s) for BASIC PANEL",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 17:41:57",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 17:04:37",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 16:47:43",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 16:36:42",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 16:32:10",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 16:31:59",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        },
+        {
+            "timestamp": "24/08/2026, 15:48:06",
+            "user": "Owner (OWNER)",
+            "action": "Owner logged in successfully",
+            "ip": "202.142.110.159"
+        }
+    ],
+    "cheatExeDevices": [
+        {
+            "sessionId": "sess_1787580079864_162971",
+            "user": "Owner (OWNER)",
+            "ip": "202.142.110.159",
+            "device": "Windows (Chrome)",
+            "timestamp": "24/08/2026, 19:36:15"
+        },
+        {
+            "sessionId": "sess_1787573519062_93513",
+            "user": "Owner (OWNER)",
+            "ip": "202.142.110.159",
+            "device": "Windows (Chrome)",
+            "timestamp": "24/08/2026, 19:24:55"
+        },
+        {
+            "sessionId": "sess_1787571278383_523419",
+            "user": "Owner (OWNER)",
+            "ip": "202.142.110.159",
+            "device": "Windows (Chrome)",
+            "timestamp": "24/08/2026, 17:04:38"
+        },
+        {
+            "sessionId": "sess_1787570264571_299930",
+            "user": "Owner (OWNER)",
+            "ip": "202.142.110.159",
+            "device": "Windows (Chrome)",
+            "timestamp": "24/08/2026, 17:07:36"
+        },
+        {
+            "sessionId": "sess_1787569321065_172909",
+            "user": "Owner (OWNER)",
+            "ip": "202.142.110.159",
+            "device": "Windows (Chrome)",
+            "timestamp": "24/08/2026, 16:38:56"
+        },
+        {
+            "sessionId": "sess_1787568863426_949352",
+            "user": "Owner (OWNER)",
+            "ip": "202.142.110.159",
+            "device": "Windows (Chrome)",
+            "timestamp": "24/08/2026, 16:24:23"
+        },
+        {
+            "sessionId": "sess_1787563399539_251835",
+            "user": "Owner (OWNER)",
+            "ip": "202.142.110.159",
+            "device": "Windows (Chrome)",
+            "timestamp": "24/08/2026, 16:22:51"
+        }
+    ],
+    "cheatExeBannedUsers": [],
+    "adminUser": "JACK",
+    "adminPass": "22153310"
+}

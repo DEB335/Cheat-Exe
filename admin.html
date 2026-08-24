@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHEAT EXE — KeyAuth Dashboard</title>
+
+<style>
+[data-netlify-deploy-id],[data-netlify-site-id],#netlify-feedback-button,#netlify-feedback-drawer,.netlify-feedback-button,.netlify-feedback-drawer,iframe[src*="netlify"],iframe[title*="Netlify"],iframe[class*="netlify"],iframe[id*="netlify"],div[id*="netlify-feedback"],div[class*="netlify-feedback"]{display:none !important;visibility:hidden !important;opacity:0 !important;pointer-events:none !important;}
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@property --border-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+}
+
+@keyframes rotate-border {
+    0% {
+        --border-angle: 0deg;
+    }
+    100% {
+        --border-angle: 360deg;
+    }
+}
+
+:root {
+    --bg-primary: #040408;
+    --bg-secondary: rgba(11, 12, 22, 0.65);
+    --bg-sidebar: rgba(8, 8, 14, 0.95);
+    --border-color: rgba(255, 255, 255, 0.06);
+    --border-hover: rgba(59, 130, 246, 0.2);
+    --border-active: #3b82f6;
+    
+    --text-main: #f1f5f9;
+    --text-muted: #64748b;
+    
+    --accent-blue: #3b82f6;
+    --accent-blue-glow: rgba(59, 130, 246, 0.2);
+    --accent-purple: #8b5cf6;
+    --accent-purple-glow: rgba(139, 92, 246, 0.2);
+    --accent-green: #10b981;
+    --accent-green-glow: rgba(16, 185, 129, 0.15);
+    --accent-red: #ef4444;
+    --accent-red-glow: rgba(239, 68, 68, 0.15);
+    --accent-orange: #f59e0b;
+    --accent-orange-glow: rgba(245, 158, 11, 0.15);
+    
+    --panel-bg: linear-gradient(145deg, rgba(20, 22, 38, 0.45) 0%, rgba(10, 11, 22, 0.75) 100%);
+    --panel-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    color: var(--text-main);
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* ambient lighting grids */
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(circle at 15% 30%, rgba(59, 130, 246, 0.06), transparent 45%),
+      radial-gradient(circle at 85% 70%, rgba(139, 92, 246, 0.06), transparent 45%),
+      radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.02), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Header */
+header {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 8%;
+    border-bottom: 1px solid var(--border-color);
+    background: rgba(4, 4, 8, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.logo {
+    font-family: 'Outfit', sans-serif;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    color: #fff;
+}
+
+.logo span {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.02);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    letter-spacing: 0.5px;
+}
+
+.dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    box-shadow: 0 0 10px var(--accent-green);
+}
+
+/* Main Container */
+main {
+    position: relative;
+    z-index: 1;
+    width: 90%;
+    max-width: 1200px;
+    margin: 60px auto;
+}
+
+.hero {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.hero h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+}
+
+.hero h1 span {
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero p {
+    color: var(--text-muted);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 30px;
+}
+
+/* Glassmorphism Panel */
+.panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    padding: 35px;
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    box-shadow: var(--panel-shadow);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.panel:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 25px 50px rgba(255, 46, 147, 0.15);
+    border-color: var(--border-hover);
+}
+
+.panel::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from var(--border-angle), transparent 70%, #ff0000 85%, #ff1f5a 90%, #ff0000 95%, transparent 100%);
+    -webkit-mask: 
+      linear-gradient(#fff 0 0) content-box, 
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1;
+}
+
+.panel:hover::after {
+    opacity: 1;
+    animation: rotate-border 2.5s linear infinite;
+}
+
+.panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+    transition: opacity 0.3s ease;
+}
+
+.panel:hover::before {
+    opacity: 0;
+}
+
+.panel-header {
+    margin-bottom: 25px;
+}
+
+.panel-header h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.panel-header p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-weight: 500;
+}
+
+/* Form Groups */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.form-control {
+    width: 100%;
+    background: rgba(3, 3, 7, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fff;
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--accent-blue);
+    background: rgba(3, 3, 7, 0.8);
+    box-shadow: 0 0 0 3px var(--accent-blue-glow);
+}
+
+select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+    background-repeat: no-repeat;
+    background-position: right 18px top 50%;
+    background-size: 10px auto;
+    padding-right: 40px;
+}
+
+option {
+    background: #0b0c16;
+    color: #fff;
+}
+
+/* Buttons */
+.btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: 0.5px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    color: #fff;
+    box-shadow: 0 4px 15px var(--accent-blue-glow);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.45);
+}
+
+.action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 25px;
+}
+
+.btn-outline {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+
+.btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #f87171;
+}
+
+.btn-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px var(--accent-red-glow);
+}
+
+/* Console Output */
+.console {
+    margin-top: 30px;
+    background: #020204;
+    border-radius: 14px;
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    height: 180px;
+    overflow-y: auto;
+    color: var(--accent-green);
+    box-shadow: inset 0 4px 20px rgba(0,0,0,0.8);
+    border-left: 3px solid var(--accent-green);
+}
+
+.console-line {
+    margin-bottom: 8px;
+    display: flex;
+    gap: 10px;
+}
+
+.console-time {
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.console-error {
+    color: #f87171;
+}
+
+.console-success {
+    color: #34d399;
+}
+
+.console-warning {
+    color: #fbbf24;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-top: 40px;
+}
+
+/* Checkbox styling */
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.checkbox-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.checkbox-item input[type="checkbox"] { 
+    accent-color: var(--accent-blue); 
+    width: 16px; 
+    height: 16px; 
+    cursor: pointer;
+}
+
+.checkbox-item label { 
+    font-size: 12px; 
+    color: var(--text-main); 
+    font-weight: 600; 
+    margin: 0; 
+    cursor: pointer;
+}
+
+/* Modern tables design */
+.data-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 15px; 
+}
+
+.data-table th { 
+    text-align: left; 
+    padding: 16px 20px; 
+    border-bottom: 1px solid var(--border-color); 
+    color: var(--text-muted); 
+    font-size: 11px; 
+    font-weight: 800; 
+    text-transform: uppercase; 
+    letter-spacing: 1.5px; 
+}
+
+.data-table td { 
+    padding: 18px 20px; 
+    border-bottom: 1px solid var(--border-color); 
+    font-size: 13px; 
+    font-weight: 550;
+    transition: background-color 0.2s ease;
+}
+
+.data-table tbody tr:hover td {
+    background-color: rgba(255, 255, 255, 0.01);
+}
+
+.status-badge { 
+    padding: 6px 12px; 
+    border-radius: 20px; 
+    font-size: 10px; 
+    font-weight: 800; 
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.status-badge.active { 
+    background: var(--accent-green-glow); 
+    color: var(--accent-green); 
+    border: 1px solid rgba(16, 185, 129, 0.25); 
+}
+
+.status-badge.suspended { 
+    background: rgba(239, 68, 68, 0.15); 
+    color: #ef4444; 
+    border: 1px solid rgba(239, 68, 68, 0.25); 
+}
+
+.status-badge.pending { 
+    background: var(--accent-orange-glow); 
+    color: var(--accent-orange); 
+    border: 1px solid rgba(245, 158, 11, 0.25); 
+}
+
+.package-badge { 
+    background: rgba(255, 255, 255, 0.04); 
+    border: 1px solid var(--border-color);
+    padding: 5px 10px; 
+    border-radius: 6px; 
+    font-size: 10px; 
+    margin-right: 6px; 
+    margin-bottom: 4px;
+    display: inline-block;
+    font-weight: 700;
+}
+
+.table-actions { 
+    display: flex; 
+    gap: 8px; 
+}
+
+.btn-sm { 
+    padding: 8px 12px; 
+    border-radius: 8px; 
+    font-size: 11px; 
+    font-weight: 850; 
+    cursor: pointer; 
+    border: 1px solid transparent; 
+    display: flex; 
+    align-items: center; 
+    gap: 6px; 
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1); 
+}
+
+.btn-sm:hover {
+    transform: translateY(-1px);
+}
+
+.btn-sm-success { 
+    background: var(--accent-green-glow); 
+    color: var(--accent-green); 
+    border-color: rgba(16, 185, 129, 0.2); 
+}
+
+.btn-sm-success:hover { 
+    background: rgba(16, 185, 129, 0.25); 
+    box-shadow: 0 4px 10px var(--accent-green-glow);
+}
+
+.btn-sm-warning { 
+    background: var(--accent-orange-glow); 
+    color: var(--accent-orange); 
+    border-color: rgba(245, 158, 11, 0.2); 
+}
+
+.btn-sm-warning:hover { 
+    background: rgba(245, 158, 11, 0.25); 
+    box-shadow: 0 4px 10px var(--accent-orange-glow);
+}
+
+.btn-sm-danger { 
+    background: rgba(239, 68, 68, 0.15); 
+    color: #ef4444; 
+    border-color: rgba(239, 68, 68, 0.2); 
+}
+
+.btn-sm-danger:hover { 
+    background: rgba(239, 68, 68, 0.25); 
+    box-shadow: 0 4px 10px var(--accent-red-glow);
+}
+
+/* Modal Overlay styling */
+.modal-overlay {
+    position: fixed; 
+    inset: 0; 
+    background: rgba(1, 1, 3, 0.9); 
+    z-index: 9999;
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    backdrop-filter: blur(12px);
+    animation: modalOverlayFade 0.3s ease;
+}
+
+@keyframes modalOverlayFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: var(--bg-sidebar); 
+    border: 1px solid var(--border-color); 
+    border-radius: 20px;
+    padding: 30px; 
+    width: 100%; 
+    max-width: 440px; 
+    box-shadow: var(--panel-shadow);
+    backdrop-filter: blur(20px);
+    animation: modalContentSlide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalContentSlide {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Responsive */
+@media (max-width: 850px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+<body>
+
+<header>
+    <div class="logo">CHEAT <span>EXE</span></div>
+    <div class="status">
+        <div class="dot"></div>
+        API CONNECTED
+    </div>
+</header>
+
+<main>
+    <section class="hero">
+        <h1>KEY <span>MANAGEMENT</span></h1>
+        <p>Advanced License & Authentication Dashboard</p>
+    </section>
+
+    <div class="dashboard-grid">
+        
+        <!-- Generator Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Generate License</h2>
+                <p>Create new keys for your applications</p>
+            </div>
+
+            <div class="form-group">
+                <label>Target Package</label>
+                <select class="form-control" id="packageSelect">
+                    <option value="e52c1515c53453b85d0d4e87">BASIC PANEL</option>
+                    <option value="affc8da8fd5ace99981ab877">AIMSILENT EXE</option>
+                    <option value="cb921031dc43197e8ccb6828">UID BYPASS</option>
+                    <option value="3d1c6c948b4715fbd2fada2d">EXTERNAL PANEL</option>
+                    <option value="d4f0ce93349f236711344cb5">PVT AIMKILL</option>
+                    <option value="154d1edaddd7203fbfd847f4">VAULT PANEL</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>Duration (Days)</label>
+                    <input type="number" class="form-control" id="daysInput" value="30" min="0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Amount</label>
+                    <input type="number" class="form-control" id="countInput" value="1" min="1" max="100">
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="generateKey()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                Generate Key(s)
+            </button>
+        </div>
+
+        <!-- Manager Panel -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2>Key Manager</h2>
+                <p>Manage existing licenses and HWID resets</p>
+            </div>
+
+            <div class="form-group">
+                <label>Target License Key</label>
+                <input type="text" class="form-control" id="targetKey" placeholder="Enter license key (e.g. TX999-XXXX-XXXX)">
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-outline" onclick="manageKey('reset_hwid')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                    Reset HWID
+                </button>
+                
+                <button class="btn btn-outline" onclick="manageKey('unban_key')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    Unban Key
+                </button>
+                
+                <button class="btn btn-danger" onclick="manageKey('ban_key')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                    Ban Key
+                </button>
+                
+                <button class="btn btn-danger" onclick="manageKey('delete_key')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    Delete Key
+                </button>
+            </div>
+        </div>
+
+        <!-- Client Management Panel -->
+        <div class="panel" id="clientAccessManager">
+            <div class="panel-header">
+                <h2>Client Access Manager</h2>
+                <p>Create login credentials for your clients</p>
+            </div>
+
+            <div class="form-group">
+                <label>Client Username</label>
+                <input type="text" class="form-control" id="clientUser" placeholder="e.g. VIP_Client1">
+            </div>
+
+            <div class="form-group">
+                <label>Client Password</label>
+                <input type="text" class="form-control" id="clientPass" placeholder="e.g. pass1234">
+            </div>
+
+            <label style="font-size:11px; font-weight:700; color:var(--text-muted); display:block; margin-top:20px; text-transform:uppercase; letter-spacing:0.8px;">Allowed Packages</label>
+            <div class="checkbox-group" style="display:flex; flex-direction:column; gap:10px; margin-top:10px; margin-bottom:20px;">
+                <div class="checkbox-item"><input type="checkbox" class="pkg-chk" value="BASIC PANEL" checked><label>BASIC PANEL</label></div>
+                <div class="checkbox-item"><input type="checkbox" class="pkg-chk" value="AIMSILENT EXE" checked><label>AIMSILENT EXE</label></div>
+                <div class="checkbox-item"><input type="checkbox" class="pkg-chk" value="UID BYPASS" checked><label>UID BYPASS</label></div>
+                <div class="checkbox-item"><input type="checkbox" class="pkg-chk" value="EXTERNAL PANEL" checked><label>EXTERNAL PANEL</label></div>
+                <div class="checkbox-item"><input type="checkbox" class="pkg-chk" value="PVT AIMKILL" checked><label>PVT AIMKILL</label></div>
+                <div class="checkbox-item"><input type="checkbox" class="pkg-chk" value="VAULT PANEL" checked><label>VAULT PANEL</label></div>
+            </div>
+
+            <button class="btn btn-primary" onclick="createClient()" style="margin-top:25px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                Create Client Login
+            </button>
+        </div>
+    </div>
+
+    <!-- Active Resellers Management Panel -->
+    <div class="panel" style="margin-top: 30px; width: 100%;">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2>Sub-User / Reseller Accounts</h2>
+                <p>Manage access credentials and package permissions for resellers.</p>
+            </div>
+            <button class="btn btn-outline" style="width: auto; padding: 8px 16px; font-size: 12px; margin-top:0;" onclick="renderResellers()">
+                Refresh
+            </button>
+        </div>
+
+        <div style="overflow-x: auto; margin-top: 20px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Status</th>
+                        <th>Allowed Packages</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="resellerTableBody">
+                    <!-- Populated via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Reseller Key History Panel -->
+    <div class="panel" style="margin-top: 30px; width: 100%;">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2>Reseller Key History</h2>
+                <p>Licenses generated by sub-users (resellers).</p>
+            </div>
+            <button class="btn btn-outline" style="width: auto; padding: 8px 16px; font-size: 12px; margin-top:0;" onclick="renderResellerHistory()">
+                Refresh
+            </button>
+        </div>
+
+        <div style="overflow-x: auto; margin-top: 20px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>License Key</th>
+                        <th>Package</th>
+                        <th>Duration</th>
+                        <th>Creator</th>
+                        <th>Created On</th>
+                    </tr>
+                </thead>
+                <tbody id="resellerHistoryTable">
+                    <!-- Populated via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Live Console -->
+    <div class="console" id="consoleOutput">
+        <div class="console-line">
+            <span class="console-time">[SYSTEM]</span>
+            <span class="console-success">CHEAT EXE Auth Dashboard Initialized.</span>
+        </div>
+        <div class="console-line">
+            <span class="console-time">[SYSTEM]</span>
+            <span class="console-success">Ready to execute commands.</span>
+        </div>
+    </div>
+
+</main>
+
+<footer>
+    © 2026 CHEAT EXE • ADVANCED AUTHENTICATION SYSTEM
+</footer>
+
+<script>
+    const API_URL = "/api";
+    const API_KEY = "TX999_API_1dd8974c0aacb90e5093dc24a65855f5";
+    const APP_ID = "9f087d585fbd666572fc24b7";
+
+    function log(message, type = 'success') {
+        const consoleOut = document.getElementById('consoleOutput');
+        const time = new Date().toLocaleTimeString('en-US', { hour12: false });
+        
+        const line = document.createElement('div');
+        line.className = 'console-line';
+        line.innerHTML = `<span class="console-time">[${time}]</span> <span class="console-${type}">${message}</span>`;
+        
+        consoleOut.appendChild(line);
+        consoleOut.scrollTop = consoleOut.scrollHeight;
+    }
+
+    async function generateKey() {
+        const packageId = document.getElementById('packageSelect').value;
+        const packageName = document.getElementById('packageSelect').options[document.getElementById('packageSelect').selectedIndex].text;
+        const days = document.getElementById('daysInput').value;
+        const count = document.getElementById('countInput').value;
+
+        log(`Generating ${count} key(s) for ${packageName} (${days} days)...`, 'warning');
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    api_key: API_KEY,
+                    action: "generate_key",
+                    app_id: APP_ID,
+                    package_id: packageId,
+                    days: parseInt(days),
+                    count: parseInt(count)
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                log(`Successfully generated ${data.keys.length} key(s)!`, 'success');
+                data.keys.forEach(key => {
+                    log(`-> ${key}`, 'success');
+                    // Automatically fill the target key input with the last generated key
+                    document.getElementById('targetKey').value = key;
+                });
+            } else {
+                log(`Failed: ${data.message || 'Unknown error'}`, 'error');
+            }
+        } catch (err) {
+            log(`API Error (CORS likely if run in browser): ${err.message}`, 'error');
+            log(`MOCK MODE: Generated TX999-${Math.random().toString(36).substring(2, 10).toUpperCase()}-TEST`, 'success');
+        }
+    }
+
+    async function manageKey(action) {
+        const key = document.getElementById('targetKey').value.trim();
+        
+        if (!key) {
+            log('Please enter a target license key.', 'error');
+            return;
+        }
+
+        const actionNames = {
+            'reset_hwid': 'HWID Reset',
+            'unban_key': 'Unban',
+            'ban_key': 'Ban',
+            'delete_key': 'Delete'
+        };
+
+        log(`Executing ${actionNames[action]} for key: ${key}...`, 'warning');
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    api_key: API_KEY,
+                    action: action,
+                    key: key
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                log(`Success: ${actionNames[action]} completed for ${key}`, 'success');
+                if (action === 'delete_key') {
+                    document.getElementById('targetKey').value = '';
+                }
+            } else {
+                log(`Failed: ${data.message || 'Unknown error'}`, 'error');
+            }
+        } catch (err) {
+            log(`API Error (CORS likely if run in browser): ${err.message}`, 'error');
+            log(`MOCK MODE: Simulated success for ${actionNames[action]} on ${key}`, 'success');
+        }
+    }
+
+    function createClient() {
+        const user = document.getElementById('clientUser').value.trim();
+        const pass = document.getElementById('clientPass').value.trim();
+        
+        if (!user || !pass) {
+            log('Please enter both username and password for the client.', 'error');
+            return;
+        }
+
+        const existingUsers = JSON.parse(localStorage.getItem('cheatExeUsers') || '{}');
+        
+        if (existingUsers[user]) {
+            log(`User '${user}' already exists!`, 'warning');
+            return;
+        }
+
+        // Get allowed packages from checkboxes
+        const allowedPkgs = Array.from(document.querySelectorAll('.pkg-chk:checked')).map(cb => cb.value);
+
+        existingUsers[user] = { 
+            pass: pass, 
+            status: 'ACTIVE', 
+            created: new Date().toLocaleDateString(), 
+            packages: allowedPkgs 
+        };
+        localStorage.setItem('cheatExeUsers', JSON.stringify(existingUsers));
+        
+        log(`Success: Client login created! [User: ${user} | Pass: ${pass}]`, 'success');
+        
+        document.getElementById('clientUser').value = '';
+        document.getElementById('clientPass').value = '';
+
+        // Reset package checkboxes to default checked
+        document.querySelectorAll('.pkg-chk').forEach(cb => cb.checked = true);
+
+        renderResellers();
+    }
+
+    function renderResellers() {
+        const tbody = document.getElementById('resellerTableBody');
+        if (!tbody) return;
+        const users = JSON.parse(localStorage.getItem('cheatExeUsers') || '{}');
+        tbody.innerHTML = '';
+
+        let html = '';
+        Object.keys(users).forEach(u => {
+            const sBadge = users[u].status === 'ACTIVE' ? 'active' : (users[u].status === 'SUSPENDED' ? 'suspended' : 'pending');
+            const actionText = users[u].status === 'ACTIVE' ? 'Suspend' : 'Activate';
+            const actionBtnClass = users[u].status === 'ACTIVE' ? 'btn-sm-warning' : 'btn-sm-success';
+            
+            const pBadge = users[u].packages && users[u].packages.length > 0 
+                ? users[u].packages.map(p => `<span class="package-badge">${p}</span>`).join('') 
+                : '<span class="package-badge" style="color:var(--text-muted);">NONE</span>';
+            
+            html += `<tr>
+                <td style="font-weight:600;color:#fff;">${u}</td>
+                <td><span class="status-badge ${sBadge}">${users[u].status}</span></td>
+                <td><div style="max-width:300px; display:flex; flex-wrap:wrap; gap:4px;">${pBadge}</div></td>
+                <td>${users[u].created || 'N/A'}</td>
+                <td>
+                    <div class="table-actions">
+                        <button class="btn btn-sm ${actionBtnClass}" onclick="toggleStatus('${u}')">${actionText}</button>
+                        <button class="btn btn-sm" style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); color:var(--text-main);" onclick="openPermsModal('${u}')">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777z"></path></svg> Perms
+                        </button>
+                        <button class="btn btn-sm btn-sm-danger" onclick="deleteReseller('${u}')">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg> Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+
+        if (html === '') {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:30px;">No reseller accounts found.</td></tr>`;
+        } else {
+            tbody.innerHTML = html;
+        }
+    }
+
+    function toggleStatus(user) {
+        const users = JSON.parse(localStorage.getItem('cheatExeUsers') || '{}');
+        if (users[user]) {
+            if (users[user].status === 'ACTIVE') {
+                users[user].status = 'SUSPENDED';
+                log(`Reseller account '${user}' has been SUSPENDED.`, 'warning');
+            } else {
+                users[user].status = 'ACTIVE';
+                log(`Reseller account '${user}' has been ACTIVATED.`, 'success');
+            }
+            localStorage.setItem('cheatExeUsers', JSON.stringify(users));
+            renderResellers();
+        }
+    }
+
+    function deleteReseller(user) {
+        if (confirm(`Are you sure you want to delete reseller account '${user}'?`)) {
+            const users = JSON.parse(localStorage.getItem('cheatExeUsers') || '{}');
+            if (users[user]) {
+                delete users[user];
+                localStorage.setItem('cheatExeUsers', JSON.stringify(users));
+                log(`Reseller account '${user}' has been deleted.`, 'error');
+                renderResellers();
+            }
+        }
+    }
+
+    let editingUser = null;
+    const ALL_PACKAGES = ['BASIC PANEL', 'AIMSILENT EXE', 'UID BYPASS', 'EXTERNAL PANEL', 'PVT AIMKILL', 'VAULT PANEL'];
+
+    function openPermsModal(user) {
+        editingUser = user;
+        document.getElementById('permsUserTitle').innerText = user;
+        const users = JSON.parse(localStorage.getItem('cheatExeUsers') || '{}');
+        const userPkgs = users[user]?.packages || [];
+        
+        let html = '';
+        ALL_PACKAGES.forEach(pkg => {
+            const isChecked = userPkgs.includes(pkg) ? 'checked' : '';
+            html += `<div class="checkbox-item"><input type="checkbox" class="edit-pkg-chk" value="${pkg}" ${isChecked}><label>${pkg}</label></div>`;
+        });
+        document.getElementById('permsCheckboxGroup').innerHTML = html;
+        document.getElementById('permsModal').style.display = 'flex';
+    }
+
+    function savePerms() {
+        if (!editingUser) return;
+        const users = JSON.parse(localStorage.getItem('cheatExeUsers') || '{}');
+        if (users[editingUser]) {
+            const allowedPkgs = Array.from(document.querySelectorAll('.edit-pkg-chk:checked')).map(cb => cb.value);
+            users[editingUser].packages = allowedPkgs;
+            localStorage.setItem('cheatExeUsers', JSON.stringify(users));
+            log(`Updated packages permissions for reseller '${editingUser}'.`, 'success');
+            renderResellers();
+            document.getElementById('permsModal').style.display = 'none';
+        }
+    }
+
+    function renderResellerHistory() {
+        const history = JSON.parse(localStorage.getItem('cheatExeKeyHistory') || '[]');
+        const resellerTbody = document.getElementById('resellerHistoryTable');
+        if (!resellerTbody) return;
+        resellerTbody.innerHTML = '';
+
+        let html = '';
+        history.forEach(item => {
+            // Only show keys generated by resellers/clients (creator is not 'admin' and not 'Owner (OWNER)' or similar)
+            if (item.creator && item.creator !== 'admin' && item.creator !== 'Owner (OWNER)') {
+                html += `<tr>
+                    <td style="font-family: monospace; color: var(--accent-green); font-weight: 600;">${item.key}</td>
+                    <td><span class="package-badge">${item.package}</span></td>
+                    <td>${item.duration} Days</td>
+                    <td style="color: var(--accent-purple); font-weight: 600;">${item.creator}</td>
+                    <td>${item.date}</td>
+                </tr>`;
+            }
+        });
+
+        if (html === '') {
+            resellerTbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:30px;">No reseller key generation history found.</td></tr>`;
+        } else {
+            resellerTbody.innerHTML = html;
+        }
+    }
+
+    // Initialize reseller list and history on load
+    window.addEventListener('DOMContentLoaded', () => {
+        renderResellers();
+        renderResellerHistory();
+    });
+</script>
+<script>
+    // Hide Netlify overlay elements dynamically
+    (function() {
+        const hideNetlify = () => {
+            const selectors = [
+                '[data-netlify-deploy-id]',
+                '[data-netlify-site-id]',
+                '#netlify-feedback-button',
+                '#netlify-feedback-drawer',
+                '.netlify-feedback-button',
+                '.netlify-feedback-drawer'
+            ];
+            selectors.forEach(sel => {
+                document.querySelectorAll(sel).forEach(el => {
+                    el.style.setProperty('display', 'none', 'important');
+                    el.remove();
+                });
+            });
+            document.querySelectorAll('iframe').forEach(iframe => {
+                try {
+                    const src = iframe.getAttribute('src') || '';
+                    const title = iframe.getAttribute('title') || '';
+                    const id = iframe.getAttribute('id') || '';
+                    const className = iframe.className || '';
+                    if (src.includes('netlify') || title.toLowerCase().includes('netlify') || id.includes('netlify') || className.includes('netlify')) {
+                        iframe.style.setProperty('display', 'none', 'important');
+                        iframe.remove();
+                    }
+                } catch (e) {}
+            });
+        };
+        hideNetlify();
+        window.addEventListener('DOMContentLoaded', hideNetlify);
+        window.addEventListener('load', hideNetlify);
+        let count = 0;
+        const interval = setInterval(() => {
+            hideNetlify();
+            count++;
+            if (count > 20) clearInterval(interval);
+        }, 500);
+        const observer = new MutationObserver(() => hideNetlify());
+        observer.observe(document.documentElement, { childList: true, subtree: true });
+    })();
+</script>
+<!-- Permissions Modal -->
+<div id="permsModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <h3 style="font-family:'Outfit',sans-serif; font-size:20px; font-weight:700; color:#fff; margin-bottom:15px;">Edit Permissions: <span id="permsUserTitle" style="color:var(--accent-blue);"></span></h3>
+        <div class="checkbox-group" id="permsCheckboxGroup" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 25px;">
+            <!-- Generated via JS -->
+        </div>
+        <div style="display: flex; gap: 15px;">
+            <button class="btn btn-primary" style="padding: 12px 20px;" onclick="savePerms()">Save Changes</button>
+            <button class="btn btn-outline" style="padding: 12px 20px; margin-top:0;" onclick="document.getElementById('permsModal').style.display='none'">Cancel</button>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — CHEAT EXE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+[data-netlify-deploy-id],[data-netlify-site-id],#netlify-feedback-button,#netlify-feedback-drawer,.netlify-feedback-button,.netlify-feedback-drawer,iframe[src*="netlify"],iframe[title*="Netlify"],iframe[class*="netlify"],iframe[id*="netlify"],div[id*="netlify-feedback"],div[class*="netlify-feedback"]{display:none !important;visibility:hidden !important;opacity:0 !important;pointer-events:none !important;}
+
+* { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif; 
+    user-select: none;
+}
+
+body {
+    min-height: 100vh;
+    width: 100vw;
+    background: transparent;
+    color: #e2e8f0;
+    overflow-y: auto;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 0;
+    box-sizing: border-box;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+}
+
+body::-webkit-scrollbar {
+    display: none;
+}
+
+/* Ambient Background */
+.ambient-glow {
+    display: none;
+}
+
+.top-glow-dot {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 14px;
+    background: #14b8a6;
+    border-radius: 0 0 50px 50px;
+    filter: blur(10px);
+    opacity: 0.8;
+}
+
+/* Layout Container */
+.auth-wrapper {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 440px;
+    padding: 24px;
+}
+
+/* Obsidian Card */
+.auth-card {
+    background: rgba(13, 19, 21, 0.55);
+    border: 1px solid rgba(45, 212, 191, 0.25);
+    border-radius: 32px;
+    padding: 40px 36px 36px;
+    box-shadow: 
+        0 0 60px rgba(0, 0, 0, 0.8),
+        0 0 50px rgba(45, 212, 191, 0.35),
+        0 0 20px rgba(45, 212, 191, 0.2),
+        0 0 1px 1px rgba(45, 212, 191, 0.15);
+    position: relative;
+    backdrop-filter: blur(12px);
+}
+
+/* Brand Header */
+.brand-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.brand-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 2.5px solid #2dd4bf;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 14px rgba(45, 212, 191, 0.35);
+}
+
+.brand-icon-inner {
+    width: 8px;
+    height: 8px;
+    background: #2dd4bf;
+    border-radius: 50%;
+}
+
+.brand-name {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+/* Title & Subtitle */
+.card-title {
+    font-size: 30px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+}
+
+.card-subtitle {
+    font-size: 13.5px;
+    color: #94a3b8;
+    line-height: 1.5;
+    margin-bottom: 28px;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+.form-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.form-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #cbd5e1;
+}
+
+.input-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-icon {
+    position: absolute;
+    left: 18px;
+    color: #64748b;
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+.form-input {
+    width: 100%;
+    background: #0b0f12;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    color: #ffffff;
+    font-size: 14.5px;
+    font-weight: 500;
+    padding: 16px 48px 16px 48px;
+    outline: none;
+    transition: all 0.25s ease;
+    user-select: text;
+}
+
+.form-input::placeholder {
+    color: #475569;
+    font-weight: 400;
+}
+
+.form-input:focus {
+    border-color: rgba(45, 212, 191, 0.5);
+    background: #090c0e;
+    box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.15);
+}
+
+.form-input:focus ~ .input-icon,
+.input-container:focus-within .input-icon {
+    color: #2dd4bf;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 16px;
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: color 0.2s ease;
+}
+
+.toggle-password:hover {
+    color: #cbd5e1;
+}
+
+/* ========================================================
+   THE TETHER ELASTIC RUNAWAY BUTTON COMPONENT
+   ======================================================== */
+.tether-track-container {
+    position: relative;
+    width: 100%;
+    height: 84px;
+    background: #090d10;
+    border-radius: 42px;
+    margin-top: 24px;
+    overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* Dashed Home Slot */
+.tether-home-slot {
+    position: absolute;
+    width: 140px;
+    height: 52px;
+    border: 2px dashed rgba(45, 212, 191, 0.4);
+    border-radius: 26px;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.35s ease;
+}
+
+.tether-home-slot.valid-slot {
+    border-color: rgba(16, 185, 129, 0.7);
+    background: rgba(16, 185, 129, 0.05);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.tether-home-slot.invalid-slot {
+    border-color: rgba(239, 68, 68, 0.6);
+    background: rgba(239, 68, 68, 0.05);
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+}
+
+.tether-anchor-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(45, 212, 191, 0.3);
+    background: rgba(45, 212, 191, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.35s ease;
+}
+
+.tether-anchor-dot::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: #2dd4bf;
+    border-radius: 50%;
+    transition: all 0.35s ease;
+}
+
+.valid-slot .tether-anchor-dot {
+    border-color: rgba(16, 185, 129, 0.6);
+    background: rgba(16, 185, 129, 0.2);
+}
+.valid-slot .tether-anchor-dot::after {
+    background: #10b981;
+}
+
+.invalid-slot .tether-anchor-dot {
+    border-color: rgba(239, 68, 68, 0.6);
+    background: rgba(239, 68, 68, 0.2);
+}
+.invalid-slot .tether-anchor-dot::after {
+    background: #ef4444;
+}
+
+/* Realtime Elastic Cord Canvas */
+#tetherCanvas {
+    position: absolute;
+    top: -100px;
+    left: -150px;
+    width: calc(100% + 300px);
+    height: calc(100% + 200px);
+    pointer-events: none;
+    z-index: 15;
+}
+
+/* The Runaway Log In Button (Styled as Uiverse Beautiful Button) */
+.tether-btn {
+    position: absolute;
+    width: 144px; /* Slightly wider to fit padding/font size */
+    height: 52px;
+    border-radius: 26px; /* Rounded corners (like 30px) */
+    border: 1px solid rgba(45, 212, 191, 0.25);
+    background: #182824;
+    color: #72a294;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    z-index: 20;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    /* Shimmer animation */
+    background-size: 200% 200%;
+    animation: button-shimmer 2s linear infinite;
+    transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+    transform: translate(0px, 0px);
+}
+
+.tether-btn:hover {
+    background: #1c322d;
+    color: #a5c3b9;
+    box-shadow: 0 8px 20px rgba(45, 212, 191, 0.15);
+}
+
+.tether-btn:active {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Green Locked State (Correct Admin or Reseller credentials) */
+.tether-btn.valid-locked {
+    background: linear-gradient(to bottom, #0f402b, #10b981);
+    color: #6ee7b7;
+    border: none;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.35), 0 10px 25px rgba(0, 0, 0, 0.5);
+    transform: translate(0px, 0px) !important;
+}
+
+.tether-btn.valid-locked:hover {
+    background: linear-gradient(to bottom, #135237, #059669);
+    color: #ffffff;
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.5), 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Red Error State (Wrong password / invalid credentials) */
+.tether-btn.invalid-warning {
+    background: linear-gradient(to bottom, #400f13, #ef4444);
+    color: #fca5a5;
+    border: none;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.25), 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Shimmer animation keyframes */
+@keyframes button-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ========================================================
+   CIRCULAR SOCIAL ICONS (4-pack with smooth hover)
+   ======================================================== */
+.social-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 26px 0 20px;
+    color: #475569;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.social-divider::before, .social-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.social-divider:not(:empty):before { margin-right: 1.2em; }
+.social-divider:not(:empty):after { margin-left: 1.2em; }
+
+.social-icons-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+.social-circle-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #0b0f12;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.social-circle-btn:hover {
+    transform: translateY(-4px) scale(1.06);
+    color: #ffffff;
+    border-color: rgba(45, 212, 191, 0.5);
+    box-shadow: 0 8px 24px rgba(45, 212, 191, 0.25);
+}
+
+.social-circle-btn.discord:hover {
+    color: #5865F2;
+    border-color: #5865F2;
+    background: rgba(88, 101, 242, 0.1);
+    box-shadow: 0 8px 24px rgba(88, 101, 242, 0.3);
+}
+
+.social-circle-btn.telegram:hover {
+    color: #0088CC;
+    border-color: #0088CC;
+    background: rgba(0, 136, 204, 0.1);
+    box-shadow: 0 8px 24px rgba(0, 136, 204, 0.3);
+}
+
+.social-circle-btn.youtube:hover {
+    color: #FF0000;
+    border-color: #FF0000;
+    background: rgba(255, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(255, 0, 0, 0.3);
+}
+
+.social-circle-btn.whatsapp:hover {
+    color: #25D366;
+    border-color: #25D366;
+    background: rgba(37, 211, 102, 0.1);
+    box-shadow: 0 8px 24px rgba(37, 211, 102, 0.3);
+}
+
+/* Alerts */
+.alert {
+    display: none;
+    padding: 11px 16px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 18px;
+    line-height: 1.4;
+}
+
+.alert-error {
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.alert-success {
+    color: #5eead4;
+    background: rgba(45, 212, 191, 0.12);
+    border: 1px solid rgba(45, 212, 191, 0.25);
+}
+
+.shake {
+    animation: shakeCard 0.4s ease-in-out;
+}
+
+@keyframes shakeCard {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-6px); }
+    40%, 80% { transform: translateX(6px); }
+}
+
+/* Banned Overlay */
+#bannedOverlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 99999;
+    background: #090e11;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+/* YouTube Background Video styling */
+.video-background-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -2;
+    overflow: hidden;
+    background: #040718;
+}
+
+.bg-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100vw;
+    height: 56.25vw; /* 16:9 Aspect Ratio */
+    min-height: 100vh;
+    min-width: 177.77vh; /* 16:9 Aspect Ratio */
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.video-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: rgba(4, 7, 24, 0.45); /* dark premium overlay */
+    pointer-events: none;
+}
+
+/* Custom Tooltip Styling for Social Buttons */
+.social-circle-btn {
+    position: relative;
+}
+
+.social-circle-btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 125%; /* position above the button */
+    left: 50%;
+    transform: translateX(-50%) translateY(5px);
+    background: rgba(10, 15, 30, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+}
+
+.social-circle-btn:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Corner Music Toggle Button */
+.corner-music-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(10, 15, 30, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 10000;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.corner-music-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    border-color: rgba(255, 31, 90, 0.4);
+    box-shadow: 0 0 15px rgba(255, 31, 90, 0.25);
+    color: #ff1f5a;
+}
+
+/* Expanding neon glow ring click wave */
+.click-wave {
+    position: fixed;
+    pointer-events: none;
+    z-index: 999999;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    border: 1.2px solid var(--wave-color) !important;
+    box-shadow: 0 0 8px var(--wave-color), inset 0 0 4px var(--wave-color) !important;
+    animation: wave-expand 0.6s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
+}
+
+@keyframes wave-expand {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.85);
+        opacity: 0;
+    }
+}
+
+</style>
+</head>
+<body>
+
+    <!-- Corner Music Toggle Button -->
+    <button id="musicToggleBtn" class="corner-music-btn" onclick="toggleBackgroundMusic()" title="Toggle Music">
+        <svg class="music-on-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+        <svg class="music-off-icon" style="display:none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+    </button>
+
+<div class="video-background-container">
+    <iframe class="bg-video" src="https://www.youtube-nocookie.com/embed/-Neidi-McvA?autoplay=1&mute=1&loop=1&playlist=-Neidi-McvA&controls=0&showinfo=0&rel=0&iv_load_policy=3&modestbranding=1&vq=hd2160&enablejsapi=1" referrerpolicy="strict-origin-when-cross-origin" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+</div>
+<div class="video-overlay"></div>
+
+<canvas id="skyCanvas" style="position: fixed; inset: 0; pointer-events: none; z-index: -1; display: none;"></canvas>
+
+<div class="auth-wrapper">
+    <div class="auth-card" id="authCard">
+        
+        <!-- Brand Header -->
+        <div class="brand-header">
+            <div class="brand-icon">
+                <div class="brand-icon-inner"></div>
+            </div>
+            <div class="brand-name">CHEAT EXE</div>
+        </div>
+
+        <!-- Title & Subtitle -->
+        <h1 class="card-title">Sign in</h1>
+        <p class="card-subtitle">Welcome back. Two fields stand between you and that button.</p>
+
+        <div class="alert alert-error" id="errorMsg"></div>
+        <div class="alert alert-success" id="successMsg"></div>
+
+        <form id="loginForm" autocomplete="off">
+            
+            <!-- Username Field -->
+            <div class="form-group">
+                <div class="form-label-row">
+                    <label class="form-label" for="logUsername">Username</label>
+                </div>
+                <div class="input-container">
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <input type="text" class="form-input" id="logUsername" placeholder="Username" required autocomplete="username">
+                </div>
+            </div>
+
+            <!-- Password Field -->
+            <div class="form-group">
+                <div class="form-label-row">
+                    <label class="form-label" for="logPassword">Password</label>
+                </div>
+                <div class="input-container">
+                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <input type="password" class="form-input" id="logPassword" placeholder="Password" required autocomplete="current-password">
+                    <button type="button" class="toggle-password" id="togglePassBtn" title="Toggle password visibility">
+                        <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TETHER ELASTIC RUNAWAY BUTTON COMPONENT -->
+            <div class="tether-track-container" id="tetherTrack">
+                <!-- Dashed Home Socket -->
+                <div class="tether-home-slot" id="homeSlot">
+                    <div class="tether-anchor-dot"></div>
+                </div>
+
+                <!-- Canvas for Elastic Tether String -->
+                <canvas id="tetherCanvas"></canvas>
+
+                <!-- Runaway Log In Button -->
+                <button type="submit" class="tether-btn" id="loginBtn">
+                    <span id="btnText">Log in</span>
+                </button>
+            </div>
+        </form>
+
+        <div class="social-divider">CONNECT</div>
+
+        <!-- Circular Social Icons Row -->
+        <div class="social-icons-row">
+            <!-- Discord -->
+            <button type="button" class="social-circle-btn discord" onclick="playClickSound(); window.open('https://discord.gg/Rt6FWbW8HD', '_blank')" data-tooltip="Discord">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+            </button>
+            <!-- Telegram -->
+            <button type="button" class="social-circle-btn telegram" onclick="playClickSound(); window.open('https://t.me/CHEAT_EXE_01', '_blank')" data-tooltip="Telegram">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+            <!-- YouTube -->
+            <button type="button" class="social-circle-btn youtube" onclick="playClickSound(); window.open('http://www.youtube.com/@cheatexe1', '_blank')" data-tooltip="YouTube">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon></svg>
+            </button>
+            <!-- WhatsApp -->
+            <button type="button" class="social-circle-btn whatsapp" onclick="playClickSound(); window.open('https://whatsapp.com/channel/0029VbChn2OFsn0YYp4Wp31d', '_blank')" data-tooltip="WhatsApp">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.012 2c-5.506 0-9.988 4.482-9.988 9.988 0 1.76.459 3.477 1.332 4.992L2 22l5.178-1.357c1.464.798 3.111 1.218 4.823 1.22h.004c5.506 0 9.99-4.483 9.99-9.99 0-2.668-1.039-5.176-2.927-7.064C17.186 3.03 14.68 2 12.012 2zm0 18.312h-.003c-1.493-.002-2.96-.402-4.243-1.157l-.304-.18-3.155.827.842-3.076-.197-.314a8.275 8.275 0 0 1-1.267-4.425c0-4.57 3.72-8.29 8.295-8.29 2.215.001 4.296.864 5.86 2.43 1.564 1.566 2.426 3.648 2.425 5.863-.002 4.572-3.722 8.292-8.293 8.292zm4.55-6.216c-.249-.125-1.477-.728-1.706-.81-.228-.084-.395-.125-.561.125-.166.249-.644.81-.789.975-.145.166-.29.187-.539.062-.25-.125-1.05-.387-2.001-1.235-.74-.66-1.239-1.475-1.384-1.724-.145-.25-.015-.384.11-.508.112-.112.249-.29.373-.436.125-.145.166-.25.249-.415.083-.167.042-.312-.02-.436-.063-.125-.561-1.35-.769-1.85-.203-.487-.41-.422-.561-.43-.146-.008-.312-.008-.479-.008a.92.92 0 0 0-.665.312c-.228.249-.873.852-.873 2.076s.893 2.41 1.018 2.576c.125.167 1.758 2.685 4.26 3.765.595.257 1.06.41 1.423.525.598.19 1.142.163 1.571.1.479-.071 1.477-.603 1.685-1.185.208-.582.208-1.08.146-1.185-.063-.105-.229-.167-.478-.292z"/></svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Banned Overlay -->
+<div id="bannedOverlay">
+    <h1 style="color:#ef4444; font-size:28px; margin-bottom:12px; letter-spacing:2px;">ACCOUNT TERMINATED</h1>
+    <p style="color:#94a3b8; font-size:14px; margin-bottom:20px;">Access to this platform has been revoked.</p>
+    <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:12px 20px;">
+        <span style="color:#f87171;" id="bannedUserDisplay">USER: —</span>
+    </div>
+</div>
+
+<!-- ========================================================
+     WEB AUDIO API - SYNTHESIZED SOUND EFFECTS
+     ======================================================== -->
+<script>
+    (function() {
+        // Override localStorage.setItem to auto-save to server
+        const originalSetItem = localStorage.setItem;
+        localStorage.setItem = function(key, value) {
+            originalSetItem.apply(this, arguments);
+            
+            const keysToPersist = [
+                'cheatExeUsers', 
+                'cheatExeKeyHistory', 
+                'cheatExeAuditLogs', 
+                'cheatExeDevices', 
+                'cheatExeBannedUsers',
+                'adminUser',
+                'adminPass'
+            ];
+            
+            if (keysToPersist.includes(key)) {
+                saveDataToServer();
+            }
+        };
+
+        let saveTimeout = null;
+        function saveDataToServer() {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                const payload = {
+                    cheatExeUsers: JSON.parse(localStorage.getItem('cheatExeUsers') || '{}'),
+                    cheatExeKeyHistory: JSON.parse(localStorage.getItem('cheatExeKeyHistory') || '[]'),
+                    cheatExeAuditLogs: JSON.parse(localStorage.getItem('cheatExeAuditLogs') || '[]'),
+                    cheatExeDevices: JSON.parse(localStorage.getItem('cheatExeDevices') || '[]'),
+                    cheatExeBannedUsers: JSON.parse(localStorage.getItem('cheatExeBannedUsers') || '[]'),
+                    adminUser: localStorage.getItem('adminUser') || 'JACK',
+                    adminPass: localStorage.getItem('adminPass') || '22153310'
+                };
+                
+                fetch('/api/db', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).catch(err => console.error('Error saving database:', err));
+            }, 300);
+        }
+
+        // Fetch database immediately
+        fetch('/api/db')
+            .then(res => res.json())
+            .then(db => {
+                if (db) {
+                    const tempSetItem = localStorage.setItem;
+                    localStorage.setItem = originalSetItem;
+                    
+                    if (db.cheatExeUsers) localStorage.setItem('cheatExeUsers', JSON.stringify(db.cheatExeUsers));
+                    if (db.cheatExeKeyHistory) localStorage.setItem('cheatExeKeyHistory', JSON.stringify(db.cheatExeKeyHistory));
+                    if (db.cheatExeAuditLogs) localStorage.setItem('cheatExeAuditLogs', JSON.stringify(db.cheatExeAuditLogs));
+                    if (db.cheatExeDevices) localStorage.setItem('cheatExeDevices', JSON.stringify(db.cheatExeDevices));
+                    if (db.cheatExeBannedUsers) localStorage.setItem('cheatExeBannedUsers', JSON.stringify(db.cheatExeBannedUsers));
+                    if (db.adminUser) localStorage.setItem('adminUser', db.adminUser);
+                    if (db.adminPass) localStorage.setItem('adminPass', db.adminPass);
+                    
+                    localStorage.setItem = tempSetItem;
+                }
+            })
+            .catch(err => console.error('Error loading database:', err));
+    })();
+
+let audioCtx = null;
+
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+// 1. Crisp Click Sound
+function playClickSound() {
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.06);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.06);
+    } catch (e) {}
+}
+
+// 2. Micro Keyboard Typing Feedback Sound
+function playTypeSound() {
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600 + Math.random() * 200, ctx.currentTime);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.03);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.03);
+    } catch (e) {}
+}
+
+// 3. Button Snap Home / Lock Sound (Green Lock Chord)
+function playSnapSound() {
+    try {
+        const ctx = getAudioContext();
+        [523.25, 659.25, 1046.5].forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.04);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime + idx * 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.04 + 0.18);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + idx * 0.04);
+            osc.stop(ctx.currentTime + idx * 0.04 + 0.18);
+        });
+    } catch (e) {}
+}
+
+// 4. Dodge Woosh Sound
+let lastDodgeSound = 0;
+function playDodgeSound() {
+    const now = Date.now();
+    if (now - lastDodgeSound < 350) return;
+    lastDodgeSound = now;
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(450, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+    } catch (e) {}
+}
+
+// 5. Error Buzz Sound
+function playErrorSound() {
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, ctx.currentTime);
+        osc.frequency.setValueAtTime(120, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+    } catch (e) {}
+}
+</script>
+
+<!-- ========================================================
+     REALTIME TETHER SPRING & DYNAMIC CREDENTIAL VALIDATION
+     ======================================================== -->
+<script>
+const userInput = document.getElementById('logUsername');
+const passInput = document.getElementById('logPassword');
+const loginBtn = document.getElementById('loginBtn');
+const tetherTrack = document.getElementById('tetherTrack');
+const homeSlot = document.getElementById('homeSlot');
+const canvas = document.getElementById('tetherCanvas');
+const ctx = canvas.getContext('2d');
+
+let btnPos = { x: 0, y: 0 };
+let targetPos = { x: 0, y: 0 };
+let validationState = 'empty'; // 'empty', 'valid', 'invalid'
+let hasPlayedSnap = false;
+
+function resizeCanvas() {
+    const rect = tetherTrack.getBoundingClientRect();
+    canvas.width = rect.width + 300;
+    canvas.height = rect.height + 200;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// Validate user and pass against Admin or Active Resellers in Real-time
+function evaluateCredentials() {
+    const u = userInput.value.trim();
+    const p = passInput.value;
+
+    if (!u || !p) {
+        return 'empty';
+    }
+
+    const adminU = localStorage.getItem('adminUser') || 'JACK';
+    const adminP = localStorage.getItem('adminPass') || '22153310';
+
+    // Admin match
+    if (u.toLowerCase() === adminU.toLowerCase() && p === adminP) {
+        return 'valid';
+    }
+
+    // Resellers match
+    const users = JSON.parse(localStorage.getItem('cheatExeUsers') || '{}');
+    for (let key in users) {
+        if (key.toLowerCase() === u.toLowerCase()) {
+            const userData = users[key];
+            const userPass = typeof userData === 'string' ? userData : userData.pass;
+            const userStatus = typeof userData === 'string' ? 'ACTIVE' : userData.status;
+            if (userPass === p && userStatus === 'ACTIVE') {
+                return 'valid';
+            }
+        }
+    }
+
+    return 'invalid';
+}
+
+function updateValidationUI() {
+    validationState = evaluateCredentials();
+
+    if (validationState === 'valid') {
+        // Correct password -> GREEN & SNAPPED HOME
+        if (!hasPlayedSnap) {
+            playSnapSound();
+            hasPlayedSnap = true;
+        }
+        loginBtn.classList.remove('invalid-warning');
+        loginBtn.classList.add('valid-locked');
+        homeSlot.classList.remove('invalid-slot');
+        homeSlot.classList.add('valid-slot');
+        targetPos.x = 0;
+        targetPos.y = 0;
+    } else if (validationState === 'invalid') {
+        // Wrong password / credentials -> RED & DODGING
+        hasPlayedSnap = false;
+        loginBtn.classList.remove('valid-locked');
+        loginBtn.classList.add('invalid-warning');
+        homeSlot.classList.remove('valid-slot');
+        homeSlot.classList.add('invalid-slot');
+    } else {
+        // Empty / Incomplete -> DEFAULT TEAL & DODGING
+        hasPlayedSnap = false;
+        loginBtn.classList.remove('valid-locked', 'invalid-warning');
+        homeSlot.classList.remove('valid-slot', 'invalid-slot');
+    }
+}
+
+// Input Focus & Typing Listeners
+userInput.addEventListener('focus', playClickSound);
+passInput.addEventListener('focus', playClickSound);
+userInput.addEventListener('input', () => { playTypeSound(); updateValidationUI(); });
+passInput.addEventListener('input', () => { playTypeSound(); updateValidationUI(); });
+
+// Mouse Evasion Physics: ONLY TRIGGERS WHEN MOUSE IS ACTUALLY NEAR THE BUTTON TRACK
+window.addEventListener('mousemove', (e) => {
+    // If valid -> Lock firmly in center, never dodge!
+    if (validationState === 'valid') {
+        targetPos.x = 0;
+        targetPos.y = 0;
+        return;
+    }
+
+    const trackRect = tetherTrack.getBoundingClientRect();
+    const isInsideTrack = (
+        e.clientX >= trackRect.left &&
+        e.clientX <= trackRect.right &&
+        e.clientY >= trackRect.top &&
+        e.clientY <= trackRect.bottom
+    );
+    
+    if (!isInsideTrack) {
+        // Slowly relax back towards center if mouse is outside the dark track container
+        targetPos.x *= 0.85;
+        targetPos.y *= 0.85;
+        return;
+    }
+
+    const btnRect = loginBtn.getBoundingClientRect();
+    const btnCenterX = btnRect.left + btnRect.width / 2;
+    const btnCenterY = btnRect.top + btnRect.height / 2;
+
+    const distX = e.clientX - btnCenterX;
+    const distY = e.clientY - btnCenterY;
+    const distance = Math.hypot(distX, distY);
+
+    const threshold = 110;
+    const maxTravel = 135;
+
+    if (distance < threshold) {
+        playDodgeSound();
+        const angle = Math.atan2(distY, distX) + Math.PI;
+        const force = (1 - distance / threshold) * maxTravel;
+
+        let tx = Math.cos(angle) * force;
+        let ty = Math.sin(angle) * force * 0.7; // Vertical damping
+
+        targetPos.x = Math.max(-140, Math.min(140, tx));
+        targetPos.y = Math.max(-42, Math.min(42, ty));
+    } else if (distance > threshold + 60) {
+        targetPos.x *= 0.88;
+        targetPos.y *= 0.88;
+    }
+});
+
+// Keyboard Tab focus snaps to home
+loginBtn.addEventListener('focus', () => {
+    targetPos.x = 0;
+    targetPos.y = 0;
+    playClickSound();
+});
+
+// Realtime Canvas Render Loop (Tether string changes color: Green for valid, Red for invalid, Teal for neutral)
+function renderTether() {
+    requestAnimationFrame(renderTether);
+
+    const spring = validationState === 'valid' ? 0.28 : 0.18;
+    btnPos.x += (targetPos.x - btnPos.x) * spring;
+    btnPos.y += (targetPos.y - btnPos.y) * spring;
+
+    loginBtn.style.transform = `translate(${btnPos.x}px, ${btnPos.y}px)`;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const anchorX = canvas.width / 2;
+    const anchorY = canvas.height / 2;
+    const currentBtnX = anchorX + btnPos.x;
+    const currentBtnY = anchorY + btnPos.y;
+
+    const dist = Math.hypot(btnPos.x, btnPos.y);
+
+    if (dist > 2.5) {
+        ctx.save();
+        const midX = (anchorX + currentBtnX) / 2;
+        const midY = (anchorY + currentBtnY) / 2 + (btnPos.y * 0.15);
+
+        // String Glow Color based on validation state
+        let strokeColor = '#2dd4bf';
+        let glowColor = 'rgba(45, 212, 191, 0.4)';
+        if (validationState === 'invalid') {
+            strokeColor = '#ef4444';
+            glowColor = 'rgba(239, 68, 68, 0.4)';
+        }
+
+        // String Outer Glow
+        ctx.beginPath();
+        ctx.moveTo(anchorX, anchorY);
+        ctx.quadraticCurveTo(midX, midY, currentBtnX, currentBtnY);
+        ctx.strokeStyle = glowColor;
+        ctx.lineWidth = Math.max(2, 6 - (dist / 40));
+        ctx.lineCap = 'round';
+        ctx.shadowColor = strokeColor;
+        ctx.shadowBlur = 12;
+        ctx.stroke();
+
+        // String Core
+        ctx.beginPath();
+        ctx.moveTo(anchorX, anchorY);
+        ctx.quadraticCurveTo(midX, midY, currentBtnX, currentBtnY);
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = Math.max(1.5, 3.5 - (dist / 60));
+        ctx.stroke();
+
+        ctx.restore();
+    }
+}
+renderTether();
+</script>
+
+<!-- ========================================================
+     AUTHENTICATION & SUBMIT LOGIC
+     ======================================================== -->
+<script>
+    // Password Visibility Toggle
+    const togglePassBtn = document.getElementById('togglePassBtn');
+    const eyeIcon = document.getElementById('eyeIcon');
+
+    togglePassBtn.addEventListener('click', () => {
+        playClickSound();
+        const type = passInput.type === 'password' ? 'text' : 'password';
+        passInput.type = type;
+        if (type === 'text') {
+            eyeIcon.innerHTML = `
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+            `;
+        } else {
+            eyeIcon.innerHTML = `
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            `;
+        }
+    });
+
+    // Check Banned Users on Load
+    function checkBannedOnLogin() {
+        const banned = JSON.parse(localStorage.getItem('cheatExeBannedUsers') || '[]');
+        const lastUser = localStorage.getItem('loggedUser');
+        if (lastUser && banned.some(b => b.username.toLowerCase() === lastUser.toLowerCase())) {
+            document.getElementById('bannedUserDisplay').innerText = 'USER: ' + lastUser.toUpperCase();
+            document.getElementById('bannedOverlay').style.display = 'flex';
+            localStorage.removeItem('loggedUser');
+            localStorage.removeItem('isAdmin');
+            return true;
+        }
+        return false;
+    }
+    checkBannedOnLogin();
+
+    let clientIP = '127.0.0.1';
+    fetch('https://api.ipify.org?format=json')
+        .then(res => res.json())
+        .then(data => { clientIP = data.ip; })
+        .catch(() => { clientIP = '192.168.1.1'; });
+
+    const errorMsg = document.getElementById('errorMsg');
+    const successMsg = document.getElementById('successMsg');
+    const authCard = document.getElementById('authCard');
+
+    function showMsg(type, text) {
+        errorMsg.style.display = 'none';
+        successMsg.style.display = 'none';
+        const el = type === 'error' ? errorMsg : successMsg;
+        el.innerText = text;
+        el.style.display = 'block';
+        if (type === 'error') {
+            playErrorSound();
+            authCard.classList.remove('shake');
+            void authCard.offsetWidth;
+            authCard.classList.add('shake');
+            
+            // On error -> turn red and bolt away!
+            validationState = 'invalid';
+            loginBtn.classList.remove('valid-locked');
+            loginBtn.classList.add('invalid-warning');
+            homeSlot.classList.remove('valid-slot');
+            homeSlot.classList.add('invalid-slot');
+            targetPos.x = (Math.random() > 0.5 ? 1 : -1) * 120;
+            targetPos.y = -35;
+        }
+    }
+
+    // Submit Handler
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const user = userInput.value.trim();
+        const pass = passInput.value;
+        const btnText = document.getElementById('btnText');
+
+        loginBtn.disabled = true;
+        btnText.innerText = 'Signing in...';
+
+        setTimeout(() => {
+            const adminU = localStorage.getItem('adminUser') || 'JACK';
+            const adminP = localStorage.getItem('adminPass') || '22153310';
+            const users = JSON.parse(localStorage.getItem('cheatExeUsers') || '{}');
+
+            let userKey = null;
+            for (let key in users) {
+                if (key.toLowerCase() === user.toLowerCase()) {
+                    userKey = key;
+                    break;
+                }
+            }
+
+            const bannedList = JSON.parse(localStorage.getItem('cheatExeBannedUsers') || '[]');
+            const isBanned = bannedList.some(b => b.username.toLowerCase() === user.toLowerCase());
+
+            if (isBanned && user.toLowerCase() !== (localStorage.getItem('adminUser') || 'JACK').toLowerCase()) {
+                document.getElementById('bannedUserDisplay').innerText = 'USER: ' + user.toUpperCase();
+                document.getElementById('bannedOverlay').style.display = 'flex';
+                btnText.innerText = 'Log in';
+                loginBtn.disabled = false;
+                return;
+            }
+
+            if (user.toLowerCase() === adminU.toLowerCase() && pass === adminP) {
+                localStorage.setItem('isAdmin', 'true');
+                const logs = JSON.parse(localStorage.getItem('cheatExeAuditLogs') || '[]');
+                logs.unshift({ timestamp: new Date().toLocaleString(), user: 'Owner (OWNER)', action: 'Owner logged in successfully', ip: clientIP });
+                if(logs.length > 100) logs.pop();
+                localStorage.setItem('cheatExeAuditLogs', JSON.stringify(logs));
+
+                showMsg('success', 'Owner Login successful');
+                setTimeout(() => window.location.href = 'index.html?t=' + Date.now(), 1000);
+            } else if (userKey) {
+                const userData = users[userKey];
+                const userPass = typeof userData === 'string' ? userData : userData.pass;
+                const userStatus = typeof userData === 'string' ? 'ACTIVE' : userData.status;
+
+                if (userPass === pass) {
+                    if (userStatus === 'ACTIVE') {
+                        localStorage.setItem('isAdmin', 'false');
+                        localStorage.setItem('loggedUser', userKey);
+                        const logs = JSON.parse(localStorage.getItem('cheatExeAuditLogs') || '[]');
+                        logs.unshift({ timestamp: new Date().toLocaleString(), user: userKey + ' (RESELLER)', action: 'Logged in successfully', ip: clientIP });
+                        if(logs.length > 100) logs.pop();
+                        localStorage.setItem('cheatExeAuditLogs', JSON.stringify(logs));
+
+                        showMsg('success', 'Reseller Login successful');
+                        setTimeout(() => window.location.href = 'index.html?t=' + Date.now(), 1000);
+                    } else {
+                        showMsg('error', 'Account pending or suspended!');
+                        btnText.innerText = 'Log in';
+                        loginBtn.disabled = false;
+                    }
+                } else {
+                    showMsg('error', 'Invalid password! Check your credentials.');
+                    btnText.innerText = 'Log in';
+                    loginBtn.disabled = false;
+                }
+            } else {
+                showMsg('error', 'Invalid username or credentials!');
+                btnText.innerText = 'Log in';
+                loginBtn.disabled = false;
+            }
+        }, 600);
+    });
+</script>
+
+<script>
+    // Netlify cleanup
+    (function() {
+        const hideNetlify = () => {
+            const selectors = ['[data-netlify-deploy-id]', '[data-netlify-site-id]', '#netlify-feedback-button', '#netlify-feedback-drawer', '.netlify-feedback-button', '.netlify-feedback-drawer'];
+            selectors.forEach(sel => document.querySelectorAll(sel).forEach(el => el.remove()));
+            document.querySelectorAll('iframe').forEach(iframe => {
+                const src = iframe.getAttribute('src') || '';
+                const title = iframe.getAttribute('title') || '';
+                if (src.includes('netlify') || title.toLowerCase().includes('netlify')) iframe.remove();
+            });
+        };
+        hideNetlify();
+        window.addEventListener('DOMContentLoaded', hideNetlify);
+    })();
+</script>
+
+<script>
+    (function() {
+        const canvas = document.getElementById('skyCanvas');
+        if(!canvas) return;
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+
+        function resize() {
+          width = canvas.width = window.innerWidth;
+          height = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Star generation
+        const stars = Array.from({ length: 180 }, () => ({
+          x: Math.random() * width,
+          y: Math.random() * height * 0.7,
+          radius: Math.random() * 1.5 + 0.5,
+          alpha: Math.random(),
+          speed: Math.random() * 0.02 + 0.005
+        }));
+
+        // Minor meteor showers
+        const smallMeteors = [];
+        function spawnSmallMeteor() {
+          if (smallMeteors.length < 15 && Math.random() < 0.3) {
+            smallMeteors.push({
+              x: Math.random() * width * 1.2,
+              y: -20,
+              length: Math.random() * 80 + 40,
+              speed: Math.random() * 4 + 3,
+              angle: Math.PI / 3.2,
+              alpha: Math.random() * 0.6 + 0.4
+            });
+          }
+        }
+
+        // Main split comet
+        class Comet {
+          constructor() {
+            this.reset();
+          }
+
+          reset() {
+            this.x = width * 0.85;
+            this.y = -50;
+            this.targetX = width * 0.2;
+            this.targetY = height * 0.85;
+            this.speed = 1.4;
+            this.angle = Math.atan2(this.targetY - this.y, this.targetX - this.x);
+            this.history = [];
+            this.subHistory = [];
+            this.particleList = [];
+          }
+
+          update() {
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed;
+
+            this.history.push({ x: this.x, y: this.y });
+            if (this.history.length > 120) this.history.shift();
+
+            // Secondary split comet
+            const subX = this.x + Math.cos(this.angle + 0.35) * (this.history.length * 0.4);
+            const subY = this.y + Math.sin(this.angle + 0.35) * (this.history.length * 0.4);
+            this.subHistory.push({ x: subX, y: subY });
+            if (this.subHistory.length > 80) this.subHistory.shift();
+
+            // Sparkle particles
+            for (let i = 0; i < 3; i++) {
+              this.particleList.push({
+                x: this.x + (Math.random() - 0.5) * 10,
+                y: this.y + (Math.random() - 0.5) * 10,
+                vx: (Math.random() - 0.5) * 1.5,
+                vy: (Math.random() - 0.5) * 1.5,
+                alpha: 1,
+                color: Math.random() > 0.5 ? '#ff4db8' : '#38d9ff',
+                size: Math.random() * 2 + 1
+              });
+            }
+
+            this.particleList.forEach(p => {
+              p.x += p.vx;
+              p.y += p.vy;
+              p.alpha -= 0.015;
+            });
+            this.particleList = this.particleList.filter(p => p.alpha > 0);
+
+            if (this.y > height + 100 || this.x < -100) {
+              this.reset();
+            }
+          }
+
+          draw() {
+            // Render Particles
+            this.particleList.forEach(p => {
+              ctx.beginPath();
+              ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+              ctx.fillStyle = p.color;
+              ctx.globalAlpha = p.alpha;
+              ctx.shadowBlur = 10;
+              ctx.shadowColor = p.color;
+              ctx.fill();
+            });
+
+            // Main Comet Tail
+            if (this.history.length > 1) {
+              ctx.beginPath();
+              ctx.moveTo(this.history[0].x, this.history[0].y);
+              for (let i = 1; i < this.history.length; i++) {
+                ctx.lineTo(this.history[i].x, this.history[i].y);
+              }
+              const grad = ctx.createLinearGradient(
+                this.history[0].x, this.history[0].y,
+                this.history[this.history.length-1].x, this.history[this.history.length-1].y
+              );
+              grad.addColorStop(0, 'rgba(0, 242, 254, 0)');
+              grad.addColorStop(1, 'rgba(0, 242, 254, 0.9)');
+              ctx.lineWidth = 6;
+              ctx.strokeStyle = grad;
+              ctx.shadowBlur = 15;
+              ctx.shadowColor = '#00f2fe';
+              ctx.stroke();
+
+              // Inner core glow
+              ctx.beginPath();
+              ctx.moveTo(this.history[0].x, this.history[0].y);
+              for (let i = 1; i < this.history.length; i++) {
+                ctx.lineTo(this.history[i].x, this.history[i].y);
+              }
+              const coreGrad = ctx.createLinearGradient(
+                this.history[0].x, this.history[0].y,
+                this.history[this.history.length-1].x, this.history[this.history.length-1].y
+              );
+              coreGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+              coreGrad.addColorStop(1, 'rgba(255, 255, 255, 1)');
+              ctx.lineWidth = 2.5;
+              ctx.strokeStyle = coreGrad;
+              ctx.shadowBlur = 5;
+              ctx.stroke();
+            }
+
+            // Split Comet Tail (Magenta/Pink)
+            if (this.subHistory.length > 1) {
+              ctx.beginPath();
+              ctx.moveTo(this.subHistory[0].x, this.subHistory[0].y);
+              for (let i = 1; i < this.subHistory.length; i++) {
+                ctx.lineTo(this.subHistory[i].x, this.subHistory[i].y);
+              }
+              const subGrad = ctx.createLinearGradient(
+                this.subHistory[0].x, this.subHistory[0].y,
+                this.subHistory[this.subHistory.length-1].x, this.subHistory[this.subHistory.length-1].y
+              );
+              subGrad.addColorStop(0, 'rgba(255, 75, 180, 0)');
+              subGrad.addColorStop(1, 'rgba(255, 75, 180, 0.8)');
+              ctx.lineWidth = 4;
+              ctx.strokeStyle = subGrad;
+              ctx.shadowBlur = 10;
+              ctx.shadowColor = '#ff4bb4';
+              ctx.stroke();
+            }
+          }
+        }
+
+        const mainComet = new Comet();
+
+        function drawBackground() {
+          // Deep anime sky gradient
+          const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+          bgGrad.addColorStop(0, '#040718');
+          bgGrad.addColorStop(0.4, '#09153d');
+          bgGrad.addColorStop(0.7, '#1b2c63');
+          bgGrad.addColorStop(1, '#3b1d4a');
+          ctx.fillStyle = bgGrad;
+          ctx.fillRect(0, 0, width, height);
+
+          // Stars
+          stars.forEach(star => {
+            star.alpha += star.speed;
+            const currentAlpha = Math.abs(Math.sin(star.alpha));
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${currentAlpha * 0.8})`;
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = '#fff';
+            ctx.fill();
+          });
+
+          // Small background meteors
+          spawnSmallMeteor();
+          for (let i = smallMeteors.length - 1; i >= 0; i--) {
+            const m = smallMeteors[i];
+            m.x -= Math.cos(m.angle) * m.speed;
+            m.y += Math.sin(m.angle) * m.speed;
+
+            ctx.beginPath();
+            ctx.moveTo(m.x, m.y);
+            ctx.lineTo(
+              m.x + Math.cos(m.angle) * m.length,
+              m.y - Math.sin(m.angle) * m.length
+            );
+            ctx.strokeStyle = `rgba(130, 200, 255, ${m.alpha})`;
+            ctx.lineWidth = 1.2;
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#82c8ff';
+            ctx.stroke();
+
+            if (m.y > height || m.x < 0) smallMeteors.splice(i, 1);
+          }
+        }
+
+        function animate() {
+          ctx.clearRect(0, 0, width, height);
+          drawBackground();
+          mainComet.update();
+          mainComet.draw();
+          requestAnimationFrame(animate);
+        }
+
+        animate();
+        function createWave(btn, color) {
+            const rect = btn.getBoundingClientRect();
+            const x = rect.left + rect.width / 2;
+            const y = rect.top + rect.height / 2;
+            const size = rect.width;
+
+            const wave = document.createElement('div');
+            wave.className = 'click-wave';
+            wave.style.left = `${x}px`;
+            wave.style.top = `${y}px`;
+            wave.style.width = `${size}px`;
+            wave.style.height = `${size}px`;
+            wave.style.setProperty('--wave-color', color);
+            
+            document.body.appendChild(wave);
+            setTimeout(() => {
+                wave.remove();
+            }, 600);
+        }
+
+        function syncYoutubeMute(isMuted) {
+            const iframe = document.querySelector('.bg-video');
+            if (iframe && iframe.contentWindow) {
+                const command = isMuted ? 'mute' : 'unMute';
+                iframe.contentWindow.postMessage(JSON.stringify({
+                    event: 'command',
+                    func: command,
+                    args: ''
+                }), '*');
+            }
+        }
+
+        // Corner Music Control Logic
+        window.toggleBackgroundMusic = function() {
+            const btn = document.getElementById('musicToggleBtn');
+            if (!btn) return;
+            const onIcon = btn.querySelector('.music-on-icon');
+            const offIcon = btn.querySelector('.music-off-icon');
+            
+            const isMuted = localStorage.getItem('bgMusicMuted') === 'true';
+            const newMuted = !isMuted;
+            localStorage.setItem('bgMusicMuted', newMuted ? 'true' : 'false');
+            
+            syncYoutubeMute(newMuted);
+            
+            if (newMuted) {
+                onIcon.style.display = 'none';
+                offIcon.style.display = 'block';
+            } else {
+                onIcon.style.display = 'block';
+                offIcon.style.display = 'none';
+            }
+
+            // Trigger click wave ripple effect (single expanding ring)
+            createWave(btn, '#ff1f5a');
+        };
+
+        // Always force background music to unmuted (playing) on login page load
+        localStorage.setItem('bgMusicMuted', 'false');
+        const isMuted = false;
+        const btn = document.getElementById('musicToggleBtn');
+        if (btn) {
+            const onIcon = btn.querySelector('.music-on-icon');
+            const offIcon = btn.querySelector('.music-off-icon');
+            if (isMuted) {
+                onIcon.style.display = 'none';
+                offIcon.style.display = 'block';
+            } else {
+                onIcon.style.display = 'block';
+                offIcon.style.display = 'none';
+            }
+        }
+
+        // Auto sync and play on load/first interaction to bypass Chrome autoplay block
+        function unmuteOnInteraction() {
+            syncYoutubeMute(false);
+            document.removeEventListener('click', unmuteOnInteraction);
+            document.removeEventListener('keydown', unmuteOnInteraction);
+            document.removeEventListener('mousemove', unmuteOnInteraction);
+        }
+        document.addEventListener('click', unmuteOnInteraction);
+        document.addEventListener('keydown', unmuteOnInteraction);
+        document.addEventListener('mousemove', unmuteOnInteraction);
+        
+        // Also try immediately after a delay
+        setTimeout(() => { syncYoutubeMute(false); }, 1000);
+
+        // MutationObserver to automatically mute dynamic videos
+        const videoObserver = new MutationObserver(mutations => {
+            const currentMuted = localStorage.getItem('bgMusicMuted') === 'true';
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.tagName === 'VIDEO') {
+                        node.muted = currentMuted;
+                    } else if (node.querySelectorAll) {
+                        node.querySelectorAll('video').forEach(video => {
+                            video.muted = currentMuted;
+                        });
+                    }
+                });
+            });
+        });
+        videoObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+
+    })();
+</script>
+
+</body>
+</html>
