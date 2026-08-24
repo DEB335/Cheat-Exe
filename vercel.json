@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "http://103.99.36.146:8000/api/:path*"
+    },
+    {
+      "source": "/build_exe",
+      "destination": "http://103.99.36.146:8000/build_exe"
+    }
+  ]
+}

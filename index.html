@@ -3216,7 +3216,7 @@ body.light-mode .console-box::after {
                     adminPass: localStorage.getItem('adminPass') || '22153310'
                 };
                 
-                fetch('http://localhost:8000/api/db', {
+                fetch('/api/db', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -3225,7 +3225,7 @@ body.light-mode .console-box::after {
         }
 
         // Fetch database and verify authorization
-        fetch('http://localhost:8000/api/db')
+        fetch('/api/db')
             .then(res => res.json())
             .then(db => {
                 if (db) {
