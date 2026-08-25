@@ -1,12 +1,9 @@
 import "server-only";
 
-import { promises as fs } from "node:fs";
-import path from "node:path";
 import bcrypt from "bcryptjs";
 
+import { sql } from "./sql";
 import type { Database, ProfileSettings, PublicDatabase, Reseller } from "./types";
-
-const DB_PATH = path.join(process.cwd(), "data", "db.json");
 
 export const DEFAULT_PROFILE: ProfileSettings = {
   displayName: "Cheat Exe",
@@ -31,72 +28,83 @@ function emptyDb(adminPassHash: string): Database {
 }
 
 /**
- * All reads and writes funnel through this promise chain so two
- * concurrent requests cannot interleave a read-modify-write and clobber
- * each other -- the failure mode the original POST /api/db had.
+ * postgres.js types `json()` as an index-signature JSON shape, which a
+ * declared interface never satisfies. Database is plain JSON data, so
+ * this narrows the type without weakening it anywhere else.
  */
-let queue: Promise<unknown> = Promise.resolve();
-
-function serialize<T>(job: () => Promise<T>): Promise<T> {
-  const run = queue.then(job, job);
-  queue = run.then(
-    () => undefined,
-    () => undefined,
-  );
-  return run;
+function asJson(value: Database) {
+  type JsonArg = Parameters<ReturnType<typeof sql>["json"]>[0];
+  return value as unknown as JsonArg;
 }
 
-async function readRaw(): Promise<Database> {
-  try {
-    const text = await fs.readFile(DB_PATH, "utf8");
-    const parsed = JSON.parse(text) as Partial<Database> & {
-      adminPass?: string;
-    };
-
-    // Migrate a legacy db.json that still carries a plaintext adminPass.
-    let adminPassHash = parsed.adminPassHash;
-    if (!adminPassHash) {
-      adminPassHash = await bcrypt.hash(parsed.adminPass ?? DEFAULT_ADMIN_PASS, 10);
-    }
-
-    return {
-      cheatExeUsers: parsed.cheatExeUsers ?? {},
-      cheatExeKeyHistory: parsed.cheatExeKeyHistory ?? [],
-      cheatExeAuditLogs: parsed.cheatExeAuditLogs ?? [],
-      cheatExeDevices: parsed.cheatExeDevices ?? [],
-      cheatExeBannedUsers: parsed.cheatExeBannedUsers ?? [],
-      adminUser: parsed.adminUser ?? DEFAULT_ADMIN_USER,
-      adminPassHash,
-      profile: { ...DEFAULT_PROFILE, ...parsed.profile },
-    };
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-    const fresh = emptyDb(await bcrypt.hash(DEFAULT_ADMIN_PASS, 10));
-    await writeRaw(fresh);
-    return fresh;
+/** Fills in anything a stored document is missing, and migrates legacy shapes. */
+async function normalise(stored: Partial<Database> & { adminPass?: string }): Promise<Database> {
+  let adminPassHash = stored.adminPassHash;
+  if (!adminPassHash) {
+    // A document carried over from the old plaintext file store.
+    adminPassHash = await bcrypt.hash(stored.adminPass ?? DEFAULT_ADMIN_PASS, 10);
   }
+
+  return {
+    cheatExeUsers: stored.cheatExeUsers ?? {},
+    cheatExeKeyHistory: stored.cheatExeKeyHistory ?? [],
+    cheatExeAuditLogs: stored.cheatExeAuditLogs ?? [],
+    cheatExeDevices: stored.cheatExeDevices ?? [],
+    cheatExeBannedUsers: stored.cheatExeBannedUsers ?? [],
+    adminUser: stored.adminUser ?? DEFAULT_ADMIN_USER,
+    adminPassHash,
+    profile: { ...DEFAULT_PROFILE, ...stored.profile },
+  };
 }
 
-async function writeRaw(db: Database): Promise<void> {
-  await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
-  // Write-then-rename so a crash mid-write cannot truncate the database.
-  const tmp = `${DB_PATH}.${process.pid}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(db, null, 4), "utf8");
-  await fs.rename(tmp, DB_PATH);
+/** Reads the current state, seeding a fresh database on first run. */
+export async function readDb(): Promise<Database> {
+  const db = sql();
+  const rows = await db<{ data: Partial<Database> }[]>`
+    select data from app_state where id = 1
+  `;
+
+  if (rows.length > 0) return normalise(rows[0]!.data);
+
+  const fresh = emptyDb(await bcrypt.hash(DEFAULT_ADMIN_PASS, 10));
+  await db`
+    insert into app_state (id, data) values (1, ${db.json(asJson(fresh))})
+    on conflict (id) do nothing
+  `;
+  return fresh;
 }
 
-export function readDb(): Promise<Database> {
-  return serialize(readRaw);
-}
+/**
+ * Read-modify-write inside a transaction.
+ *
+ * `for update` locks the row for the life of the transaction, so two
+ * requests landing at once queue rather than overwrite each other. This
+ * is the part the old file store could not do once the app runs on more
+ * than one instance, which is every deployment on Vercel.
+ */
+export async function updateDb<T>(mutate: (db: Database) => T | Promise<T>): Promise<T> {
+  const db = sql();
 
-/** Read-modify-write under the same lock, so updates never race. */
-export function updateDb<T>(mutate: (db: Database) => T | Promise<T>): Promise<T> {
-  return serialize(async () => {
-    const db = await readRaw();
-    const result = await mutate(db);
-    await writeRaw(db);
+  return db.begin(async (tx) => {
+    const rows = await tx<{ data: Partial<Database> }[]>`
+      select data from app_state where id = 1 for update
+    `;
+
+    const current =
+      rows.length > 0
+        ? await normalise(rows[0]!.data)
+        : emptyDb(await bcrypt.hash(DEFAULT_ADMIN_PASS, 10));
+
+    const result = await mutate(current);
+
+    await tx`
+      insert into app_state (id, data, updated_at)
+      values (1, ${tx.json(asJson(current))}, now())
+      on conflict (id) do update set data = excluded.data, updated_at = now()
+    `;
+
     return result;
-  });
+  }) as Promise<T>;
 }
 
 /** Strips every password hash before anything reaches the browser. */

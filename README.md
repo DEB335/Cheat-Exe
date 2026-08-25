@@ -217,11 +217,80 @@ horizontal overflow.
 
 ## Deploying
 
-`data/db.json` is a file on disk, so the app needs a writable filesystem —
-a VPS or container, not Vercel's serverless functions. Swapping storage
-means rewriting `readDb` / `updateDb` in `lib/db.ts` and nothing else.
+Runs on Vercel. State lives in Supabase Postgres, not on disk -- Vercel's
+filesystem is read-only, which is what the original file store hit.
 
-The old `vercel.json` and `netlify.toml` are obsolete: they proxied `/api`
-to two different backends (Vercel to a plain-HTTP bare IP, Netlify to the
-auth domain). The port talks to the upstream API from its own route
-handlers instead.
+### One-time setup
+
+```bash
+npm install
+# Paste the schema into the Supabase SQL editor, or:
+psql "$DATABASE_URL" -f scripts/schema.sql
+
+node --env-file=.env.local scripts/migrate.mjs   # copies existing data across
+```
+
+### Environment variables
+
+Set these in Vercel under **Settings -> Environment Variables** (all
+environments), and locally in `.env.local`:
+
+| Variable | Notes |
+| --- | --- |
+| `DATABASE_URL` | Supabase **transaction pooler**, port 6543 |
+| `SESSION_SECRET` | 32+ random chars |
+| `LICENSE_API_URL` | `https://auth.terminalx999.online/api_admin.php` |
+| `LICENSE_API_KEY` | server-side only |
+| `LICENSE_APP_ID` | |
+
+### Use the transaction pooler, not the direct connection
+
+```
+postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+```
+
+Two reasons the direct `db.<ref>.supabase.co:5432` host fails on Vercel:
+
+- It has no IPv4 address. Vercel functions cannot route IPv6, so the
+  connection never opens.
+- It allocates one connection per client. Vercel runs many short-lived
+  instances, which exhausts the limit.
+
+The transaction pooler is IPv4 and returns each connection to the pool
+after every transaction. It also cannot use server-side prepared
+statements, which is why `lib/sql.ts` sets `prepare: false`.
+
+Percent-encode any special characters in the password -- an unescaped
+`#` truncates the URL and the client silently authenticates with the
+wrong password.
+
+### Storage design
+
+The whole dashboard state is one JSONB row in `app_state`. `updateDb()`
+reads it with `select ... for update` inside a transaction, so
+simultaneous writes queue instead of overwriting each other. Verified
+with eight concurrent creates: all eight survived, where the file store
+would have lost most of them.
+
+Audit logs are capped at 100 and devices at 50, so only key history
+grows. Splitting the document into proper tables is straightforward if it
+ever gets large.
+
+### Row Level Security is not optional
+
+Supabase publishes a PostgREST API for every project, and the anon key is
+public by design. `scripts/schema.sql` enables RLS on `app_state` with no
+policies and revokes access from `anon` and `authenticated`, so the
+public API cannot touch it. The app connects as `postgres`, which
+bypasses RLS.
+
+Verified: `anon` and `authenticated` both get `42501 permission denied`;
+the app role reads normally. Without this the database is readable by
+anyone, password hashes included.
+
+### Do not add the Supabase JS client
+
+`@supabase/supabase-js` and `@supabase/ssr` are for apps that use
+Supabase Auth and query from the browser with a `NEXT_PUBLIC_` key. This
+app authenticates itself and queries only from the server, and PostgREST
+cannot express the row-level locking `updateDb()` depends on.
