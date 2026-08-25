@@ -1,4 +1,4 @@
-const http = require('http');
+const https = require('https');
 
 module.exports = (req, res) => {
   // CORS Headers
@@ -19,18 +19,17 @@ module.exports = (req, res) => {
 
   req.on('end', () => {
     const options = {
-      hostname: '103.99.36.146',
-      port: 80,
-      path: '/api/index.php',
+      hostname: 'auth.terminalx999.online',
+      port: 443,
+      path: '/api_admin.php',
       method: req.method,
       headers: {
-        'Host': 'cheatexe.online',
         'Content-Type': req.headers['content-type'] || 'application/x-www-form-urlencoded',
         'Content-Length': Buffer.byteLength(body)
       }
     };
 
-    const proxyReq = http.request(options, (proxyRes) => {
+    const proxyReq = https.request(options, (proxyRes) => {
       res.writeHead(proxyRes.statusCode, proxyRes.headers);
       proxyRes.pipe(res);
     });

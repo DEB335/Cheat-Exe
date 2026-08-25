@@ -1,8 +1,0 @@
-{
-  "rewrites": [
-    {
-      "source": "/build_exe",
-      "destination": "http://103.99.36.146/build_exe"
-    }
-  ]
-}

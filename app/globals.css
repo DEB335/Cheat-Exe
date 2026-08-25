@@ -1,0 +1,500 @@
+@import "tailwindcss";
+
+/* Light theme is an opt-in override on <body>, so dark is the default.
+   The lt: variant is the inverse of the usual Tailwind dark: variant. */
+@custom-variant lt (&:where(body.light-mode, body.light-mode *));
+
+/* ---------------------------------------------------------------
+   Design tokens. Values live on :root / body.light-mode so a single
+   class swap re-themes everything; @theme inline exposes them to
+   Tailwind so bg-accent, text-muted, border-line etc. follow along.
+   --------------------------------------------------------------- */
+:root {
+  --bg-secondary: rgba(10, 11, 20, 0.6);
+  --bg-sidebar: rgba(6, 6, 10, 0.95);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 31, 90, 0.2);
+
+  --text-main: #f8fafc;
+  --text-muted: #a1b0cb;
+
+  --accent-red: #ff1f5a;
+  --accent-red-glow: rgba(255, 31, 90, 0.18);
+  --accent-purple: #a855f7;
+  --accent-purple-glow: rgba(168, 85, 247, 0.18);
+  --accent-green: #10b981;
+  --accent-green-glow: rgba(16, 185, 129, 0.12);
+  --accent-orange: #f59e0b;
+  --accent-orange-glow: rgba(245, 158, 11, 0.12);
+  --accent-cyan: #06b6d4;
+  --accent-cyan-glow: rgba(6, 182, 212, 0.12);
+
+  --card-bg: linear-gradient(145deg, rgba(12, 13, 26, 0.68) 0%, rgba(6, 7, 15, 0.88) 100%);
+  --card-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  --sidebar-border: rgba(255, 255, 255, 0.04);
+  --input-bg: rgba(2, 2, 5, 0.6);
+  --input-border: rgba(255, 255, 255, 0.07);
+
+  --grid-line: rgba(255, 255, 255, 0.01);
+  --page-bg: #040718;
+}
+
+body.light-mode {
+  --bg-secondary: #ffffff;
+  --bg-sidebar: #ffffff;
+  --border-color: #cbd5e1;
+  --border-hover: rgba(230, 40, 67, 0.15);
+
+  --text-main: #0f172a;
+  --text-muted: #475569;
+
+  --accent-red: #e62843;
+  --accent-red-glow: rgba(230, 40, 67, 0.12);
+  --accent-purple: #7c3aed;
+  --accent-purple-glow: rgba(124, 58, 237, 0.12);
+
+  --card-bg: #ffffff;
+  --card-shadow: 0 8px 30px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.01);
+  --sidebar-border: #e2e8f0;
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
+
+  --grid-line: rgba(0, 0, 0, 0.015);
+  --page-bg: #f8fafc;
+}
+
+@theme inline {
+  --color-fg: var(--text-main);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent-red);
+  --color-accent-glow: var(--accent-red-glow);
+  --color-purple: var(--accent-purple);
+  --color-purple-glow: var(--accent-purple-glow);
+  --color-green: var(--accent-green);
+  --color-green-glow: var(--accent-green-glow);
+  --color-orange: var(--accent-orange);
+  --color-orange-glow: var(--accent-orange-glow);
+  --color-cyan: var(--accent-cyan);
+  --color-cyan-glow: var(--accent-cyan-glow);
+  --color-line: var(--border-color);
+  --color-line-hover: var(--border-hover);
+  --color-sidebar-line: var(--sidebar-border);
+  --color-input-bg: var(--input-bg);
+  --color-input-line: var(--input-border);
+  --color-surface: var(--bg-secondary);
+  --color-sidebar: var(--bg-sidebar);
+
+  --font-sans: var(--font-jakarta), "Plus Jakarta Sans", sans-serif;
+  --font-display: var(--font-outfit), "Outfit", sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
+
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-back: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* ---------------------------------------------------------------
+   Animated conic border ring. A masked pseudo-element has no utility
+   equivalent, so it stays hand-written -- but it is registered as a
+   real Tailwind utility via @utility.
+   --------------------------------------------------------------- */
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes rotate-border {
+  0% {
+    --border-angle: 0deg;
+  }
+  100% {
+    --border-angle: 360deg;
+  }
+}
+
+@utility glow-ring {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--border-angle),
+      transparent 70%,
+      #ff0000 85%,
+      #ff1f5a 90%,
+      #ff0000 95%,
+      transparent 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 3;
+  }
+}
+
+@utility glow-ring-on {
+  &::after {
+    opacity: 1;
+    animation: rotate-border 2.5s linear infinite;
+  }
+}
+
+/* Slower variant used by the flat cards and the profile card */
+@utility glow-ring-slow {
+  &::after {
+    opacity: 1;
+    animation: rotate-border 3s linear infinite;
+  }
+}
+
+/* Faster variant used by the search containers and logo avatar */
+@utility glow-ring-fast {
+  &::after {
+    opacity: 1;
+    animation: rotate-border 2.2s linear infinite;
+  }
+}
+
+/* Golden ring around the collapsed sidebar */
+@utility sidebar-ring {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 42.5px;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--border-angle),
+      transparent 60%,
+      rgba(255, 120, 0, 0.18) 75%,
+      rgba(255, 120, 0, 1) 90%,
+      rgba(255, 120, 0, 0.18) 95%,
+      transparent 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 5;
+    animation: rotate-border 3.5s linear infinite;
+    box-shadow: 0 0 28px rgba(255, 120, 0, 0.28), inset 0 0 10px rgba(255, 120, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+  }
+  &:hover::after {
+    box-shadow: 0 0 38px rgba(255, 120, 0, 0.42), inset 0 0 14px rgba(255, 120, 0, 0.18);
+  }
+}
+
+/* Card background is a gradient in dark and a flat fill in light, so it
+   cannot be expressed as a plain color token. */
+@utility card-surface {
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
+}
+
+/* CRT scanline overlay on the generator console */
+@utility scanlines {
+  &::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+      linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+    background-size: 100% 4px, 3px 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+  &:where(body.light-mode *)::after {
+    display: none;
+  }
+}
+
+/* Animated RGB gradient wordmark */
+@utility text-rgb-flow {
+  background: linear-gradient(90deg, #ff1f5a, #a855f7, #00ddeb, #ff1f5a);
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rgb-text-flow 6s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.45));
+}
+
+@keyframes rgb-text-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+/* Gradient-clipped button label, inverted under light mode */
+@utility text-clip-gradient {
+  background: linear-gradient(to bottom, #ffffff 0%, rgba(255, 255, 255, 0.6) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  &:where(body.light-mode *) {
+    background: linear-gradient(to bottom, #000000 0%, rgba(0, 0, 0, 0.6) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+/* Thin 4px scrollbar inside the sidebar only */
+@utility sidebar-scroll {
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+}
+
+/* Hide the scrollbar entirely (login page body) */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------
+   Keyframes referenced from animate-* utilities
+   --------------------------------------------------------------- */
+@keyframes tab-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toast-slide-in {
+  from {
+    transform: translateX(60px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes modal-overlay-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-content-slide {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes dropdown-fade {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes button-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes border-glow-translate {
+  0% {
+    transform: translate(-30%, -10%);
+  }
+  100% {
+    transform: translate(-10%, -30%);
+  }
+}
+
+@keyframes border-glow-scale {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+@keyframes star-shine {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.7;
+  }
+}
+
+@keyframes star-rotate {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes shake-card {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-6px);
+  }
+  40%,
+  80% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes wave-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.85);
+    opacity: 0;
+  }
+}
+
+@theme inline {
+  --animate-tab-fade-in: tab-fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-toast-slide-in: toast-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-modal-overlay-fade: modal-overlay-fade 0.3s ease;
+  --animate-modal-content-slide: modal-content-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-dropdown-fade: dropdown-fade 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-button-shimmer: button-shimmer 2s linear infinite;
+  --animate-border-glow-translate: border-glow-translate 10s ease-in-out infinite alternate;
+  --animate-border-glow-scale: border-glow-scale 10s ease-in-out infinite alternate;
+  --animate-star-shine: star-shine 14s ease-in-out infinite alternate;
+  --animate-star-rotate: star-rotate 14s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite alternate;
+  --animate-shake-card: shake-card 0.4s ease-in-out;
+}
+
+/* ---------------------------------------------------------------
+   Base
+   --------------------------------------------------------------- */
+@layer base {
+  /* Both html and body need this: with only body clipped, the horizontal
+     scroll simply moves up to the root element. */
+  html {
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--page-bg);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    /* The original stylesheet never declares a line-height, so every box
+       used the browser default. Preflight forces 1.5, which grows each
+       label and accumulates several pixels of drift down the sidebar. */
+    line-height: normal;
+    /* The glow ring sits at inset -1px, a hair outside each card. The
+       original hid that with body { overflow: hidden }; here the page
+       scrolls vertically on small screens, so clip only the x axis. */
+    overflow-x: hidden;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+  body.light-mode ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+  }
+  body.light-mode ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* ---------------------------------------------------------------
+   Theme switch: circular clip-path reveal via the View Transitions
+   API. These pseudo-elements have no utility equivalent.
+   --------------------------------------------------------------- */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none !important;
+  mix-blend-mode: normal !important;
+}
+::view-transition-old(root) {
+  z-index: 1 !important;
+}
+::view-transition-new(root) {
+  z-index: 99999 !important;
+}
+.light-mode::view-transition-old(root) {
+  z-index: 99999 !important;
+}
+.light-mode::view-transition-new(root) {
+  z-index: 1 !important;
+}
+
+/* Neon ring emitted on every click */
+.click-wave {
+  position: fixed;
+  pointer-events: none;
+  z-index: 999999;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  border: 1.2px solid var(--wave-color);
+  box-shadow: 0 0 8px var(--wave-color), inset 0 0 4px var(--wave-color);
+  animation: wave-expand 0.6s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
+}
