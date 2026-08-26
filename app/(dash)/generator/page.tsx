@@ -14,6 +14,7 @@ import { useDashboard } from "@/lib/store";
 export default function GeneratorPage() {
   const toast = useToast();
   const user = useDashboard((s) => s.user);
+  const isOwner = user?.role === "OWNER";
   const refresh = useDashboard((s) => s.refresh);
   // Live from the license API, falling back to the bundled list.
   const packages = useDashboard((s) => s.packages);
@@ -72,13 +73,20 @@ export default function GeneratorPage() {
 
       if (generated.length > 0) {
         setKeys(generated);
-        await refresh();
+
+        // Confirm straight away. This used to sit behind `await refresh()`,
+        // which measured 680-940ms of dead time *after* the keys were
+        // already on screen -- the toast arriving long after the thing it
+        // was announcing. The refresh only feeds the quota counter, so it
+        // runs in the background now.
         try {
           await navigator.clipboard.writeText(generated.join("\n"));
           toast("Key generated & copied to clipboard!", "success");
         } catch {
           toast("Key generated!", "success");
         }
+
+        void refresh();
       }
     } catch (err) {
       append(`[ERROR] ${(err as Error).message}`);
@@ -111,19 +119,31 @@ export default function GeneratorPage() {
           }
         />
 
-        <label className="mb-2.5 block text-[12px] text-[#94a3b8]">Select License Package</label>
-        <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-3">
-          {packages.map((pkg) => (
-            <PackageCard
-              key={pkg.id}
-              name={pkg.name}
-              description={pkg.description}
-              selected={active === pkg.id}
-              disabled={!allowed.some((p) => p.id === pkg.id)}
-              onSelect={() => setSelected(pkg.id)}
-            />
-          ))}
-        </div>
+        <label className="mb-2.5 block text-[12px] text-[#94a3b8]">
+          {isOwner ? "Select License Package" : "Your License Packages"}
+        </label>
+
+        {/* Only what this account may actually generate.
+            Rendering the rest greyed out told a reseller what they are
+            missing and left them clicking dead cards; the owner still
+            sees everything because everything is theirs. */}
+        {allowed.length === 0 ? (
+          <div className="mb-6 rounded-xl border border-[rgba(245,158,11,0.25)] bg-[rgba(245,158,11,0.08)] px-4 py-3.5 text-[13px] text-orange">
+            No packages are assigned to your account yet. Ask the owner to grant you one.
+          </div>
+        ) : (
+          <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-3">
+            {allowed.map((pkg) => (
+              <PackageCard
+                key={pkg.id}
+                name={pkg.name}
+                description={pkg.description}
+                selected={active === pkg.id}
+                onSelect={() => setSelected(pkg.id)}
+              />
+            ))}
+          </div>
+        )}
 
         <div className="mb-5 grid gap-5 sm:grid-cols-2">
           <div>

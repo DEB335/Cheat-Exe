@@ -8,6 +8,7 @@ import { PrimaryButton } from "@/components/ui/buttons";
 import { FormLabel, Input } from "@/components/ui/form";
 import { useToast } from "@/components/ui/Toast";
 import { api, patchJson } from "@/lib/client-api";
+import { daysLeft, effectiveStatus, formatExpiry } from "@/lib/reseller";
 import { useDashboard } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +25,15 @@ export default function ProfilePage() {
   const isOwner = user?.role === "OWNER";
   const { avatar, banner, displayName } = db.profile;
   const shownName = isOwner ? displayName : (user?.username ?? "");
+
+  // A reseller's own record comes down with /api/db, so the card can say
+  // when their access ends rather than just "Paid" -- the whole point of
+  // the validity is that they can see it running out.
+  const own = Object.entries(db.cheatExeUsers).find(
+    ([name]) => name.toLowerCase() === (user?.username ?? "").toLowerCase(),
+  )?.[1];
+  const left = own ? daysLeft(own) : null;
+  const status = own ? effectiveStatus(own) : null;
 
   const logout = async () => {
     try {
@@ -65,6 +75,50 @@ export default function ProfilePage() {
             <MetaRow label="Subscription Tier">
               <span className="font-extrabold text-green">{isOwner ? "Owner" : "Paid"}</span>
             </MetaRow>
+
+            {!isOwner && own && (
+              <>
+                <MetaRow label="Valid Until">
+                  <span
+                    className={cn(
+                      "font-extrabold",
+                      left === null
+                        ? "text-green"
+                        : left <= 0
+                          ? "text-[#ef4444]"
+                          : left <= 7
+                            ? "text-orange"
+                            : "text-fg",
+                    )}
+                  >
+                    {left === null ? "No end date" : formatExpiry(own)}
+                  </span>
+                </MetaRow>
+
+                {left !== null && (
+                  <MetaRow label="Days Remaining">
+                    <span
+                      className={cn(
+                        "rounded-lg px-2.5 py-1 text-[11px] font-extrabold",
+                        left <= 0
+                          ? "bg-[rgba(239,68,68,0.15)] text-[#ef4444]"
+                          : left <= 7
+                            ? "bg-orange-glow text-orange"
+                            : "bg-green-glow text-green",
+                      )}
+                    >
+                      {left <= 0 ? "EXPIRED" : `${left} day${left === 1 ? "" : "s"} left`}
+                    </span>
+                  </MetaRow>
+                )}
+
+                {status === "EXPIRED" && (
+                  <p className="rounded-lg border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.08)] px-3 py-2 text-[11.5px] leading-[1.45] text-[#fca5a5]">
+                    Your access has ended. Ask the owner to renew it.
+                  </p>
+                )}
+              </>
+            )}
           </div>
 
           <button

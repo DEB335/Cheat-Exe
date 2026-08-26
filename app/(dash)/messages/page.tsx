@@ -8,6 +8,11 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { FormLabel, HelpText } from "@/components/ui/form";
 import { useToast } from "@/components/ui/Toast";
 import { del, patchJson, postJson } from "@/lib/client-api";
+import {
+  applyClearMine,
+  applyDeleteMessage,
+  applyReaction,
+} from "@/lib/optimistic";
 import { MAX_BODY, REACTIONS } from "@/lib/messages";
 import { useDashboard } from "@/lib/store";
 import type { PublicAnnouncement } from "@/lib/types";
@@ -16,6 +21,8 @@ import { cn } from "@/lib/utils";
 export default function MessagesPage() {
   const toast = useToast();
   const refresh = useDashboard((s) => s.refresh);
+  const patch = useDashboard((s) => s.patch);
+  const restore = useDashboard((s) => s.restore);
   const messages = useDashboard((s) => s.db.cheatExeMessages);
   const isOwner = useDashboard((s) => s.user?.role === "OWNER");
 
@@ -41,13 +48,18 @@ export default function MessagesPage() {
   };
 
   const react = async (message: PublicAnnouncement, reaction: string) => {
+    // Paint first. A write plus a re-read is ~half a second away, and
+    // waiting for it is what made reacting feel unresponsive.
+    const snapshot = patch((db) => applyReaction(db, message.id, reaction));
     try {
       await patchJson(`/api/messages/${message.id}`, {
         // Picking the same one again takes it back.
         reaction: message.myReaction === reaction ? null : reaction,
       });
-      await refresh();
+      // No refresh: the realtime ping brings everyone else's view along,
+      // and this tab already shows the result.
     } catch (err) {
+      restore(snapshot);
       toast((err as Error).message, "error");
     }
   };
@@ -61,22 +73,24 @@ export default function MessagesPage() {
       ? "Delete every announcement for everyone? This cannot be undone."
       : "Clear all announcements from your list? Others keep theirs.";
     if (!confirm(question)) return;
+    const snapshot = patch(applyClearMine);
     try {
       await del(`/api/messages?scope=${isOwner ? "all" : "mine"}`);
-      await refresh();
       toast(isOwner ? "All announcements deleted." : "Your list is cleared.", "success");
     } catch (err) {
+      restore(snapshot);
       toast((err as Error).message, "error");
     }
   };
 
   const remove = async (id: string) => {
     if (!confirm("Delete this announcement for everyone?")) return;
+    const snapshot = patch((db) => applyDeleteMessage(db, id));
     try {
       await del(`/api/messages/${id}`);
-      await refresh();
       toast("Announcement deleted.", "success");
     } catch (err) {
+      restore(snapshot);
       toast((err as Error).message, "error");
     }
   };

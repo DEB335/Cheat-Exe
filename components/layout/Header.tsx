@@ -18,6 +18,7 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { api, del, patchJson } from "@/lib/client-api";
 import { REACTIONS } from "@/lib/messages";
+import { applyClearMine, applyReadAll, applyReaction } from "@/lib/optimistic";
 import { PAGE_TITLES, SEARCH_ITEMS } from "@/lib/nav";
 import { useDashboard } from "@/lib/store";
 import { useTheme } from "@/lib/use-theme";
@@ -149,7 +150,8 @@ function Notifications() {
   const router = useRouter();
   const toast = useToast();
   const messages = useDashboard((s) => s.db.cheatExeMessages);
-  const refresh = useDashboard((s) => s.refresh);
+  const patch = useDashboard((s) => s.patch);
+  const restore = useDashboard((s) => s.restore);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -167,32 +169,36 @@ function Notifications() {
     const next = !open;
     setOpen(next);
     if (!next || unread === 0) return;
+
+    // Clear the marker on the spot; the server catches up behind it.
+    const snapshot = patch(applyReadAll);
     try {
       await patchJson("/api/messages", {});
-      await refresh();
     } catch {
-      /* the dot simply stays until the next attempt */
+      restore(snapshot);
     }
   };
 
   // Personal, not global: this hides the list for whoever clicked it and
   // leaves everybody else's untouched.
   const clearMine = async () => {
+    const snapshot = patch(applyClearMine);
+    setOpen(false);
     try {
       await del("/api/messages?scope=mine");
-      await refresh();
-      setOpen(false);
       toast("Notifications cleared.", "success");
     } catch (err) {
+      restore(snapshot);
       toast((err as Error).message, "error");
     }
   };
 
   const react = async (id: string, reaction: string, mine: string | null) => {
+    const snapshot = patch((db) => applyReaction(db, id, reaction));
     try {
       await patchJson(`/api/messages/${id}`, { reaction: mine === reaction ? null : reaction });
-      await refresh();
     } catch (err) {
+      restore(snapshot);
       toast((err as Error).message, "error");
     }
   };

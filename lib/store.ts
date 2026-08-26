@@ -42,15 +42,36 @@ interface DashboardState {
   setUser: (user: SessionUser | null) => void;
   /** Re-reads the server state. Every mutation calls this when it lands. */
   refresh: () => Promise<void>;
+  /**
+   * Applies a change to the local copy immediately, without a round trip.
+   *
+   * A write plus a full re-read is roughly half a second against a remote
+   * database, and until it returns the UI shows the old state -- which is
+   * what makes clicking a reaction feel broken. Callers paint the
+   * expected result first, fire the request, and let the next refresh or
+   * realtime ping reconcile. If the request fails they hand back the
+   * snapshot this returns.
+   */
+  patch: (apply: (db: PublicDatabase) => PublicDatabase) => PublicDatabase;
+  /** Puts back a snapshot taken before an optimistic change. */
+  restore: (snapshot: PublicDatabase) => void;
 }
 
-export const useDashboard = create<DashboardState>((set) => ({
+export const useDashboard = create<DashboardState>((set, get) => ({
   user: null,
   db: EMPTY,
   stats: null,
   packages: PACKAGES,
   loading: true,
   setUser: (user) => set({ user }),
+
+  patch: (apply) => {
+    const before = get().db;
+    set({ db: apply(before) });
+    return before;
+  },
+  restore: (snapshot) => set({ db: snapshot }),
+
   refresh: async () => {
     try {
       const response = await fetch("/api/db", { cache: "no-store" });

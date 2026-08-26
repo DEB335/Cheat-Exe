@@ -21,6 +21,9 @@ export const REALTIME_ENABLED = Boolean(URL_ && KEY);
  * The callback is held in a ref so a caller passing an inline function
  * does not tear the subscription down and rebuild it on every render.
  */
+/** How long to wait for a burst to settle before refetching once. */
+const COALESCE_MS = 400;
+
 export function useRealtimePing(onPing: () => void): void {
   const handler = useRef(onPing);
   useEffect(() => {
@@ -37,13 +40,25 @@ export function useRealtimePing(onPing: () => void): void {
     });
 
     let channel: RealtimeChannel | null = null;
+    let timer = 0;
+
+    // Pings arrive in bursts -- reacting also marks a message read -- and
+    // every open dashboard answers each one with a full refetch. Measured
+    // with five connected tabs, a single reaction produced six /api/db
+    // reads against a three-connection pool. Coalescing makes a flurry
+    // cost one refetch per tab instead of one per ping per tab.
+    const coalesced = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => handler.current(), COALESCE_MS);
+    };
+
     try {
       channel = supabase
         .channel("cheatexe-pings")
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "realtime_pings" },
-          () => handler.current(),
+          coalesced,
         )
         .subscribe();
     } catch {
@@ -51,6 +66,7 @@ export function useRealtimePing(onPing: () => void): void {
     }
 
     return () => {
+      window.clearTimeout(timer);
       if (channel) void supabase.removeChannel(channel);
     };
   }, []);

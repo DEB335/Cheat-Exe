@@ -220,7 +220,12 @@ body.light-mode {
   }
 }
 
-/* Animated RGB gradient wordmark */
+/* Animated RGB gradient wordmark.
+   Paused until hovered. Animating background-position on a
+   background-clip:text element re-rasterises the glyphs every frame, and
+   this sits in the sidebar of every page -- measured at 30fps with the
+   idle animations running versus 60fps without. The gradient still
+   renders; it only moves when you point at it. */
 @utility text-rgb-flow {
   background: linear-gradient(90deg, #ff1f5a, #a855f7, #00ddeb, #ff1f5a);
   background-size: 300% 100%;
@@ -228,7 +233,11 @@ body.light-mode {
   background-clip: text;
   -webkit-text-fill-color: transparent;
   animation: rgb-text-flow 6s linear infinite;
+  animation-play-state: paused;
   filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.45));
+  &:hover {
+    animation-play-state: running;
+  }
 }
 
 @keyframes rgb-text-flow {
@@ -418,6 +427,55 @@ body.light-mode {
   --animate-star-shine: star-shine 14s ease-in-out infinite alternate;
   --animate-star-rotate: star-rotate 14s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite alternate;
   --animate-shake-card: shake-card 0.4s ease-in-out;
+}
+
+/* ---------------------------------------------------------------
+   Idle animation budget.
+
+   These are decoration, and every one of them was running forever on
+   every page. Measured on /dashboard: 30fps with them, 60fps with
+   `animation: none` -- the whole deficit, with the cursor canvas and the
+   background video costing nothing measurable by comparison. The worst
+   offender was the reseller table, where 30 shimmering pills repainted a
+   200%-wide gradient in parallel.
+
+   They are paused rather than deleted: the effect still plays when you
+   point at the thing it belongs to, which is when anyone actually looks
+   at it. Hover is also when a repaint is cheap, because only one element
+   is doing it.
+   --------------------------------------------------------------- */
+.animate-button-shimmer {
+  animation-play-state: paused;
+}
+.animate-button-shimmer:hover,
+.animate-button-shimmer:focus-visible {
+  animation-play-state: running;
+}
+
+/* The GlowButton's drifting highlight and rotating star: four infinite
+   animations per button, all for one pill. */
+.animate-border-glow-translate,
+.animate-border-glow-scale,
+.animate-star-shine,
+.animate-star-rotate {
+  animation-play-state: paused;
+}
+.group:hover .animate-border-glow-translate,
+.group:hover .animate-border-glow-scale,
+.group:hover .animate-star-shine,
+.group:hover .animate-star-rotate {
+  animation-play-state: running;
+}
+
+/* Anyone who has asked their system for less motion gets none of it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ---------------------------------------------------------------

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { CloseIcon, MegaphoneIcon } from "@/components/icons";
 import { useToast } from "@/components/ui/Toast";
 import { patchJson } from "@/lib/client-api";
+import { applyReadAll } from "@/lib/optimistic";
 import { useDashboard } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +20,8 @@ import { cn } from "@/lib/utils";
  */
 export function AnnouncementBanner() {
   const messages = useDashboard((s) => s.db.cheatExeMessages);
-  const refresh = useDashboard((s) => s.refresh);
+  const patch = useDashboard((s) => s.patch);
+  const restore = useDashboard((s) => s.restore);
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
@@ -29,10 +31,12 @@ export function AnnouncementBanner() {
 
   const acknowledge = async () => {
     setBusy(true);
+    // The banner disappears on click, not a round trip later.
+    const snapshot = patch(applyReadAll);
     try {
       await patchJson("/api/messages", {});
-      await refresh();
     } catch (err) {
+      restore(snapshot);
       toast((err as Error).message, "error");
     } finally {
       setBusy(false);

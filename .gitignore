@@ -47,3 +47,6 @@ next-env.d.ts
 
 # comparison screenshots
 /shots
+
+# Discord bot secrets
+bot/.env
