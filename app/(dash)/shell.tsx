@@ -12,8 +12,16 @@ import { useToast } from "@/components/ui/Toast";
 import { useDashboard } from "@/lib/store";
 import type { SessionUser } from "@/lib/types";
 
-/** How often to check whether this session is still allowed to be open. */
-const SESSION_POLL_MS = 15_000;
+/**
+ * How often to check whether this session is still allowed to be open.
+ *
+ * This is also what delivers announcements and what makes a ban, a
+ * suspension or a device lock take effect, so it doubles as the panel's
+ * worst-case latency for all of them. The request is small -- one row
+ * read, answering with the session and an unread count -- and the
+ * messages themselves are only fetched when that count actually changes.
+ */
+const SESSION_POLL_MS = 5_000;
 
 /** Reason codes /api/auth/session returns when it terminates a session. */
 type Terminated =
@@ -119,8 +127,40 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
       }
     };
 
-    const id = window.setInterval(check, SESSION_POLL_MS);
-    return () => window.clearInterval(id);
+    // Only poll a tab someone is actually looking at.
+    //
+    // At five seconds a panel left open in a background tab would spend
+    // the day asking a question nobody is there to read the answer to.
+    // Hidden tabs stop entirely and catch up the moment they come back,
+    // which also means a returning tab is up to date immediately rather
+    // than after the next tick.
+    let id = 0;
+    const start = () => {
+      if (!id) id = window.setInterval(check, SESSION_POLL_MS);
+    };
+    const stop = () => {
+      if (id) {
+        window.clearInterval(id);
+        id = 0;
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        stop();
+        return;
+      }
+      void check();
+      start();
+    };
+
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [terminated, refresh]);
 
   // Hold the notice on screen long enough to read, then hand over to the
