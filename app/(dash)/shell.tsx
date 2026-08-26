@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { BackgroundVideo, GridBackdrop } from "@/components/effects/BackgroundVideo";
 import { CursorSparks } from "@/components/effects/CursorSparks";
@@ -99,34 +99,38 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
   // terminated session is told what happened -- a reseller who is
   // suspended mid-session used to be bounced to the login screen with no
   // explanation at all -- and then sent out.
+  // Asks the server whether this session may still be open, and what to
+  // say if not. Lifted out of the poll so the realtime channel can run it
+  // too: a suspension pings, and without this the ping would only trigger
+  // a data refresh, leaving the reason to arrive on the next tick.
+  const check = useCallback(async () => {
+    try {
+      const response = await fetch("/api/auth/session", { cache: "no-store" });
+      const data = (await response.json()) as {
+        user: SessionUser | null;
+        terminated?: Terminated;
+        unread?: number;
+      };
+
+      if (data.user) {
+        // The poll carries the unread count, so a new announcement costs
+        // no extra request -- pull the messages themselves only when the
+        // server's count disagrees with what is already loaded.
+        const loaded = useDashboard
+          .getState()
+          .db.cheatExeMessages.filter((m) => !m.read).length;
+        if (typeof data.unread === "number" && data.unread !== loaded) void refresh();
+        return;
+      }
+
+      setTerminated(data.terminated ?? "kicked");
+    } catch {
+      /* offline -- try again on the next tick */
+    }
+  }, [refresh]);
+
   useEffect(() => {
     if (terminated) return;
-
-    const check = async () => {
-      try {
-        const response = await fetch("/api/auth/session", { cache: "no-store" });
-        const data = (await response.json()) as {
-          user: SessionUser | null;
-          terminated?: Terminated;
-          unread?: number;
-        };
-
-        if (data.user) {
-          // The poll carries the unread count, so a new announcement costs
-          // no extra request -- pull the messages themselves only when the
-          // server's count disagrees with what is already loaded.
-          const loaded = useDashboard
-            .getState()
-            .db.cheatExeMessages.filter((m) => !m.read).length;
-          if (typeof data.unread === "number" && data.unread !== loaded) void refresh();
-          return;
-        }
-
-        setTerminated(data.terminated ?? "kicked");
-      } catch {
-        /* offline -- try again on the next tick */
-      }
-    };
 
     // Only poll a tab someone is actually looking at.
     //
@@ -162,13 +166,20 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [terminated, refresh]);
+  }, [terminated, check]);
 
-  // Instant path for announcements. The poll above still runs and still
-  // decides everything about session validity -- this only shortens the
-  // wait when the socket is up, and changes nothing when it is not.
+  // Instant path for anything the server pushes. The poll above still runs
+  // and still decides session validity; this only shortens the wait when
+  // the socket is up, and changes nothing when it is not.
+  //
+  // Both calls matter. `refresh` brings new data, and `check` brings the
+  // reason a session just stopped being valid -- an owner suspending a
+  // reseller pings, and the reseller should be told why then, not at the
+  // next tick.
   useRealtimePing(() => {
-    if (!terminated) void refresh();
+    if (terminated) return;
+    void check();
+    void refresh();
   });
 
   // Hold the notice on screen long enough to read, then hand over to the

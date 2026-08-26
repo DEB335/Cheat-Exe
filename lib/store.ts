@@ -76,11 +76,16 @@ export const useDashboard = create<DashboardState>((set, get) => ({
     try {
       const response = await fetch("/api/db", { cache: "no-store" });
       if (!response.ok) {
-        // A hard navigation on session loss is deliberate: it discards every
-        // piece of client state along with the dead session. 403 means the
-        // account was suspended or the device blocked mid-session, which is
-        // just as final as an expired cookie.
-        if (response.status === 401 || response.status === 403) {
+        // 401 means there is no session at all -- nothing to explain, so a
+        // hard navigation is right: it discards every piece of client state
+        // along with the dead cookie.
+        //
+        // 403 is different. The session exists but the account was just
+        // suspended, expired, banned or device-locked, and the shell's
+        // session check knows *which* -- it shows that reason and then
+        // redirects with it. Redirecting from here would race that check and
+        // win, dumping the user on a blank login page with no idea why.
+        if (response.status === 401) {
           // eslint-disable-next-line @next/next/no-location-assign-relative-destination
           window.location.href = "/login";
         }
