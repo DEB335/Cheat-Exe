@@ -4,6 +4,7 @@ import { HttpError, clientIp, requireOwner } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { findReseller, hashPassword, updateDb } from "@/lib/db";
 import { PACKAGE_NAMES } from "@/lib/packages";
+import { ping } from "@/lib/realtime";
 import { expiryFromDays } from "@/lib/reseller";
 import { formatDateOnly } from "@/lib/utils";
 
@@ -37,7 +38,7 @@ export const POST = route(async (request: Request) => {
   const hash = await hashPassword(password);
   const ip = await clientIp();
 
-  await updateDb((db) => {
+  await updateDb(async (db, tx) => {
     if (findReseller(db, username)) throw new HttpError(409, "User already exists!");
     db.cheatExeUsers[username] = {
       pass: hash,
@@ -53,6 +54,11 @@ export const POST = route(async (request: Request) => {
       action: `Created reseller account: ${username}`,
       ip,
     });
+
+    // Reaching here always means a new account was written -- the
+    // duplicate-name case threw above -- so this always has something to
+    // announce.
+    await ping("reseller", tx);
   });
 
   return NextResponse.json({ success: true });

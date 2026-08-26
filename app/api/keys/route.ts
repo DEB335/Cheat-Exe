@@ -6,6 +6,7 @@ import { findReseller, keysUsedBy, updateDb } from "@/lib/db";
 import { keysRemaining, pendingCount } from "@/lib/reseller";
 import { callLicenseApi, livePackage, type GenerateResponse } from "@/lib/license-api";
 import { packageById } from "@/lib/packages";
+import { ping } from "@/lib/realtime";
 import type { KeyRecord } from "@/lib/types";
 import { displayUser, formatTimestamp } from "@/lib/utils";
 
@@ -105,7 +106,7 @@ export const POST = route(async (request: Request) => {
   }));
 
   const ip = await clientIp();
-  await updateDb((db) => {
+  await updateDb(async (db, tx) => {
     for (const record of records) db.cheatExeKeyHistory.unshift(record);
 
     // Convert the reservation to recorded history. Release the full
@@ -122,6 +123,10 @@ export const POST = route(async (request: Request) => {
       action: `Generated ${records.length} key(s) for ${pkg.name}`,
       ip,
     });
+
+    // `generated.length === 0` returned above, so reaching here always
+    // added history and (for a reseller) moved their quota.
+    await ping("key", tx);
   });
 
   return NextResponse.json({ success: true, keys: generated, raw: data });

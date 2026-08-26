@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { HttpError, clientIp, requireOwner } from "@/lib/auth";
 import { pushAudit, route } from "@/lib/api-helpers";
 import { findReseller, updateDb } from "@/lib/db";
+import { ping } from "@/lib/realtime";
 import type { BannedUser } from "@/lib/types";
 import { formatTimestamp } from "@/lib/utils";
 
@@ -18,7 +19,7 @@ export const DELETE = route(async (_request: Request, ctx: Ctx) => {
   const { sessionId } = await ctx.params;
   const ip = await clientIp();
 
-  const kicked = await updateDb((db) => {
+  const kicked = await updateDb(async (db, tx) => {
     const index = db.cheatExeDevices.findIndex((d) => d.sessionId === sessionId);
     if (index === -1) throw new HttpError(404, "Session not found.");
 
@@ -54,6 +55,10 @@ export const DELETE = route(async (_request: Request, ctx: Ctx) => {
       action: `Kicked and banned session for user: ${cleanUser} (${device.ip})`,
       ip,
     });
+
+    // Not-found and self-kick both threw above, so reaching here always
+    // ended a session and filed a vault record.
+    await ping("device", tx);
 
     return cleanUser;
   });

@@ -16,13 +16,30 @@ export default function OverviewPage() {
   const metrics = useMetrics();
   const isOwner = useDashboard((s) => s.user?.role === "OWNER");
 
-  const series = [
-    metrics.apps,
-    metrics.licenses,
-    metrics.users,
-    metrics.devices,
-    metrics.resellers,
+  // Nothing records who used a reseller's keys, and a reseller has no
+  // sub-resellers -- so for them those two tiles could only ever show a
+  // hardcoded 0. Drop them rather than dress up a number nobody can know.
+  const tiles = [
+    { key: "apps", label: "Total Apps", value: metrics.apps, accent: "purple" as const, icon: <FolderIcon className="size-5" /> },
+    { key: "licenses", label: "Total Licenses", value: metrics.licenses, accent: "red" as const, icon: <KeyIcon className="size-5" /> },
+    ...(isOwner
+      ? [{ key: "users", label: "Total Users", value: metrics.users, accent: "cyan" as const, icon: <UsersIcon className="size-5" /> }]
+      : []),
+    {
+      key: "devices",
+      label: "Devices",
+      value: metrics.devices,
+      accent: "green" as const,
+      icon: <CpuIcon className="size-5" />,
+      live: true,
+    },
+    ...(isOwner
+      ? [{ key: "resellers", label: "Total Resellers", value: metrics.resellers, accent: "orange" as const, icon: <BriefcaseIcon className="size-5" /> }]
+      : []),
   ];
+
+  const series = tiles.map((t) => t.value);
+  const labels = tiles.map((t) => t.label);
 
   return (
     <>
@@ -43,46 +60,29 @@ export default function OverviewPage() {
               max-width 100% and overflow hidden so the canvas cannot
               push the page wider than the viewport. */}
           <div className="relative h-[200px] w-full max-w-full overflow-hidden px-[15px] pb-[15px]">
-            <MetricsChart values={series} />
+            <MetricsChart values={series} labels={labels} />
           </div>
         </Card>
       </div>
 
       <div data-probe="stats" className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-5">
-        <StatCard
-          accent="purple"
-          icon={<FolderIcon className="size-5" />}
-          value={metrics.apps}
-          label="Total Apps"
-        />
-        <StatCard
-          accent="red"
-          icon={<KeyIcon className="size-5" />}
-          value={metrics.licenses}
-          label="Total Licenses"
-        />
-        <StatCard
-          accent="cyan"
-          icon={<UsersIcon className="size-5" />}
-          value={metrics.users}
-          label="Total Users"
-        />
-        <StatCard
-          accent="green"
-          icon={<CpuIcon className="size-5" />}
-          value={metrics.devices}
-          label={
-            <>
-              Devices <LivePip />
-            </>
-          }
-        />
-        <StatCard
-          accent="orange"
-          icon={<BriefcaseIcon className="size-5" />}
-          value={metrics.resellers}
-          label="Total Resellers"
-        />
+        {tiles.map((tile) => (
+          <StatCard
+            key={tile.key}
+            accent={tile.accent}
+            icon={tile.icon}
+            value={tile.value}
+            label={
+              tile.live ? (
+                <>
+                  {tile.label} <LivePip />
+                </>
+              ) : (
+                tile.label
+              )
+            }
+          />
+        ))}
       </div>
 
       {isOwner && (

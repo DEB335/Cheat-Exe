@@ -5,6 +5,7 @@ import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { BAN_SCOPE_LABEL, addBan, dropBannedSessions, removeBan } from "@/lib/bans";
 import { updateDb } from "@/lib/db";
 import { deviceIdentity } from "@/lib/device";
+import { ping } from "@/lib/realtime";
 import { formatTimestamp } from "@/lib/utils";
 import type { BanScope } from "@/lib/types";
 
@@ -52,7 +53,7 @@ export const POST = route(async (request: Request) => {
     }
   }
 
-  const added = await updateDb((db) => {
+  const added = await updateDb(async (db, tx) => {
     let count = 0;
     for (const rule of rules) {
       const ok = addBan(db, {
@@ -73,6 +74,7 @@ export const POST = route(async (request: Request) => {
         action: `Blocked ${rules.map((r) => `${BAN_SCOPE_LABEL[r.scope]} ${r.value}`).join(", ")}`,
         ip,
       });
+      await ping("ban", tx);
     }
 
     return count;
@@ -93,7 +95,7 @@ export const DELETE = route(async (request: Request) => {
     throw new HttpError(400, "Provide a scope and a value.");
   }
 
-  const removed = await updateDb((db) => {
+  const removed = await updateDb(async (db, tx) => {
     const ok = removeBan(db, scope, value);
     if (ok) {
       pushAudit(db, {
@@ -101,6 +103,7 @@ export const DELETE = route(async (request: Request) => {
         action: `Lifted block on ${BAN_SCOPE_LABEL[scope]} ${value}`,
         ip,
       });
+      await ping("ban", tx);
     }
     return ok;
   });

@@ -6,6 +6,7 @@ import { findReseller, hashPassword, updateDb } from "@/lib/db";
 import { clearLock } from "@/lib/device-lock";
 import { expiryFromDays } from "@/lib/reseller";
 import { PACKAGE_NAMES } from "@/lib/packages";
+import { ping } from "@/lib/realtime";
 import type { ResellerStatus } from "@/lib/types";
 
 interface PatchBody {
@@ -44,11 +45,17 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
     throw new HttpError(400, `Status must be one of: ${SETTABLE_STATUS.join(", ")}.`);
   }
 
-  await updateDb((db) => {
+  await updateDb(async (db, tx) => {
     const match = findReseller(db, decodeURIComponent(username));
     if (!match) throw new HttpError(404, "Reseller not found.");
 
+    // Set as each field below actually applies. A PATCH with no
+    // recognised fields -- or one that only fails validation -- should
+    // not wake every other dashboard.
+    let changed = false;
+
     if (body.status) {
+      changed = true;
       match.user.status = body.status;
 
       // A suspension has to reach an account that is already signed in.
@@ -69,6 +76,7 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
     }
 
     if (body.packages) {
+      changed = true;
       match.user.packages = body.packages.filter((p) => PACKAGE_NAMES.includes(p));
       pushAudit(db, {
         user: "Owner (OWNER)",
@@ -78,6 +86,7 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
     }
 
     if (hash) {
+      changed = true;
       match.user.pass = hash;
       pushAudit(db, {
         user: "Owner (OWNER)",
@@ -91,6 +100,7 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
       if (!Number.isInteger(days) || days < 0) {
         throw new HttpError(400, "Validity must be a whole number of days, 0 or more.");
       }
+      changed = true;
       match.user.expiresAt = expiryFromDays(days);
       // Renewing a lapsed account is the point of setting a new validity,
       // so lift the EXPIRED status that stamped it.
@@ -107,6 +117,7 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
       if (!Number.isInteger(limit) || limit < 0) {
         throw new HttpError(400, "Key limit must be a whole number, 0 or more.");
       }
+      changed = true;
       match.user.keyLimit = limit || undefined;
       pushAudit(db, {
         user: "Owner (OWNER)",
@@ -116,6 +127,7 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
     }
 
     if (body.deviceLocked !== undefined) {
+      changed = true;
       match.user.deviceLocked = body.deviceLocked;
       if (!body.deviceLocked) clearLock(match.user);
       pushAudit(db, {
@@ -126,6 +138,7 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
     }
 
     if (body.resetLock) {
+      changed = true;
       clearLock(match.user);
       // End open sessions too, otherwise the machine being unbound keeps
       // working until its token expires and the reset achieves nothing.
@@ -138,6 +151,8 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
         ip,
       });
     }
+
+    if (changed) await ping("reseller", tx);
   });
 
   return NextResponse.json({ success: true });
@@ -148,7 +163,7 @@ export const DELETE = route(async (_request: Request, ctx: Ctx) => {
   const { username } = await ctx.params;
   const ip = await clientIp();
 
-  await updateDb((db) => {
+  await updateDb(async (db, tx) => {
     const match = findReseller(db, decodeURIComponent(username));
     if (!match) throw new HttpError(404, "Reseller not found.");
     delete db.cheatExeUsers[match.key];
@@ -161,6 +176,10 @@ export const DELETE = route(async (_request: Request, ctx: Ctx) => {
       action: `Deleted reseller account: ${match.key}`,
       ip,
     });
+
+    // The not-found case threw above, so reaching here always deleted
+    // something.
+    await ping("reseller", tx);
   });
 
   return NextResponse.json({ success: true });

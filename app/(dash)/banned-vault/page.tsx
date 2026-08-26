@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/form";
 import { Cell, DataTable, EmptyRow, Row } from "@/components/ui/Table";
 import { useToast } from "@/components/ui/Toast";
 import { del, postJson } from "@/lib/client-api";
+import { applyLiftBan, applyRemoveVaultEntry } from "@/lib/optimistic";
 import { useDashboard } from "@/lib/store";
 import type { BanScope } from "@/lib/types";
 
@@ -35,6 +36,8 @@ const COLUMNS = [
 export default function BannedVaultPage() {
   const toast = useToast();
   const refresh = useDashboard((s) => s.refresh);
+  const patchDb = useDashboard((s) => s.patch);
+  const restoreDb = useDashboard((s) => s.restore);
   const banned = useDashboard((s) => s.db.cheatExeBannedUsers);
   const [query, setQuery] = useState("");
 
@@ -52,11 +55,13 @@ export default function BannedVaultPage() {
   const act = async (username: string, restore: boolean) => {
     const label = restore ? "Unban and restore" : "Delete the vault record for";
     if (!confirm(`${label} ${username}?`)) return;
+    const snapshot = patchDb((db) => applyRemoveVaultEntry(db, username));
+    toast(restore ? `${username} restored.` : `Record for ${username} deleted.`, "success");
     try {
       await del(`/api/banned/${encodeURIComponent(username)}${restore ? "?restore=1" : ""}`);
-      await refresh();
-      toast(restore ? `${username} restored.` : `Record for ${username} deleted.`, "success");
+      void refresh();
     } catch (err) {
+      restoreDb(snapshot);
       toast((err as Error).message, "error");
     }
   };
@@ -238,6 +243,8 @@ const SCOPE_META: Record<BanScope, { label: string; icon: typeof WifiOffIcon; hi
 function BlockedDevices() {
   const toast = useToast();
   const refresh = useDashboard((s) => s.refresh);
+  const patchDb = useDashboard((s) => s.patch);
+  const restoreDb = useDashboard((s) => s.restore);
   const bans = useDashboard((s) => s.db.cheatExeBans);
 
   const [scope, setScope] = useState<BanScope>("ip");
@@ -258,8 +265,8 @@ function BlockedDevices() {
       });
       setValue("");
       setReason("");
-      await refresh();
       toast(`${SCOPE_META[scope].label} blocked.`, "success");
+      void refresh();
     } catch (err) {
       toast((err as Error).message, "error");
     } finally {
@@ -269,11 +276,13 @@ function BlockedDevices() {
 
   const lift = async (rule: { scope: BanScope; value: string }) => {
     if (!confirm(`Lift the block on ${rule.value}?`)) return;
+    const snapshot = patchDb((db) => applyLiftBan(db, rule.scope, rule.value));
+    toast("Block lifted.", "success");
     try {
       await del(`/api/bans?scope=${rule.scope}&value=${encodeURIComponent(rule.value)}`);
-      await refresh();
-      toast("Block lifted.", "success");
+      void refresh();
     } catch (err) {
+      restoreDb(snapshot);
       toast((err as Error).message, "error");
     }
   };

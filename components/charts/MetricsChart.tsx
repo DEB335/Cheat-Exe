@@ -17,9 +17,10 @@ import { useLightMode } from "@/lib/use-external";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip);
 
+/** Default series, used when a caller does not narrow it. */
 const LABELS = ["Total Apps", "Total Licenses", "Total Users", "Devices", "Total Resellers"];
 
-export function MetricsChart({ values }: { values: number[] }) {
+export function MetricsChart({ values, labels = LABELS }: { values: number[]; labels?: string[] }) {
   // Re-reads the palette whenever the theme class flips.
   const light = useLightMode();
 
@@ -69,7 +70,7 @@ export function MetricsChart({ values }: { values: number[] }) {
       key={light ? "light" : "dark"}
       options={options}
       data={{
-        labels: LABELS,
+        labels,
         datasets: [
           {
             label: "Metrics",
@@ -101,27 +102,88 @@ export function MetricsChart({ values }: { values: number[] }) {
   );
 }
 
-/** The simulated FPS / ping readouts in the chart card header. */
+/**
+ * Real telemetry for the chart header, not decoration.
+ *
+ * Picked (a) over removing the widget: both numbers are cheap to measure
+ * honestly. FPS never runs a permanent rAF loop -- that would itself eat
+ * frame budget on an app that is already frame-rate sensitive -- instead
+ * it takes a ~1s burst of rAF deltas, averages it, and goes idle until
+ * the next scheduled sample. A sample that straddles the tab going
+ * hidden (rAF pauses in the background, so elapsed time balloons) is
+ * discarded rather than reported as a bogus near-zero reading. Ping is a
+ * real round trip to this app's own server, timed with performance.now()
+ * around the session endpoint the shell already polls elsewhere -- no
+ * new route, no more than one small request every 10s, and nothing while
+ * the tab is hidden.
+ */
 export function PerformanceTicker() {
-  const [fps, setFps] = useState(60);
-  const [ping, setPing] = useState(12);
+  const [fps, setFps] = useState<number | null>(null);
+  const [ping, setPing] = useState<number | null>(null);
 
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setFps(Math.floor(Math.random() * 2) + 59);
-      setPing(Math.floor(Math.random() * 3) + 9);
-    }, 1000);
-    return () => window.clearInterval(id);
+    let cancelled = false;
+    let rafId = 0;
+
+    const sampleFps = () => {
+      if (document.hidden) return;
+      const start = performance.now();
+      let frames = 0;
+      const tick = (now: number) => {
+        frames += 1;
+        const elapsed = now - start;
+        if (elapsed < 1000) {
+          rafId = requestAnimationFrame(tick);
+          return;
+        }
+        if (!cancelled && elapsed < 2000) setFps(Math.round((frames * 1000) / elapsed));
+      };
+      rafId = requestAnimationFrame(tick);
+    };
+
+    const samplePing = async () => {
+      if (document.hidden) return;
+      const start = performance.now();
+      try {
+        await fetch("/api/auth/session", { cache: "no-store" });
+        if (!cancelled) setPing(Math.round(performance.now() - start));
+      } catch {
+        if (!cancelled) setPing(null);
+      }
+    };
+
+    const sample = () => {
+      sampleFps();
+      void samplePing();
+    };
+
+    sample();
+    const id = window.setInterval(sample, 10_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
 
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex items-center gap-1.5 rounded-lg border border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.1)] px-2.5 py-1">
+      <div
+        title="Client frame rate, sampled briefly every 10s"
+        className="flex items-center gap-1.5 rounded-lg border border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.1)] px-2.5 py-1"
+      >
         <span className="size-1.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]" />
-        <span className="text-[12px] font-bold text-[#10b981]">{fps} FPS</span>
+        <span className="text-[12px] font-bold text-[#10b981]">
+          {fps === null ? "-- FPS" : `${fps} FPS`}
+        </span>
       </div>
-      <div className="rounded-lg border border-[rgba(245,158,11,0.2)] bg-[rgba(245,158,11,0.1)] px-2.5 py-1">
-        <span className="text-[12px] font-bold text-[#f59e0b]">{ping}ms</span>
+      <div
+        title="Round-trip latency to this server"
+        className="rounded-lg border border-[rgba(245,158,11,0.2)] bg-[rgba(245,158,11,0.1)] px-2.5 py-1"
+      >
+        <span className="text-[12px] font-bold text-[#f59e0b]">
+          {ping === null ? "-- ms" : `${ping}ms`}
+        </span>
       </div>
     </div>
   );

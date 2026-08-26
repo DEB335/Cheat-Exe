@@ -74,17 +74,16 @@ export default function GeneratorPage() {
       if (generated.length > 0) {
         setKeys(generated);
 
-        // Confirm straight away. This used to sit behind `await refresh()`,
-        // which measured 680-940ms of dead time *after* the keys were
-        // already on screen -- the toast arriving long after the thing it
-        // was announcing. The refresh only feeds the quota counter, so it
-        // runs in the background now.
-        try {
-          await navigator.clipboard.writeText(generated.join("\n"));
-          toast("Key generated & copied to clipboard!", "success");
-        } catch {
-          toast("Key generated!", "success");
-        }
+        // Confirm in the same tick the keys appear. Everything that used
+        // to sit in front of this toast has been moved behind it: the
+        // clipboard write (which can block for hundreds of ms, and on a
+        // denied permission blocks until it rejects) and the refresh
+        // (which only feeds the quota counter).
+        toast("Key generated & copied to clipboard!", "success");
+
+        void navigator.clipboard
+          .writeText(generated.join("\n"))
+          .catch(() => toast("Keys are listed on the right -- copy them from there.", "error"));
 
         void refresh();
       }

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { HttpError, clientIp, requireUser } from "@/lib/auth";
 import { pushAudit, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
+import { ping } from "@/lib/realtime";
 import { displayUser } from "@/lib/utils";
 
 /**
@@ -21,9 +22,12 @@ export const DELETE = route(async (request: Request) => {
   }
 
   const ip = await clientIp();
-  await updateDb((db) => {
+  await updateDb(async (db, tx) => {
+    const before = db.cheatExeKeyHistory.length;
+
     if (scope === "owner") {
       db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => k.creator !== "admin");
+      if (db.cheatExeKeyHistory.length === before) return;
       pushAudit(db, {
         user: displayUser(user.username, user.role),
         action: "Cleared Owner key history",
@@ -31,6 +35,7 @@ export const DELETE = route(async (request: Request) => {
       });
     } else if (user.role === "OWNER") {
       db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => k.creator === "admin");
+      if (db.cheatExeKeyHistory.length === before) return;
       pushAudit(db, {
         user: displayUser(user.username, user.role),
         action: "Cleared Reseller key history",
@@ -38,12 +43,15 @@ export const DELETE = route(async (request: Request) => {
       });
     } else {
       db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => k.creator !== user.username);
+      if (db.cheatExeKeyHistory.length === before) return;
       pushAudit(db, {
         user: displayUser(user.username, user.role),
         action: "Cleared own key history",
         ip,
       });
     }
+
+    await ping("key", tx);
   });
 
   return NextResponse.json({ success: true });

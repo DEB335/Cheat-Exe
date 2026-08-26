@@ -135,6 +135,20 @@ export function useMetrics() {
     };
   }
 
+  // A reseller has no upstream account of their own: `stats` is the
+  // owner's whole license account, and showing it here would leak
+  // someone else's totals under this reseller's name. Everything below
+  // instead comes from this reseller's own slice of `db`, which
+  // /api/db already scopes to them -- `cheatExeKeyHistory` is filtered
+  // to keys *they* created, so counting it is correct, not a guess.
+  // `resellers` stays 0 for a fact, not a placeholder: this data model
+  // has no sub-resellers, so a reseller managing zero of them is true.
+  // `users` has no such fact to fall back on -- nothing here tracks who
+  // used a reseller's keys, so any number would be invented. It stays 0
+  // rather than fabricate one, but the tile that renders it lives in
+  // app/(dash)/dashboard/page.tsx, outside this file; ideally that tile
+  // is hidden for non-owners instead of showing a zero that reads as a
+  // measurement.
   return {
     apps: isOwner ? packages.length : (user?.packages.length ?? 0),
     licenses: db.cheatExeKeyHistory.length,

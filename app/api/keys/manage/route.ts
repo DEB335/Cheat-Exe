@@ -4,6 +4,7 @@ import { HttpError, clientIp, requireUser } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
 import { callLicenseApi, type LicenseEnvelope } from "@/lib/license-api";
+import { ping } from "@/lib/realtime";
 import type { KeyAction } from "@/lib/types";
 import { displayUser } from "@/lib/utils";
 
@@ -31,7 +32,7 @@ export const POST = route(async (request: Request) => {
     return NextResponse.json({ success: false, message: data.message ?? "Action failed" });
   }
 
-  await updateDb((db) => {
+  await updateDb(async (db, tx) => {
     if (action === "delete_key") {
       db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => k.key !== key);
     }
@@ -40,6 +41,10 @@ export const POST = route(async (request: Request) => {
       action: `Successfully executed ${action} on key: ${key}`,
       ip,
     });
+
+    // The early return above covers a failed upstream call, so reaching
+    // here always means the action actually applied.
+    await ping("key", tx);
   });
 
   return NextResponse.json({ success: true, message: data.message ?? "Done" });

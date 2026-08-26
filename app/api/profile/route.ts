@@ -5,6 +5,7 @@ import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { hashPassword, updateDb } from "@/lib/db";
 import { SESSION_COOKIE, createSessionToken, sessionCookieOptions } from "@/lib/session";
 import { PACKAGE_NAMES } from "@/lib/packages";
+import { ping } from "@/lib/realtime";
 
 interface ProfileBody {
   username?: string;
@@ -52,7 +53,7 @@ export const PATCH = route(async (request: Request) => {
   const hash = await hashPassword(password);
   const ip = await clientIp();
 
-  await updateDb((db) => {
+  await updateDb(async (db, tx) => {
     db.adminUser = username;
     db.adminPassHash = hash;
     db.profile = {
@@ -65,6 +66,10 @@ export const PATCH = route(async (request: Request) => {
       action: "Updated owner profile settings",
       ip,
     });
+
+    // Every field is written unconditionally above, so this always has
+    // something new for the sidebar to pick up.
+    await ping("profile", tx);
   });
 
   // The username is part of the session payload, so mint a fresh cookie.

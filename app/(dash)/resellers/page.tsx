@@ -21,15 +21,22 @@ import { Modal } from "@/components/ui/Modal";
 import { Cell, DataTable, EmptyRow, Row } from "@/components/ui/Table";
 import { useToast } from "@/components/ui/Toast";
 import { del, patchJson, postJson } from "@/lib/client-api";
+import {
+  applyRemoveReseller,
+  applyResellerStatus,
+} from "@/lib/optimistic";
 import { PACKAGE_NAMES, shortPackageLabel } from "@/lib/packages";
 import { daysLeft, effectiveStatus, formatExpiry, keysRemaining } from "@/lib/reseller";
 import { useDashboard } from "@/lib/store";
+import type { ResellerStatus } from "@/lib/types";
 
 const COLUMNS = ["Username", "Status", "Validity", "Keys", "Device", "Allowed Packages", "Actions"];
 
 export default function ResellersPage() {
   const toast = useToast();
   const refresh = useDashboard((s) => s.refresh);
+  const patchDb = useDashboard((s) => s.patch);
+  const restore = useDashboard((s) => s.restore);
   const users = useDashboard((s) => s.db.cheatExeUsers);
   const history = useDashboard((s) => s.db.cheatExeKeyHistory);
 
@@ -66,8 +73,8 @@ export default function ResellersPage() {
       });
       setUsername("");
       setPassword("");
-      await refresh();
       toast("Reseller created successfully!", "success");
+      void refresh();
     } catch (err) {
       toast((err as Error).message, "error");
     } finally {
@@ -76,22 +83,32 @@ export default function ResellersPage() {
   };
 
   const patch = async (name: string, body: Record<string, unknown>, message: string) => {
+    // Status is the one field worth painting ahead of the server -- it is
+    // the visible result of the click. Everything else lands on the
+    // refresh, which no longer blocks the confirmation.
+    const snapshot =
+      typeof body.status === "string"
+        ? patchDb((db) => applyResellerStatus(db, name, body.status as ResellerStatus))
+        : null;
+    toast(message, "success");
     try {
       await patchJson(`/api/resellers/${encodeURIComponent(name)}`, body);
-      await refresh();
-      toast(message, "success");
+      void refresh();
     } catch (err) {
+      if (snapshot) restore(snapshot);
       toast((err as Error).message, "error");
     }
   };
 
   const remove = async (name: string) => {
     if (!confirm(`Delete reseller ${name}?`)) return;
+    const snapshot = patchDb((db) => applyRemoveReseller(db, name));
+    toast("Reseller deleted.", "success");
     try {
       await del(`/api/resellers/${encodeURIComponent(name)}`);
-      await refresh();
-      toast("Reseller deleted.", "success");
+      void refresh();
     } catch (err) {
+      restore(snapshot);
       toast((err as Error).message, "error");
     }
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import type { PublicAnnouncement, PublicDatabase } from "./types";
+import type { PublicAnnouncement, PublicDatabase, ResellerStatus } from "./types";
 
 /**
  * Local edits that mirror what the server is about to do.
@@ -69,4 +69,75 @@ export function applyClearMine(db: PublicDatabase): PublicDatabase {
 /** Mirrors DELETE /api/messages/:id for the owner -- gone for everyone. */
 export function applyDeleteMessage(db: PublicDatabase, id: string): PublicDatabase {
   return { ...db, cheatExeMessages: db.cheatExeMessages.filter((m) => m.id !== id) };
+}
+
+/* ------------------------------------------------------------------
+   Monitoring and reseller tables.
+
+   Same principle as the message helpers above: paint the expected
+   result, let the write and the refetch happen behind it. Each mirrors
+   exactly what its API route does, so the real data arriving does not
+   visibly change anything.
+   ------------------------------------------------------------------ */
+
+/** Mirrors DELETE /api/devices/:sessionId -- ends that session. */
+export function applyKickDevice(db: PublicDatabase, sessionId: string): PublicDatabase {
+  return {
+    ...db,
+    cheatExeDevices: db.cheatExeDevices.filter((d) => d.sessionId !== sessionId),
+  };
+}
+
+/** Mirrors DELETE /api/bans -- lifts one block. */
+export function applyLiftBan(db: PublicDatabase, scope: string, value: string): PublicDatabase {
+  return {
+    ...db,
+    cheatExeBans: db.cheatExeBans.filter(
+      (b) => !(b.scope === scope && b.value.toLowerCase() === value.toLowerCase()),
+    ),
+  };
+}
+
+/** Mirrors PATCH /api/resellers/:name with a status. */
+export function applyResellerStatus(
+  db: PublicDatabase,
+  name: string,
+  status: ResellerStatus,
+): PublicDatabase {
+  const current = db.cheatExeUsers[name];
+  if (!current) return db;
+  return {
+    ...db,
+    cheatExeUsers: { ...db.cheatExeUsers, [name]: { ...current, status } },
+    // Suspending drops that account's sessions, exactly as the route does.
+    cheatExeDevices:
+      status === "ACTIVE"
+        ? db.cheatExeDevices
+        : db.cheatExeDevices.filter(
+            (d) => (d.user.split(" ")[0] ?? "").toLowerCase() !== name.toLowerCase(),
+          ),
+  };
+}
+
+/** Mirrors DELETE /api/resellers/:name. */
+export function applyRemoveReseller(db: PublicDatabase, name: string): PublicDatabase {
+  const users = { ...db.cheatExeUsers };
+  delete users[name];
+  return {
+    ...db,
+    cheatExeUsers: users,
+    cheatExeDevices: db.cheatExeDevices.filter(
+      (d) => (d.user.split(" ")[0] ?? "").toLowerCase() !== name.toLowerCase(),
+    ),
+  };
+}
+
+/** Mirrors DELETE /api/banned/:username -- with or without restore. */
+export function applyRemoveVaultEntry(db: PublicDatabase, username: string): PublicDatabase {
+  return {
+    ...db,
+    cheatExeBannedUsers: db.cheatExeBannedUsers.filter(
+      (b) => b.username.toLowerCase() !== username.toLowerCase(),
+    ),
+  };
 }

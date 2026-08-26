@@ -69,9 +69,13 @@ export default function ProfilePage() {
                 {isOwner ? "Account Owner" : "Reseller"}
               </span>
             </MetaRow>
-            <MetaRow label="Joined">
-              <span className="font-bold text-fg">Aug 8, 2026</span>
-            </MetaRow>
+            {/* No creation date is stored for the owner account, only for
+                resellers (`own.created`) -- omit rather than invent one. */}
+            {own?.created && (
+              <MetaRow label="Joined">
+                <span className="font-bold text-fg">{own.created}</span>
+              </MetaRow>
+            )}
             <MetaRow label="Subscription Tier">
               <span className="font-extrabold text-green">{isOwner ? "Owner" : "Paid"}</span>
             </MetaRow>

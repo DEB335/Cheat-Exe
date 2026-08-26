@@ -90,6 +90,16 @@ export const POST = route(async (request: Request) => {
     });
     if (db.cheatExeDevices.length > 50) db.cheatExeDevices.pop();
 
+    // Deliberately no ping("device", tx) here. A sign-in is routine and
+    // frequent -- unlike a kick or a suspension, which are rare and
+    // owner-initiated -- and every ping wakes every open dashboard into a
+    // full /api/db refetch (see the coalescing comment in use-realtime.ts,
+    // which measured a single burst producing six refetches against a
+    // three-connection pool). Broadcasting one of those per login would
+    // make the realtime channel noisy in proportion to reseller traffic
+    // rather than to owner-relevant events, for a page -- Active Devices --
+    // where "current within five seconds" (the existing poll) is already
+    // fine. Logouts below are symmetric for the same reason.
     return resolved;
   });
 

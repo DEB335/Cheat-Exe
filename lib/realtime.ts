@@ -4,6 +4,29 @@ import type { Tx } from "./db";
 import { sql } from "./sql";
 
 /**
+ * The kinds of change worth ringing the doorbell for. Kept as a closed
+ * union rather than `string` so a typo doesn't silently mint a new kind
+ * nobody listens for, and so a future client can act selectively instead
+ * of treating every ping as "refetch everything":
+ *
+ *  - message  -- an announcement was sent, withdrawn, read, or reacted to.
+ *  - reseller -- a reseller account was created, edited, or deleted.
+ *  - ban      -- a device block or a banned/kicked vault record changed.
+ *  - device   -- the active session list changed (cleared or a kick).
+ *  - key      -- license key history changed (generated, deleted, cleared).
+ *  - profile  -- the owner's branding or credentials changed.
+ *  - audit    -- the audit log was cleared.
+ */
+export type PingKind =
+  | "message"
+  | "reseller"
+  | "ban"
+  | "device"
+  | "key"
+  | "profile"
+  | "audit";
+
+/**
  * Rings the doorbell that browsers are listening to.
  *
  * Deliberately content-free. Supabase Realtime reads through the public
@@ -23,7 +46,7 @@ import { sql } from "./sql";
  * to every send, which is a meaningful slice of the delay it exists to
  * remove. Riding the existing transaction costs nothing.
  */
-export async function ping(kind: "message", tx?: Tx): Promise<void> {
+export async function ping(kind: PingKind, tx?: Tx): Promise<void> {
   try {
     const db = tx ?? sql();
     await db`insert into realtime_pings (kind) values (${kind})`;

@@ -19,6 +19,11 @@ export const POST = route(async () => {
           user.role === "OWNER" ? "Owner logged out successfully" : "Logged out successfully",
         ip,
       });
+
+      // No ping here either, symmetric with login: a sign-out is as
+      // frequent and as routine as a sign-in, and the Active Devices page
+      // already loses that row within one five-second poll. See the
+      // longer note in app/api/auth/login/route.ts.
     });
   }
 
