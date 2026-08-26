@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { requireUser } from "@/lib/auth";
+import { loadDb, requireUser } from "@/lib/auth";
 import { route } from "@/lib/api-helpers";
-import { readDb, toPublic } from "@/lib/db";
+import { toPublic } from "@/lib/db";
 import type { PublicDatabase } from "@/lib/types";
 
 /**
@@ -12,7 +12,7 @@ import type { PublicDatabase } from "@/lib/types";
  */
 export const GET = route(async () => {
   const user = await requireUser();
-  const db = toPublic(await readDb());
+  const db = toPublic(await loadDb());
 
   if (user.role === "OWNER") {
     return NextResponse.json(db);
@@ -22,6 +22,7 @@ export const GET = route(async () => {
     ...db,
     cheatExeUsers: {},
     cheatExeBannedUsers: [],
+    cheatExeBans: [],
     cheatExeKeyHistory: db.cheatExeKeyHistory.filter((k) => k.creator === user.username),
     cheatExeDevices: db.cheatExeDevices.filter((d) => d.sessionId === user.sessionId),
     cheatExeAuditLogs: db.cheatExeAuditLogs.filter((log) =>

@@ -1,12 +1,13 @@
 "use client";
 
-import { BanIcon } from "@/components/icons";
+import { BanIcon, CpuChipIcon, WifiOffIcon } from "@/components/icons";
 import { SmallButton } from "@/components/ui/buttons";
 import { RoleBadge } from "@/components/ui/Badge";
 import { Cell, DataTable, EmptyRow, Row } from "@/components/ui/Table";
 import { useToast } from "@/components/ui/Toast";
-import { del } from "@/lib/client-api";
+import { del, postJson } from "@/lib/client-api";
 import { useDashboard } from "@/lib/store";
+import type { BanScope } from "@/lib/types";
 
 const OVERVIEW_COLUMNS = ["STATUS", "USER ACCOUNT", "DEVICE & BROWSER", "IP ADDRESS", "LOGGED IN", "ACTION"];
 const FULL_COLUMNS = [
@@ -33,6 +34,28 @@ export function DevicesTable({ variant }: { variant: "overview" | "full" }) {
     try {
       await del(`/api/devices/${encodeURIComponent(sessionId)}`);
       toast(`Device session for user '${name}' has been kicked!`, "success");
+      await refresh();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
+  };
+
+  /**
+   * Blocks at the connection rather than the account.
+   *
+   * Kicking suspends one reseller; this stops the address or the machine
+   * reaching *any* account, and is checked before the password is, so a
+   * blocked device cannot even probe for valid credentials.
+   */
+  const block = async (
+    rules: Array<{ scope: BanScope; value: string }>,
+    label: string,
+    name: string,
+  ) => {
+    if (!confirm(`Block ${label} for ${name}? Nobody will be able to sign in from it.`)) return;
+    try {
+      await postJson("/api/bans", { rules, reason: `Blocked from Active Devices`, user: name });
+      toast(`${label} blocked.`, "success");
       await refresh();
     } catch (err) {
       toast((err as Error).message, "error");
@@ -94,10 +117,63 @@ export function DevicesTable({ variant }: { variant: "overview" | "full" }) {
                     {isOverview ? "Active" : "Current Device"}
                   </span>
                 ) : (
-                  <SmallButton tone="danger" onClick={() => kick(device.sessionId, cleanUser)}>
-                    <BanIcon className="size-2.5" />
-                    Kick
-                  </SmallButton>
+                  <div className="flex flex-wrap gap-1.5">
+                    <SmallButton tone="danger" onClick={() => kick(device.sessionId, cleanUser)}>
+                      <BanIcon className="size-2.5" />
+                      Kick
+                    </SmallButton>
+
+                    {!isOverview && (
+                      <>
+                        <SmallButton
+                          tone="danger"
+                          title={`Block ${device.ip} from the panel`}
+                          onClick={() =>
+                            block(
+                              [{ scope: "ip", value: device.ip }],
+                              `IP ${device.ip}`,
+                              cleanUser,
+                            )
+                          }
+                        >
+                          <WifiOffIcon className="size-2.5" />
+                          Ban IP
+                        </SmallButton>
+
+                        <SmallButton
+                          tone="danger"
+                          disabled={!device.hwid && !device.fingerprint}
+                          title={
+                            device.hwid || device.fingerprint
+                              ? "Block this machine from the panel"
+                              : "This session predates device tracking -- it will get an ID on next sign-in"
+                          }
+                          onClick={() =>
+                            block(
+                              [
+                                ...(device.hwid
+                                  ? [{ scope: "hwid" as BanScope, value: device.hwid }]
+                                  : []),
+                                ...(device.fingerprint
+                                  ? [
+                                      {
+                                        scope: "fingerprint" as BanScope,
+                                        value: device.fingerprint,
+                                      },
+                                    ]
+                                  : []),
+                              ],
+                              "this device (HWID)",
+                              cleanUser,
+                            )
+                          }
+                        >
+                          <CpuChipIcon className="size-2.5" />
+                          Ban HWID
+                        </SmallButton>
+                      </>
+                    )}
+                  </div>
                 )}
               </Cell>
             </Row>

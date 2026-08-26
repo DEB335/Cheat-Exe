@@ -39,6 +39,8 @@ export const DELETE = route(async (_request: Request, ctx: Ctx) => {
       ip: device.ip,
       device: device.device,
       kickedTime: formatTimestamp(),
+      hwid: device.hwid,
+      fingerprint: device.fingerprint,
     };
 
     db.cheatExeBannedUsers.unshift(record);

@@ -1,9 +1,13 @@
 import "server-only";
 
 import { cookies, headers } from "next/headers";
+import { cache } from "react";
 
+import { matchBan } from "./bans";
+import { accountBlock, readDb } from "./db";
+import { deviceIdentity } from "./device";
 import { SESSION_COOKIE, readSessionToken } from "./session";
-import type { SessionUser } from "./types";
+import type { Database, SessionUser } from "./types";
 
 /** Current session, or null. Route handlers should prefer requireUser. */
 export async function getSessionUser(): Promise<SessionUser | null> {
@@ -20,9 +24,46 @@ export class HttpError extends Error {
   }
 }
 
+/**
+ * One read per request, shared by every caller in it. Without this the
+ * account check below would double the query count on routes that go on
+ * to read the database themselves.
+ */
+export const loadDb = cache(async (): Promise<Database> => readDb());
+
+const BLOCK_MESSAGE = {
+  banned: "Your account has been terminated.",
+  suspended: "Your account has been suspended.",
+  pending: "Your account is still pending approval.",
+  deleted: "This account no longer exists.",
+} as const;
+
+/**
+ * Authenticates *and* re-checks that the account is still usable.
+ *
+ * A signed cookie proves who you were when you signed in, not that the
+ * owner still wants you here. Suspending a reseller used to leave their
+ * open tab fully working until the token expired; every authenticated
+ * route runs through here, so it now stops at the next request.
+ */
 export async function requireUser(): Promise<SessionUser> {
   const user = await getSessionUser();
   if (!user) throw new HttpError(401, "Not authenticated");
+
+  const db = await loadDb();
+
+  const blocked = accountBlock(db, user.username, user.role);
+  if (blocked) throw new HttpError(403, BLOCK_MESSAGE[blocked]);
+
+  // Same carve-out as the login route: a device block never applies to
+  // the owner, so lifting one is always possible from any machine.
+  if (user.role !== "OWNER") {
+    const { hwid, fingerprint } = await deviceIdentity();
+    if (matchBan(db, { ip: await clientIp(), hwid, fingerprint })) {
+      throw new HttpError(403, "This device has been blocked.");
+    }
+  }
+
   return user;
 }
 

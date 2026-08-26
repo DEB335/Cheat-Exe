@@ -50,6 +50,28 @@ export function useStoredFlag(key: string): [boolean, (next: boolean) => void] {
   return [value, set];
 }
 
+/**
+ * Subscribes to a CSS media query.
+ *
+ * The server snapshot is `false`, so the first client render matches the
+ * HTML and the layout settles on the real value straight after -- the
+ * same reason useStoredFlag above goes through useSyncExternalStore.
+ */
+export function useMediaQuery(query: string): boolean {
+  const subscribe = useCallback(
+    (notify: () => void) => {
+      const list = window.matchMedia(query);
+      list.addEventListener("change", notify);
+      return () => list.removeEventListener("change", notify);
+    },
+    [query],
+  );
+
+  const getSnapshot = useCallback(() => window.matchMedia(query).matches, [query]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, () => false);
+}
+
 /** Tracks the `light-mode` class on <body> without polling. */
 export function useLightMode(): boolean {
   return useSyncExternalStore(

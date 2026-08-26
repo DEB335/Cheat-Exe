@@ -5,22 +5,24 @@ import { useEffect, useRef } from "react";
 import { playClick, playDodge, playSnap } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
 
-export type TetherState = "empty" | "ready" | "invalid";
+export type TetherState = "empty" | "checking" | "ready" | "invalid";
 
 const COLORS: Record<TetherState, { stroke: string; glow: string }> = {
   empty: { stroke: "#2dd4bf", glow: "rgba(45, 212, 191, 0.4)" },
+  checking: { stroke: "#f59e0b", glow: "rgba(245, 158, 11, 0.4)" },
   ready: { stroke: "#2dd4bf", glow: "rgba(45, 212, 191, 0.4)" },
   invalid: { stroke: "#ef4444", glow: "rgba(239, 68, 68, 0.4)" },
 };
 
 /**
  * The runaway sign-in button. It dodges the cursor on an elastic cord
- * until both fields are filled, then snaps home and locks.
+ * until the typed credentials are confirmed real, then snaps home,
+ * turns green and locks.
  *
  * The original decided "locked" by comparing the typed password against
- * credentials held in localStorage. Those live on the server now, so
- * locking keys off the form being complete and the red state comes from
- * a rejected submit -- the choreography is unchanged.
+ * credentials held in localStorage, which anyone could edit. The server
+ * decides now (see /api/auth/verify); until it says yes the button both
+ * runs away *and* stays disabled, so catching it achieves nothing.
  */
 export function TetherButton({
   state,
@@ -47,7 +49,7 @@ export function TetherButton({
     stateRef.current = state;
   }, [state]);
 
-  // Play the lock chord the first time the form becomes complete.
+  // Play the lock chord the first time the credentials come back valid.
   useEffect(() => {
     if (state === "ready" && !snapped.current) {
       snapped.current = true;
@@ -63,6 +65,10 @@ export function TetherButton({
     target.current.x = (Math.random() > 0.5 ? 1 : -1) * 120;
     target.current.y = -35;
   }, [bolt]);
+
+  // A dodging button must not be reachable by keyboard either: Tab used
+  // to focus it, which snapped it home for free.
+  const locked = state === "ready";
 
   useEffect(() => {
     const track = trackRef.current;
@@ -80,7 +86,7 @@ export function TetherButton({
     resize();
 
     const onMouseMove = (event: MouseEvent) => {
-      // Locked home once the form is complete.
+      // Locked home once the server has confirmed the credentials.
       if (stateRef.current === "ready") {
         target.current.x = 0;
         target.current.y = 0;
@@ -176,8 +182,8 @@ export function TetherButton({
     };
   }, []);
 
-  const locked = state === "ready";
   const invalid = state === "invalid";
+  const checking = state === "checking";
 
   return (
     <div
@@ -192,7 +198,9 @@ export function TetherButton({
             ? "border-[rgba(16,185,129,0.7)] bg-[rgba(16,185,129,0.05)] shadow-[0_0_20px_rgba(16,185,129,0.2)]"
             : invalid
               ? "border-[rgba(239,68,68,0.6)] bg-[rgba(239,68,68,0.05)] shadow-[0_0_15px_rgba(239,68,68,0.15)]"
-              : "border-[rgba(45,212,191,0.4)]",
+              : checking
+                ? "border-[rgba(245,158,11,0.6)] bg-[rgba(245,158,11,0.05)]"
+                : "border-[rgba(45,212,191,0.4)]",
         )}
       >
         <div
@@ -203,7 +211,9 @@ export function TetherButton({
               ? "border-[rgba(16,185,129,0.6)] bg-[rgba(16,185,129,0.2)] after:bg-[#10b981]"
               : invalid
                 ? "border-[rgba(239,68,68,0.6)] bg-[rgba(239,68,68,0.2)] after:bg-[#ef4444]"
-                : "border-[rgba(45,212,191,0.3)] bg-[rgba(45,212,191,0.1)] after:bg-[#2dd4bf]",
+                : checking
+                  ? "border-[rgba(245,158,11,0.6)] bg-[rgba(245,158,11,0.2)] after:animate-pulse after:bg-[#f59e0b]"
+                  : "border-[rgba(45,212,191,0.3)] bg-[rgba(45,212,191,0.1)] after:bg-[#2dd4bf]",
           )}
         />
       </div>
@@ -217,18 +227,24 @@ export function TetherButton({
       <button
         ref={buttonRef}
         type="submit"
-        disabled={disabled}
+        // Unclickable until the credentials check out. The dodge is
+        // driven by a window listener, so it keeps running regardless.
+        disabled={disabled || !locked}
+        tabIndex={locked ? 0 : -1}
+        aria-label={locked ? label : "Sign in -- enter valid credentials to unlock"}
         onFocus={() => {
+          if (!locked) return;
           target.current.x = 0;
           target.current.y = 0;
           playClick();
         }}
         className={cn(
-          "animate-button-shimmer absolute z-20 flex h-[52px] w-[144px] cursor-pointer items-center justify-center gap-2",
+          "animate-button-shimmer absolute z-20 flex h-[52px] w-[144px] items-center justify-center gap-2",
           "rounded-[26px] text-[16px] font-bold [background-size:200%_200%]",
           "shadow-[0_5px_15px_rgba(0,0,0,0.2)]",
           "transition-[background,color,box-shadow] duration-300",
-          "disabled:cursor-wait",
+          locked ? "cursor-pointer" : "cursor-not-allowed",
+          disabled && "cursor-wait",
           locked
             ? [
                 "border-none bg-[linear-gradient(to_bottom,#0f402b,#10b981)] text-[#6ee7b7]",
@@ -241,11 +257,12 @@ export function TetherButton({
                   "border-none bg-[linear-gradient(to_bottom,#400f13,#ef4444)] text-[#fca5a5]",
                   "shadow-[0_0_20px_rgba(239,68,68,0.25),0_10px_25px_rgba(0,0,0,0.5)]",
                 ]
-              : [
-                  "border border-[rgba(45,212,191,0.25)] bg-[#182824] text-[#72a294]",
-                  "hover:bg-[#1c322d] hover:text-[#a5c3b9]",
-                  "hover:shadow-[0_8px_20px_rgba(45,212,191,0.15)]",
-                ],
+              : checking
+                ? [
+                    "border border-[rgba(245,158,11,0.35)] bg-[#2a2113] text-[#d6a44a]",
+                    "shadow-[0_0_16px_rgba(245,158,11,0.18)]",
+                  ]
+                : ["border border-[rgba(45,212,191,0.25)] bg-[#182824] text-[#72a294]"],
         )}
       >
         {label}

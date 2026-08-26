@@ -31,6 +31,17 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
 
     if (body.status) {
       match.user.status = body.status;
+
+      // A suspension has to reach an account that is already signed in.
+      // Dropping its device rows ends every open session, so the next
+      // request or dashboard poll shows the suspended screen instead of
+      // the panel carrying on until the token expires.
+      if (body.status !== "ACTIVE") {
+        db.cheatExeDevices = db.cheatExeDevices.filter(
+          (d) => (d.user.split(" ")[0] ?? "").toLowerCase() !== match.key.toLowerCase(),
+        );
+      }
+
       pushAudit(db, {
         user: "Owner (OWNER)",
         action: `Set ${match.key} status to ${body.status}`,

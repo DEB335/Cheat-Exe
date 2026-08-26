@@ -32,6 +32,25 @@ export interface DeviceSession {
   ip: string;
   device: string;
   timestamp: string;
+  /** Opaque per-browser id from the long-lived device cookie. */
+  hwid?: string;
+  /** Coarse hash of the user-agent trio, used when the cookie is cleared. */
+  fingerprint?: string;
+}
+
+/** What a ban rule matches on. */
+export type BanScope = "ip" | "hwid" | "fingerprint";
+
+/** A device-level block, independent of any account. */
+export interface BanRule {
+  scope: BanScope;
+  value: string;
+  reason: string;
+  /** Account label of whoever added it. */
+  by: string;
+  at: string;
+  /** Account the rule was created from, for display only. */
+  user?: string;
 }
 
 export interface BannedUser {
@@ -43,6 +62,8 @@ export interface BannedUser {
   ip: string;
   device: string;
   kickedTime: string;
+  hwid?: string;
+  fingerprint?: string;
 }
 
 /** Owner-editable branding, saved from the Profile page. */
@@ -58,6 +79,8 @@ export interface Database {
   cheatExeAuditLogs: AuditLog[];
   cheatExeDevices: DeviceSession[];
   cheatExeBannedUsers: BannedUser[];
+  /** IP / device blocks enforced before any password is checked. */
+  cheatExeBans: BanRule[];
   adminUser: string;
   /** bcrypt hash of the owner password. */
   adminPassHash: string;
@@ -71,6 +94,7 @@ export interface PublicDatabase {
   cheatExeAuditLogs: AuditLog[];
   cheatExeDevices: DeviceSession[];
   cheatExeBannedUsers: BannedUser[];
+  cheatExeBans: BanRule[];
   adminUser: string;
   profile: ProfileSettings;
 }

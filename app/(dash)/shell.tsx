@@ -11,8 +11,47 @@ import { useToast } from "@/components/ui/Toast";
 import { useDashboard } from "@/lib/store";
 import type { SessionUser } from "@/lib/types";
 
-/** How often to check whether this session was kicked or banned. */
+/** How often to check whether this session is still allowed to be open. */
 const SESSION_POLL_MS = 15_000;
+
+/** Reason codes /api/auth/session returns when it terminates a session. */
+type Terminated = "banned" | "suspended" | "pending" | "deleted" | "device" | "kicked";
+
+const TERMINATED_COPY: Record<Terminated, { title: string; body: string; tone: string }> = {
+  banned: {
+    title: "ACCOUNT TERMINATED",
+    body: "Access to this platform has been revoked.",
+    tone: "#ef4444",
+  },
+  suspended: {
+    title: "ACCOUNT SUSPENDED",
+    body: "The owner has suspended this account. You are being signed out.",
+    tone: "#f59e0b",
+  },
+  pending: {
+    title: "ACCOUNT PENDING APPROVAL",
+    body: "This account is waiting to be activated by the owner.",
+    tone: "#f59e0b",
+  },
+  deleted: {
+    title: "ACCOUNT REMOVED",
+    body: "This account no longer exists.",
+    tone: "#ef4444",
+  },
+  device: {
+    title: "DEVICE BLOCKED",
+    body: "This device or network has been blocked from the panel.",
+    tone: "#ef4444",
+  },
+  kicked: {
+    title: "SESSION ENDED",
+    body: "Your session was closed from the owner panel.",
+    tone: "#60a5fa",
+  },
+};
+
+/** How long the notice stays up before the redirect. */
+const NOTICE_MS = 2600;
 
 export function Shell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -21,27 +60,48 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
   const setUser = useDashboard((s) => s.setUser);
   const refresh = useDashboard((s) => s.refresh);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [terminated, setTerminated] = useState<Terminated | null>(null);
 
   useEffect(() => {
     setUser(user);
     void refresh();
   }, [user, setUser, refresh]);
 
-  // Replaces the old client-side banned poll: the server decides, and a
-  // terminated session is redirected out.
+  // Replaces the old client-side banned poll: the server decides. A
+  // terminated session is told what happened -- a reseller who is
+  // suspended mid-session used to be bounced to the login screen with no
+  // explanation at all -- and then sent out.
   useEffect(() => {
+    if (terminated) return;
+
     const check = async () => {
       try {
         const response = await fetch("/api/auth/session", { cache: "no-store" });
-        const data = (await response.json()) as { user: SessionUser | null };
-        if (!data.user) router.push("/login");
+        const data = (await response.json()) as {
+          user: SessionUser | null;
+          terminated?: Terminated;
+        };
+        if (data.user) return;
+        setTerminated(data.terminated ?? "kicked");
       } catch {
         /* offline -- try again on the next tick */
       }
     };
+
     const id = window.setInterval(check, SESSION_POLL_MS);
     return () => window.clearInterval(id);
-  }, [router]);
+  }, [terminated]);
+
+  // Hold the notice on screen long enough to read, then hand over to the
+  // login page, which shows the same reason.
+  useEffect(() => {
+    if (!terminated) return;
+    const id = window.setTimeout(() => {
+      router.replace(`/login?reason=${terminated}`);
+      router.refresh();
+    }, NOTICE_MS);
+    return () => window.clearTimeout(id);
+  }, [terminated, router]);
 
   // Matches the original panel behaviour.
   useEffect(() => {
@@ -59,6 +119,8 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
       <GridBackdrop />
       <CursorSparks />
 
+      {terminated && <TerminatedNotice reason={terminated} />}
+
       <div className="relative flex min-h-screen lg:h-screen lg:overflow-hidden">
         <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
 
@@ -72,5 +134,29 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
         </main>
       </div>
     </>
+  );
+}
+
+/** Full-screen takeover shown the moment a session stops being valid. */
+function TerminatedNotice({ reason }: { reason: Terminated }) {
+  const copy = TERMINATED_COPY[reason];
+
+  return (
+    <div
+      role="alertdialog"
+      aria-modal
+      className="fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[rgba(4,7,17,0.96)] px-6 text-center backdrop-blur-[6px]"
+    >
+      <h1
+        className="mb-3 text-[22px] font-extrabold tracking-[2px] sm:text-[28px]"
+        style={{ color: copy.tone }}
+      >
+        {copy.title}
+      </h1>
+      <p className="max-w-[420px] text-[13.5px] leading-[1.6] text-muted">{copy.body}</p>
+      <p className="mt-6 text-[12px] tracking-[1.5px] text-muted uppercase">
+        Returning to sign in...
+      </p>
+    </div>
   );
 }

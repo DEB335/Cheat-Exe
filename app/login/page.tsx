@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import {
   BackgroundVideo,
@@ -77,18 +77,46 @@ function LoginView() {
   const [success, setSuccess] = useState("");
   const [shake, setShake] = useState(0);
   const [bolt, setBolt] = useState(0);
-  const [banned, setBanned] = useState<string | null>(null);
+  const [submitBlock, setSubmitBlock] = useState<BlockedScreen | null>(null);
+  const [dismissed, setDismissed] = useState<string | null>(null);
   // The original login page forces music on and unmutes at the first
   // interaction; only the dashboard starts silent.
   const [muted, setMuted] = useState(false);
   useAutoUnmute(!muted);
 
-  // The button locks home once the form is complete; red is reserved for
-  // a rejected submit, which only the server can decide.
-  const state: TetherState = error ? "invalid" : username && password ? "ready" : "empty";
+  // Whether the typed pair is a real account. The browser cannot decide
+  // this -- the original compared against localStorage, which anyone
+  // could edit -- so it is asked of the server as you type.
+  const check = useCredentialCheck(username, password);
+
+  // The button only snaps home and turns green for credentials the
+  // server confirms. Anything else keeps it running from the cursor.
+  const state: TetherState = error
+    ? "invalid"
+    : check === "valid"
+      ? "ready"
+      : check === "checking"
+        ? "checking"
+        : "empty";
+
+  // Which full-screen panel, if any, this render should show. Derived
+  // rather than pushed into state from an effect: the live check, a
+  // rejected submit and a ?reason= redirect are three sources for one
+  // screen, and deriving keeps them from racing each other.
+  const reason = params.get("reason");
+  const blocked =
+    submitBlock ??
+    (isBlockKind(check) ? { kind: check, username: username.toUpperCase() } : null) ??
+    (reason && reason in BLOCK_COPY ? { kind: reason as BlockKind, username: "" } : null);
+
+  const blockedKey = blocked ? `${blocked.kind}:${blocked.username}` : null;
+  const showBlocked = blocked && blockedKey !== dismissed ? blocked : null;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    // Belt and braces: the button is disabled until the check passes,
+    // but a stray Enter must not fire a request either.
+    if (check !== "valid" || busy) return;
     setBusy(true);
     setError("");
     setSuccess("");
@@ -104,8 +132,9 @@ function LoginView() {
       router.refresh();
     } catch (err) {
       const message = (err as Error).message;
-      if (message === "BANNED") {
-        setBanned(username.toUpperCase());
+      const kind = WIRE_TO_BLOCK[message];
+      if (kind) {
+        setSubmitBlock({ kind, username: username.toUpperCase() });
         setBusy(false);
         return;
       }
@@ -117,17 +146,15 @@ function LoginView() {
     }
   };
 
-  if (banned) {
+  if (showBlocked) {
     return (
-      <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#090e11]">
-        <h1 className="mb-3 text-[28px] tracking-[2px] text-[#ef4444]">ACCOUNT TERMINATED</h1>
-        <p className="mb-5 text-[14px] text-[#94a3b8]">
-          Access to this platform has been revoked.
-        </p>
-        <div className="rounded-lg border border-[rgba(239,68,68,0.3)] bg-[rgba(239,68,68,0.1)] px-5 py-3">
-          <span className="text-[#f87171]">USER: {banned}</span>
-        </div>
-      </div>
+      <BlockedPanel
+        screen={showBlocked}
+        onDismiss={() => {
+          setSubmitBlock(null);
+          setDismissed(blockedKey);
+        }}
+      />
     );
   }
 
@@ -177,12 +204,18 @@ function LoginView() {
 
             <h1 className="mb-2 text-[30px] font-extrabold tracking-[-0.5px] text-white">Sign in</h1>
             <p className="mb-7 text-[13.5px] leading-[1.5] text-[#94a3b8]">
-              Welcome back. Two fields stand between you and that button.
+              Welcome back. The button holds still once your credentials check out.
             </p>
 
             {error && (
               <div className="mb-[18px] rounded-xl border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.12)] px-4 py-[11px] text-center text-[12.5px] leading-[1.4] font-semibold text-[#fca5a5]">
                 {error}
+              </div>
+            )}
+            {!error && check === "unreachable" && (
+              <div className="mb-[18px] rounded-xl border border-[rgba(245,158,11,0.25)] bg-[rgba(245,158,11,0.12)] px-4 py-[11px] text-center text-[12.5px] leading-[1.4] font-semibold text-[#fcd34d]">
+                Could not reach the server to check your credentials. The button stays locked until
+                it can -- edit a field to try again.
               </div>
             )}
             {success && (
@@ -239,7 +272,7 @@ function LoginView() {
 
               <TetherButton
                 state={state}
-                label={busy ? "Signing in..." : "Log in"}
+                label={busy ? "Signing in..." : check === "checking" ? "Checking..." : "Log in"}
                 disabled={busy}
                 bolt={bolt}
               />
@@ -278,6 +311,164 @@ function LoginView() {
         </div>
       </div>
     </>
+  );
+}
+
+type CheckState =
+  | "empty"
+  | "checking"
+  | "valid"
+  | "invalid"
+  | "banned"
+  | "suspended"
+  | "pending"
+  | "device"
+  /** The check itself failed. Never unlocks -- but says so, rather than
+      leaving someone with correct credentials chasing a locked button. */
+  | "unreachable";
+
+type BlockKind = "banned" | "suspended" | "pending" | "device" | "kicked" | "deleted";
+
+interface BlockedScreen {
+  kind: BlockKind;
+  username: string;
+}
+
+/** Wire codes the login route throws, mapped to a full-screen panel. */
+const WIRE_TO_BLOCK: Record<string, BlockKind | undefined> = {
+  BANNED: "banned",
+  SUSPENDED: "suspended",
+  PENDING: "pending",
+  DEVICE_BANNED: "device",
+};
+
+const BLOCK_COPY: Record<BlockKind, { title: string; body: string; tone: string }> = {
+  banned: {
+    title: "ACCOUNT TERMINATED",
+    body: "Access to this platform has been revoked.",
+    tone: "#ef4444",
+  },
+  suspended: {
+    title: "ACCOUNT SUSPENDED",
+    body: "Your credentials are correct, but this account has been suspended by the owner. Contact support to have it restored.",
+    tone: "#f59e0b",
+  },
+  pending: {
+    title: "PENDING APPROVAL",
+    body: "This account exists but has not been approved yet. You will be able to sign in once the owner activates it.",
+    tone: "#f59e0b",
+  },
+  device: {
+    title: "DEVICE BLOCKED",
+    body: "This device or network has been blocked from the panel. No account can be used from here.",
+    tone: "#ef4444",
+  },
+  kicked: {
+    title: "SESSION ENDED",
+    body: "Your session was closed from the owner panel. Sign in again to continue.",
+    tone: "#60a5fa",
+  },
+  deleted: {
+    title: "ACCOUNT REMOVED",
+    body: "This account no longer exists. Contact the owner if you think this is a mistake.",
+    tone: "#ef4444",
+  },
+};
+
+/** How long to wait after the last keystroke before asking the server. */
+const CHECK_DEBOUNCE_MS = 400;
+
+function isBlockKind(check: CheckState): check is BlockKind & CheckState {
+  return check === "banned" || check === "suspended" || check === "pending" || check === "device";
+}
+
+/**
+ * Asks the server whether the typed pair would sign in.
+ *
+ * The answer is stored against the exact pair it was asked about and the
+ * result is derived at render, so a reply that lands after the fields
+ * have moved on simply stops matching -- it can never turn the button
+ * green for credentials that are no longer on screen.
+ */
+function useCredentialCheck(username: string, password: string): CheckState {
+  const [answer, setAnswer] = useState<{ key: string; state: CheckState } | null>(null);
+
+  const key = `${username}\u0000${password}`;
+  const askable = username.trim().length > 0 && password.length >= 3;
+
+  useEffect(() => {
+    if (!askable) return;
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch("/api/auth/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+          signal: controller.signal,
+          cache: "no-store",
+        });
+        // A rate limit or a server fault is not an answer about the
+        // credentials, so it must not be reported as "wrong password".
+        if (!response.ok) {
+          setAnswer({ key, state: "unreachable" });
+          return;
+        }
+
+        const data = (await response.json()) as { ok?: boolean; reason?: string };
+
+        if (data.ok) setAnswer({ key, state: "valid" });
+        else if (data.reason && data.reason !== "invalid") {
+          setAnswer({ key, state: data.reason as CheckState });
+        } else setAnswer({ key, state: "invalid" });
+      } catch {
+        // Offline or the request failed. Stay locked -- only the server
+        // may unlock the button -- but tell the user why.
+        if (!controller.signal.aborted) setAnswer({ key, state: "unreachable" });
+      }
+    }, CHECK_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [key, askable, username, password]);
+
+  if (!askable) return "empty";
+  return answer?.key === key ? answer.state : "checking";
+}
+
+function BlockedPanel({ screen, onDismiss }: { screen: BlockedScreen; onDismiss: () => void }) {
+  const copy = BLOCK_COPY[screen.kind];
+
+  return (
+    <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#090e11] px-6 text-center">
+      <h1
+        className="mb-3 text-[22px] tracking-[2px] sm:text-[28px]"
+        style={{ color: copy.tone }}
+      >
+        {copy.title}
+      </h1>
+      <p className="mb-5 max-w-[420px] text-[13.5px] leading-[1.6] text-[#94a3b8]">{copy.body}</p>
+
+      {screen.username && (
+        <div
+          className="rounded-lg border px-5 py-3"
+          style={{ borderColor: `${copy.tone}4d`, background: `${copy.tone}1a` }}
+        >
+          <span style={{ color: copy.tone }}>USER: {screen.username}</span>
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="mt-8 rounded-xl border border-white/10 px-5 py-2.5 text-[12.5px] font-bold text-[#94a3b8] transition-colors hover:border-white/20 hover:text-white"
+      >
+        Back to sign in
+      </button>
+    </div>
   );
 }
 

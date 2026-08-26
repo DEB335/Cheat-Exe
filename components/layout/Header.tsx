@@ -31,21 +31,23 @@ export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMob
     user?.role !== "OWNER" && pathname === "/reseller-history" ? "My Key History" : page.title;
 
   return (
-    <header className="relative z-[5] flex items-center justify-between gap-4 px-6 py-6 lg:px-10 lg:py-[30px]">
-      <div className="flex items-center gap-3">
+    <header className="relative z-[5] flex items-center justify-between gap-3 px-5 py-5 sm:gap-4 sm:px-6 sm:py-6 lg:px-10 lg:py-[30px]">
+      <div className="flex min-w-0 items-center gap-3">
         <button
           type="button"
           onClick={onOpenMobile}
           aria-label="Open navigation"
-          className="rounded-lg border border-line bg-surface p-2 text-fg lg:hidden"
+          className="shrink-0 rounded-lg border border-line bg-surface p-2 text-fg lg:hidden"
         >
           <MenuIcon className="size-5" />
         </button>
-        <div>
-          <div className="mb-1.5 text-[11px] font-extrabold tracking-[1.8px] text-muted uppercase">
+        <div className="min-w-0">
+          <div className="mb-1.5 truncate text-[11px] font-extrabold tracking-[1.8px] text-muted uppercase">
             {page.section}
           </div>
-          <h1 className="font-display text-[22px] font-extrabold text-fg lg:text-[26px]">{title}</h1>
+          <h1 className="truncate font-display text-[19px] font-extrabold text-fg sm:text-[22px] lg:text-[26px]">
+            {title}
+          </h1>
         </div>
       </div>
 
@@ -99,7 +101,8 @@ function QuickSearch() {
         }}
         onFocus={() => setOpen(query.trim().length > 0)}
         className={cn(
-          "w-[140px] rounded-[10px] border border-line bg-input-bg py-[7px] pr-3 pl-8",
+          // 140px cut the placeholder off mid-word on a 1024px screen.
+          "w-[180px] rounded-[10px] border border-line bg-input-bg py-[7px] pr-3 pl-8",
           "text-[13px] text-fg outline-none transition-all duration-300 ease-smooth",
           "hover:w-[260px] focus:w-[260px] focus:border-white/15",
         )}

@@ -3,7 +3,13 @@ import "server-only";
 import bcrypt from "bcryptjs";
 
 import { sql } from "./sql";
-import type { Database, ProfileSettings, PublicDatabase, Reseller } from "./types";
+import type {
+  Database,
+  ProfileSettings,
+  PublicDatabase,
+  Reseller,
+  ResellerStatus,
+} from "./types";
 
 export const DEFAULT_PROFILE: ProfileSettings = {
   displayName: "Cheat Exe",
@@ -21,6 +27,7 @@ function emptyDb(adminPassHash: string): Database {
     cheatExeAuditLogs: [],
     cheatExeDevices: [],
     cheatExeBannedUsers: [],
+    cheatExeBans: [],
     adminUser: DEFAULT_ADMIN_USER,
     adminPassHash,
     profile: { ...DEFAULT_PROFILE },
@@ -51,6 +58,7 @@ async function normalise(stored: Partial<Database> & { adminPass?: string }): Pr
     cheatExeAuditLogs: stored.cheatExeAuditLogs ?? [],
     cheatExeDevices: stored.cheatExeDevices ?? [],
     cheatExeBannedUsers: stored.cheatExeBannedUsers ?? [],
+    cheatExeBans: stored.cheatExeBans ?? [],
     adminUser: stored.adminUser ?? DEFAULT_ADMIN_USER,
     adminPassHash,
     profile: { ...DEFAULT_PROFILE, ...stored.profile },
@@ -121,6 +129,7 @@ export function toPublic(db: Database): PublicDatabase {
     cheatExeAuditLogs: db.cheatExeAuditLogs,
     cheatExeDevices: db.cheatExeDevices,
     cheatExeBannedUsers: db.cheatExeBannedUsers,
+    cheatExeBans: db.cheatExeBans,
     adminUser: db.adminUser,
     profile: db.profile,
   };
@@ -135,6 +144,39 @@ export function findReseller(
   for (const [key, user] of Object.entries(db.cheatExeUsers)) {
     if (key.toLowerCase() === lower) return { key, user };
   }
+  return null;
+}
+
+/**
+ * Why an account cannot be used right now, or null when it is fine.
+ *
+ * The login route already refuses a suspended account, but a session
+ * opened *before* the suspension stayed valid until its JWT expired.
+ * Every authenticated entry point runs this so the block takes effect
+ * on the next request rather than twelve hours later.
+ */
+export function accountBlock(
+  db: Database,
+  username: string,
+  role: "OWNER" | "RESELLER",
+): "banned" | "suspended" | "pending" | "deleted" | null {
+  const isOwnerName = username.toLowerCase() === db.adminUser.toLowerCase();
+
+  const banned = db.cheatExeBannedUsers.some(
+    (b) => b.username.toLowerCase() === username.toLowerCase(),
+  );
+  // The owner cannot lock themselves out of their own panel.
+  if (banned && !isOwnerName) return "banned";
+  if (role === "OWNER") return null;
+
+  const match = findReseller(db, username);
+  if (!match) return "deleted";
+  return statusBlock(match.user.status);
+}
+
+export function statusBlock(status: ResellerStatus): "suspended" | "pending" | null {
+  if (status === "SUSPENDED") return "suspended";
+  if (status === "PENDING APPROVAL") return "pending";
   return null;
 }
 

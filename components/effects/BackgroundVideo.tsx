@@ -17,8 +17,13 @@ export function BackgroundVideo() {
   return (
     <>
       <div className="fixed inset-0 -z-2 overflow-hidden bg-[#040718] lt:hidden">
+        {/* Scaled past the viewport on purpose. `controls=0` no longer
+            suppresses the embed's own chrome, so at an exact cover fit
+            the video title sat across the top of every page and the
+            "More videos" strip across the bottom right. Overscanning by
+            a third pushes both off screen. */}
         <iframe
-          className="pointer-events-none absolute top-1/2 left-1/2 h-[56.25vw] max-h-none w-full min-h-full min-w-[177.77vh] -translate-x-1/2 -translate-y-1/2"
+          className="pointer-events-none absolute top-1/2 left-1/2 h-[56.25vw] max-h-none w-full min-h-full min-w-[177.77vh] -translate-x-1/2 -translate-y-1/2 scale-[1.35]"
           src={SRC}
           title="Background"
           referrerPolicy="strict-origin-when-cross-origin"

@@ -273,14 +273,16 @@ body.light-mode {
 /* ---------------------------------------------------------------
    Keyframes referenced from animate-* utilities
    --------------------------------------------------------------- */
+/* Runs once, when the shell first mounts. It is deliberately short and
+   opacity-only: the old 0.6s slide-up read as the panel "loading" every
+   time you arrived, and a transform on the scroll container fought the
+   first paint of whichever tab was underneath it. */
 @keyframes tab-fade-in {
   from {
     opacity: 0;
-    transform: translateY(20px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -405,7 +407,7 @@ body.light-mode {
 }
 
 @theme inline {
-  --animate-tab-fade-in: tab-fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-tab-fade-in: tab-fade-in 0.18s ease-out forwards;
   --animate-toast-slide-in: toast-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-modal-overlay-fade: modal-overlay-fade 0.3s ease;
   --animate-modal-content-slide: modal-content-slide 0.4s cubic-bezier(0.16, 1, 0.3, 1);

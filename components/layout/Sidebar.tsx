@@ -5,13 +5,23 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { emitClickWave } from "@/components/effects/ClickWave";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { NAV_GROUPS, PROFILE_ITEM, type NavItem } from "@/lib/nav";
 import { useDashboard } from "@/lib/store";
-import { useStoredFlag } from "@/lib/use-external";
+import { useMediaQuery, useStoredFlag } from "@/lib/use-external";
 import type { Role } from "@/lib/types";
 import { cn, hexToRgbTriplet } from "@/lib/utils";
 
 const STORAGE_KEY = "sidebarCollapsed";
+
+/**
+ * Below this the 270px rail eats too much of the row: at 1024px it left
+ * the content column under 700px wide, so the tables and the two-column
+ * forms started fighting for space. Between here and the mobile drawer
+ * the sidebar is forced to its icon rail whatever the saved preference
+ * says, and the preference is restored above it.
+ */
+const NARROW = "(max-width: 1279px)";
 
 export function Sidebar({
   mobileOpen,
@@ -25,8 +35,20 @@ export function Sidebar({
   const db = useDashboard((s) => s.db);
   const role: Role = user?.role ?? "RESELLER";
 
-  const [collapsed, setCollapsed] = useStoredFlag(STORAGE_KEY);
+  const [preferCollapsed, setPreferCollapsed] = useStoredFlag(STORAGE_KEY);
+  const narrow = useMediaQuery(NARROW);
   const [tooltip, setTooltip] = useState<{ label: string; x: number; y: number } | null>(null);
+
+  // The drawer always shows labels; only the desktop rail collapses.
+  const collapsed = (preferCollapsed || narrow) && !mobileOpen;
+  const canToggle = !narrow;
+
+  // A tooltip left over from before a collapse points at an element that
+  // has just moved, so the toggle clears it on the way through.
+  const setCollapsedPreference = (next: boolean) => {
+    setTooltip(null);
+    setPreferCollapsed(next);
+  };
 
   const badges = {
     devices: db.cheatExeDevices.length,
@@ -52,62 +74,81 @@ export function Sidebar({
       <aside
         data-collapsed={collapsed}
         className={cn(
-          "sidebar-scroll fixed inset-y-0 left-0 z-30 m-5 flex flex-col overflow-x-hidden overflow-y-auto",
-          "h-[calc(100vh-40px)] border border-white/8 bg-[rgba(10,15,30,0.55)] pt-[30px] pb-6 backdrop-blur-[30px]",
+          // The golden ring lives on this element, so it must NOT be the
+          // scroll container: it is an inset-0 pseudo-element, and inside
+          // a scrolling box it slid up with the content and drew halfway
+          // off the rail.
+          "fixed inset-y-0 left-0 z-30 m-5 flex flex-col overflow-hidden",
+          "h-[calc(100vh-40px)] border border-white/8 bg-[rgba(10,15,30,0.55)] backdrop-blur-[30px]",
           "transition-[width,transform,border-radius] duration-[400ms] ease-smooth",
           "lt:border-black/8 lt:bg-white/60",
           "lg:relative lg:inset-auto lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-[120%]",
-          collapsed ? "sidebar-ring w-[85px] rounded-[42.5px]" : "w-[270px] rounded-[24px]",
+          collapsed
+            ? "sidebar-ring w-[85px] rounded-[42.5px]"
+            : "w-[min(270px,78vw)] rounded-[24px] lg:w-[270px]",
         )}
       >
-        <LogoArea collapsed={collapsed} />
+        {/* The nav scrolls in here; the user card below stays pinned. A
+            short viewport used to cut the card in half with no hint that
+            there was anything left to scroll to. */}
+        <div className="sidebar-scroll flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto pt-[30px]">
+          <LogoArea collapsed={collapsed} />
 
-        {/* One wrapper for every group, matching the original .nav-group:
-            the section labels are inline, not separate blocks. */}
-        <div className="mb-[30px]">
-          {visibleGroups.map((group) => (
-            <div key={group.label}>
-              {!collapsed && (
-                <div
-                  data-probe="group-label"
-                  className="mb-3 px-7 text-[11px] font-extrabold tracking-[1.8px] text-muted uppercase"
-                >
-                  {group.label}
-                </div>
-              )}
-              {group.items
-                .filter((item) => item.roles.includes(role))
-                .map((item) => (
-                  <NavLink
-                    key={`${group.label}-${item.href}-${item.label}`}
-                    item={item}
-                    collapsed={collapsed}
-                    active={pathname === item.href}
-                    badge={item.badge ? badges[item.badge] : undefined}
-                    onNavigate={onCloseMobile}
-                    onTooltip={setTooltip}
-                  />
-                ))}
-            </div>
-          ))}
+          {/* One wrapper for every group, matching the original .nav-group:
+              the section labels are inline, not separate blocks. */}
+          <div className={collapsed ? "mb-5" : "mb-[30px]"}>
+            {visibleGroups.map((group) => (
+              <div key={group.label}>
+                {!collapsed && (
+                  <div
+                    data-probe="group-label"
+                    className="mb-3 px-7 text-[11px] font-extrabold tracking-[1.8px] text-muted uppercase"
+                  >
+                    {group.label}
+                  </div>
+                )}
+                {group.items
+                  .filter((item) => item.roles.includes(role))
+                  .map((item) => (
+                    <NavLink
+                      key={`${group.label}-${item.href}-${item.label}`}
+                      item={item}
+                      collapsed={collapsed}
+                      active={pathname === item.href}
+                      badge={item.badge ? badges[item.badge] : undefined}
+                      onNavigate={onCloseMobile}
+                      onTooltip={setTooltip}
+                    />
+                  ))}
+              </div>
+            ))}
+          </div>
+
+          <NavLink
+            item={PROFILE_ITEM}
+            collapsed={collapsed}
+            active={pathname === PROFILE_ITEM.href}
+            onNavigate={onCloseMobile}
+            onTooltip={setTooltip}
+            className="mt-auto shrink-0"
+          />
         </div>
-
-        <NavLink
-          item={PROFILE_ITEM}
-          collapsed={collapsed}
-          active={pathname === PROFILE_ITEM.href}
-          onNavigate={onCloseMobile}
-          onTooltip={setTooltip}
-          className="mt-auto shrink-0"
-        />
 
         <UserCard collapsed={collapsed} onTooltip={setTooltip} />
 
-        <DragHandle collapsed={collapsed} onToggle={setCollapsed} />
+        {canToggle && (
+          <>
+            <CollapseToggle
+              collapsed={collapsed}
+              onToggle={() => setCollapsedPreference(!collapsed)}
+            />
+            <DragHandle collapsed={collapsed} onToggle={setCollapsedPreference} />
+          </>
+        )}
       </aside>
 
-      {tooltip && collapsed ? (
+      {tooltip && collapsed && !mobileOpen ? (
         <div
           className={cn(
             "pointer-events-none fixed z-[999999] -translate-y-1/2 rounded-lg border border-white/8",
@@ -161,6 +202,14 @@ function NavLink({
     <Link
       ref={ref}
       href={item.href}
+      // Every tab is one dynamic segment under a cookie-reading layout,
+      // so the default "auto" prefetch fetched nothing usable and each
+      // click paid for a full RSC round trip before it could paint.
+      // These links are all on screen from the first render, so pulling
+      // the whole segment in up front is what makes a tab switch land
+      // immediately. (Prefetching is production-only; `next dev` will
+      // always show the round trip.)
+      prefetch
       onMouseEnter={showTooltip}
       onMouseLeave={() => onTooltip(null)}
       onClick={handleClick}
@@ -171,7 +220,7 @@ function NavLink({
         collapsed
           ? [
               // Collapsed rail: circular icon buttons, one accent each.
-              "mx-auto mb-2.5 size-11 justify-center gap-0 rounded-full p-0",
+              "mx-auto mb-2 size-11 justify-center gap-0 rounded-full p-0",
               active
                 ? [
                     "border-2 border-[rgb(var(--tab))] bg-[rgba(var(--tab),0.15)] text-[rgb(var(--tab))]",
@@ -233,7 +282,12 @@ function LogoArea({ collapsed }: { collapsed: boolean }) {
 
   return (
     // Original: padding: 20px 0 30px, gap 10px, centred.
-    <div className={cn("flex items-center justify-center pt-5 pb-[30px]", !collapsed && "gap-2.5")}>
+    <div
+      className={cn(
+        "flex shrink-0 items-center justify-center pt-5",
+        collapsed ? "pb-5" : "gap-2.5 pb-[30px]",
+      )}
+    >
       <div
         className={cn(
           "glow-ring hover:glow-ring-fast relative size-9 shrink-0 cursor-pointer overflow-hidden rounded-full",
@@ -274,7 +328,7 @@ function UserCard({ collapsed, onTooltip }: { collapsed: boolean; onTooltip: Too
       }}
       onMouseLeave={() => onTooltip(null)}
       className={cn(
-        "flex items-center border-t border-sidebar-line pt-6",
+        "flex shrink-0 items-center border-t border-sidebar-line pt-5 pb-6",
         collapsed ? "justify-center px-0" : "justify-between px-6",
       )}
     >
@@ -293,6 +347,45 @@ function UserCard({ collapsed, onTooltip }: { collapsed: boolean; onTooltip: Too
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Visible collapse control.
+ *
+ * The rail could only ever be collapsed by dragging its right edge --
+ * no affordance, no keyboard route, and nothing at all on a trackpad-shy
+ * user's first visit. The drag still works; this just makes it findable.
+ */
+function CollapseToggle({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
+  const Icon = collapsed ? ChevronRightIcon : ChevronLeftIcon;
+
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      aria-expanded={!collapsed}
+      className={cn(
+        "absolute top-1/2 z-[1001] hidden size-7 -translate-y-1/2 items-center justify-center",
+        "rounded-full border border-white/10 bg-[rgba(10,15,30,0.92)] text-muted",
+        "shadow-[0_4px_12px_rgba(0,0,0,0.45)] backdrop-blur-[10px]",
+        "transition-all duration-300 ease-smooth",
+        "hover:border-[rgba(255,31,90,0.45)] hover:text-accent",
+        "lt:border-black/10 lt:bg-white/90",
+        "lg:flex",
+        collapsed ? "-right-3" : "-right-3.5",
+      )}
+    >
+      <Icon className="size-3.5" />
+    </button>
   );
 }
 

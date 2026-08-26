@@ -11,6 +11,7 @@ const EMPTY: PublicDatabase = {
   cheatExeAuditLogs: [],
   cheatExeDevices: [],
   cheatExeBannedUsers: [],
+  cheatExeBans: [],
   adminUser: "",
   profile: {
     displayName: "Cheat Exe",
@@ -54,9 +55,13 @@ export const useDashboard = create<DashboardState>((set) => ({
       const response = await fetch("/api/db", { cache: "no-store" });
       if (!response.ok) {
         // A hard navigation on session loss is deliberate: it discards every
-        // piece of client state along with the dead session.
-        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
-        if (response.status === 401) window.location.href = "/login";
+        // piece of client state along with the dead session. 403 means the
+        // account was suspended or the device blocked mid-session, which is
+        // just as final as an expired cookie.
+        if (response.status === 401 || response.status === 403) {
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+          window.location.href = "/login";
+        }
         return;
       }
       const db = (await response.json()) as PublicDatabase;
