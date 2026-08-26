@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "node scripts/seed.mjs",
+    "migrate:region": "node scripts/migrate-region.mjs",
     "compare": "node scripts/compare.mjs ./shots http://localhost:3211 http://localhost:3000",
     "measure": "node scripts/measure.mjs http://localhost:3211 http://localhost:3000"
   },
