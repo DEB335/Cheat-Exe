@@ -29,7 +29,9 @@ export const DELETE = route(async (request: Request, ctx: Ctx) => {
     let restored = false;
     if (restore) {
       const match = findReseller(db, username);
-      if (match) {
+      // Only a real transition counts as a change -- restoring an account
+      // that is already ACTIVE (e.g. a second restore call) is a no-op.
+      if (match && match.user.status !== "ACTIVE") {
         match.user.status = "ACTIVE";
         restored = true;
       }
