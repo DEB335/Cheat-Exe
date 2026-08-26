@@ -110,6 +110,40 @@ export interface BannedUser {
   fingerprint?: string;
 }
 
+/**
+ * A broadcast from the owner. Stored shape -- carries who has read it and
+ * who reacted with what, neither of which every viewer may see.
+ */
+export interface Announcement {
+  id: string;
+  body: string;
+  /** Display name of the sender at the time it was posted. */
+  by: string;
+  at: string;
+  /** Lowercased usernames that have opened it. */
+  readBy: string[];
+  /** Lowercased username -> reaction. One reaction per person. */
+  reactions: Record<string, string>;
+}
+
+/** What actually reaches a browser, shaped for the viewer. */
+export interface PublicAnnouncement {
+  id: string;
+  body: string;
+  by: string;
+  at: string;
+  /** Whether *this* viewer has read it. */
+  read: boolean;
+  /** *This* viewer's reaction, if any. */
+  myReaction: string | null;
+  /** Safe for everyone: how many picked each reaction. */
+  reactionCounts: Record<string, number>;
+  /** Owner only -- a reseller must not learn who else is on the panel. */
+  reactions?: Record<string, string>;
+  /** Owner only. */
+  readCount?: number;
+}
+
 /** Owner-editable branding, saved from the Profile page. */
 export interface ProfileSettings {
   displayName: string;
@@ -125,6 +159,8 @@ export interface Database {
   cheatExeBannedUsers: BannedUser[];
   /** IP / device blocks enforced before any password is checked. */
   cheatExeBans: BanRule[];
+  /** Owner broadcasts, newest first. */
+  cheatExeMessages: Announcement[];
   adminUser: string;
   /** bcrypt hash of the owner password. */
   adminPassHash: string;
@@ -139,6 +175,7 @@ export interface PublicDatabase {
   cheatExeDevices: DeviceSession[];
   cheatExeBannedUsers: BannedUser[];
   cheatExeBans: BanRule[];
+  cheatExeMessages: PublicAnnouncement[];
   adminUser: string;
   profile: ProfileSettings;
 }

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { BackgroundVideo, GridBackdrop } from "@/components/effects/BackgroundVideo";
 import { CursorSparks } from "@/components/effects/CursorSparks";
+import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/components/ui/Toast";
@@ -98,8 +99,20 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
         const data = (await response.json()) as {
           user: SessionUser | null;
           terminated?: Terminated;
+          unread?: number;
         };
-        if (data.user) return;
+
+        if (data.user) {
+          // The poll carries the unread count, so a new announcement costs
+          // no extra request -- pull the messages themselves only when the
+          // server's count disagrees with what is already loaded.
+          const loaded = useDashboard
+            .getState()
+            .db.cheatExeMessages.filter((m) => !m.read).length;
+          if (typeof data.unread === "number" && data.unread !== loaded) void refresh();
+          return;
+        }
+
         setTerminated(data.terminated ?? "kicked");
       } catch {
         /* offline -- try again on the next tick */
@@ -108,7 +121,7 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
 
     const id = window.setInterval(check, SESSION_POLL_MS);
     return () => window.clearInterval(id);
-  }, [terminated]);
+  }, [terminated, refresh]);
 
   // Hold the notice on screen long enough to read, then hand over to the
   // login page, which shows the same reason.
@@ -144,6 +157,7 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
 
         <main className="relative z-[2] flex min-w-0 flex-1 flex-col lg:m-5 lg:ml-0 lg:h-[calc(100vh-40px)] lg:overflow-hidden">
           <Header pathname={pathname} onOpenMobile={() => setMobileOpen(true)} />
+          <AnnouncementBanner />
           <div
             data-probe="content"
             className="animate-tab-fade-in relative z-[1] min-w-0 flex-1 px-6 pb-10 lg:overflow-x-hidden lg:overflow-y-auto lg:p-10">

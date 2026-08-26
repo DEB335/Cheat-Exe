@@ -5,18 +5,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { setBackgroundMusicMuted } from "@/components/effects/BackgroundVideo";
 import {
-  BellIcon,
   LogOutIcon,
   MenuIcon,
   MoonIcon,
   MusicIcon,
+  MessageIcon,
   MusicOffIcon,
   SearchIcon,
   SunIcon,
   UserIcon,
 } from "@/components/icons";
 import { useToast } from "@/components/ui/Toast";
-import { api } from "@/lib/client-api";
+import { api, patchJson } from "@/lib/client-api";
+import { REACTIONS } from "@/lib/messages";
 import { PAGE_TITLES, SEARCH_ITEMS } from "@/lib/nav";
 import { useDashboard } from "@/lib/store";
 import { useTheme } from "@/lib/use-theme";
@@ -52,7 +53,10 @@ export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMob
       </div>
 
       <QuickSearch />
-      <ProfileMenu />
+      <div className="flex items-center gap-2.5">
+        <Notifications />
+        <ProfileMenu />
+      </div>
     </header>
   );
 }
@@ -134,9 +138,161 @@ function QuickSearch() {
   );
 }
 
-function ProfileMenu() {
+/**
+ * Notification centre: the owner's announcements, and the neon unread
+ * marker that makes them impossible to miss.
+ *
+ * Opening the panel marks everything read, which is the same state the
+ * banner's "Got it" writes -- one unread count, two ways to clear it.
+ */
+function Notifications() {
   const router = useRouter();
   const toast = useToast();
+  const messages = useDashboard((s) => s.db.cheatExeMessages);
+  const refresh = useDashboard((s) => s.refresh);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const unread = messages.filter((m) => !m.read).length;
+
+  useEffect(() => {
+    const onClick = (event: MouseEvent) => {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
+
+  const toggle = async () => {
+    const next = !open;
+    setOpen(next);
+    if (!next || unread === 0) return;
+    try {
+      await patchJson("/api/messages", {});
+      await refresh();
+    } catch {
+      /* the dot simply stays until the next attempt */
+    }
+  };
+
+  const react = async (id: string, reaction: string, mine: string | null) => {
+    try {
+      await patchJson(`/api/messages/${id}`, { reaction: mine === reaction ? null : reaction });
+      await refresh();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
+  };
+
+  return (
+    <div ref={ref} className="relative flex items-center">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={unread > 0 ? `${unread} unread announcements` : "Announcements"}
+        className={cn(
+          "relative flex size-9 cursor-pointer items-center justify-center rounded-xl border",
+          "transition-all duration-300 ease-smooth",
+          unread > 0
+            ? [
+                "border-[rgba(34,211,238,0.45)] bg-[rgba(34,211,238,0.12)] text-[#22d3ee]",
+                "shadow-[0_0_14px_rgba(34,211,238,0.35)]",
+                "hover:bg-[rgba(34,211,238,0.2)]",
+              ]
+            : "border-line bg-surface text-muted hover:border-line-hover hover:text-fg",
+        )}
+      >
+        <MessageIcon className="size-[18px]" />
+
+        {/* The neon marker. Small on purpose -- it only has to catch the
+            eye, and it sits clear of the icon's own glow. */}
+        {unread > 0 && (
+          <span
+            className={cn(
+              "absolute -top-1 -right-1 flex h-[17px] min-w-[17px] items-center justify-center",
+              "rounded-full border border-[#0a1a1f] bg-[#22d3ee] px-1",
+              "text-[9.5px] font-extrabold text-[#04121a]",
+              "shadow-[0_0_8px_#22d3ee,0_0_16px_rgba(34,211,238,0.75)]",
+            )}
+          >
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          className={cn(
+            "animate-dropdown-fade absolute top-[calc(100%+10px)] right-0 z-[100] w-[min(340px,calc(100vw-32px))]",
+            "overflow-hidden rounded-[18px] border border-white/8 bg-[rgba(10,15,30,0.9)]",
+            "shadow-[0_10px_35px_rgba(0,0,0,0.5)] backdrop-blur-[40px]",
+            "lt:border-black/6 lt:bg-white/90",
+          )}
+        >
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <span className="text-[10px] font-extrabold tracking-[1.2px] text-muted uppercase">
+              Announcements
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                router.push("/messages");
+                setOpen(false);
+              }}
+              className="cursor-pointer text-[11px] font-bold text-[#22d3ee] hover:underline"
+            >
+              View all
+            </button>
+          </div>
+
+          <div className="max-h-[340px] overflow-y-auto">
+            {messages.length === 0 ? (
+              <p className="px-4 py-6 text-center text-[12.5px] text-muted">Nothing yet.</p>
+            ) : (
+              messages.slice(0, 8).map((m) => (
+                <div key={m.id} className="border-b border-line/60 px-4 py-3 last:border-b-0">
+                  <div className="mb-1 flex items-center gap-2 text-[10.5px] text-muted">
+                    <span className="font-bold text-fg">{m.by}</span>
+                    <span>{m.at}</span>
+                  </div>
+                  <p className="mb-2 text-[12.5px] leading-[1.5] break-words whitespace-pre-wrap text-fg">
+                    {m.body}
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {REACTIONS.map((r) => {
+                      const count = m.reactionCounts[r] ?? 0;
+                      const mine = m.myReaction === r;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          onClick={() => react(m.id, r, m.myReaction)}
+                          className={cn(
+                            "flex cursor-pointer items-center gap-1 rounded-full border px-1.5 py-0.5",
+                            "text-[11px] transition-colors",
+                            mine
+                              ? "border-[rgba(34,211,238,0.5)] bg-[rgba(34,211,238,0.15)] text-[#67e8f9]"
+                              : "border-line bg-white/2 text-muted hover:bg-white/6",
+                          )}
+                        >
+                          <span>{r}</span>
+                          {count > 0 && <span className="font-bold">{count}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileMenu() {
+  const router = useRouter();
   const user = useDashboard((s) => s.user);
   const profile = useDashboard((s) => s.db.profile);
   const { light, toggle } = useTheme();
@@ -207,17 +363,6 @@ function ProfileMenu() {
           >
             <UserIcon className="size-4" />
             Profile Settings
-          </DropdownItem>
-
-          <DropdownItem
-            onClick={() => {
-              router.push("/profile");
-              toast("Notification settings opened!", "success");
-              setOpen(false);
-            }}
-          >
-            <BellIcon className="size-4" />
-            Notifications
           </DropdownItem>
 
           <DropdownItem

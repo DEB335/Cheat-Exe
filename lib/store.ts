@@ -12,6 +12,7 @@ const EMPTY: PublicDatabase = {
   cheatExeDevices: [],
   cheatExeBannedUsers: [],
   cheatExeBans: [],
+  cheatExeMessages: [],
   adminUser: "",
   profile: {
     displayName: "Cheat Exe",

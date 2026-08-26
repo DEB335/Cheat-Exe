@@ -1,5 +1,6 @@
 import {
   BanIcon,
+  MegaphoneIcon,
   ColumnsIcon,
   FileTextIcon,
   GridIcon,
@@ -40,6 +41,14 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Overview",
         icon: GridIcon,
         color: "#ff1f5a",
+        roles: ["OWNER", "RESELLER"],
+        section: "DASHBOARD",
+      },
+      {
+        href: "/messages",
+        label: "Messages",
+        icon: MegaphoneIcon,
+        color: "#22d3ee",
         roles: ["OWNER", "RESELLER"],
         section: "DASHBOARD",
       },
@@ -168,6 +177,7 @@ const ALL_ITEMS = [...NAV_GROUPS.flatMap((g) => g.items), PROFILE_ITEM];
 /** Page titles keyed by route, matching the original `tabs` map. */
 export const PAGE_TITLES: Record<string, { title: string; section: string }> = {
   "/dashboard": { title: "Overview", section: "DASHBOARD" },
+  "/messages": { title: "Messages", section: "DASHBOARD" },
   "/generator": { title: "Key Generator", section: "LICENSE GENERATOR" },
   "/manager": { title: "Manage Key", section: "LICENSE MANAGEMENT" },
   "/owner-history": { title: "Owner Key History", section: "LICENSE MANAGEMENT" },
@@ -194,6 +204,11 @@ export const SEARCH_ITEMS: Array<{
     name: "Overview / Dashboard",
     href: "/dashboard",
     keywords: ["overview", "dashboard", "performance", "charts", "fps", "ping", "status"],
+  },
+  {
+    name: "Messages / Announcements",
+    href: "/messages",
+    keywords: ["messages", "announcement", "notification", "broadcast", "notice", "news"],
   },
   {
     name: "Key Generator",

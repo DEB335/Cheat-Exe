@@ -29,6 +29,7 @@ function emptyDb(adminPassHash: string): Database {
     cheatExeDevices: [],
     cheatExeBannedUsers: [],
     cheatExeBans: [],
+    cheatExeMessages: [],
     adminUser: DEFAULT_ADMIN_USER,
     adminPassHash,
     profile: { ...DEFAULT_PROFILE },
@@ -60,6 +61,7 @@ async function normalise(stored: Partial<Database> & { adminPass?: string }): Pr
     cheatExeDevices: stored.cheatExeDevices ?? [],
     cheatExeBannedUsers: stored.cheatExeBannedUsers ?? [],
     cheatExeBans: stored.cheatExeBans ?? [],
+    cheatExeMessages: stored.cheatExeMessages ?? [],
     adminUser: stored.adminUser ?? DEFAULT_ADMIN_USER,
     adminPassHash,
     profile: { ...DEFAULT_PROFILE, ...stored.profile },
@@ -131,6 +133,8 @@ export function toPublic(db: Database): PublicDatabase {
     cheatExeDevices: db.cheatExeDevices,
     cheatExeBannedUsers: db.cheatExeBannedUsers,
     cheatExeBans: db.cheatExeBans,
+    // Shaped per viewer by the /api/db route, which knows who is asking.
+    cheatExeMessages: [],
     adminUser: db.adminUser,
     profile: db.profile,
   };

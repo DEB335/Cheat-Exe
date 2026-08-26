@@ -353,3 +353,17 @@ export const CpuChipIcon = (p: IconProps) => (
     <line x1="1" y1="14" x2="4" y2="14" />
   </Stroke>
 );
+
+export const MessageIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+  </Stroke>
+);
+
+export const MegaphoneIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M3 11v2a1 1 0 0 0 1 1h3l4 4V6L7 10H4a1 1 0 0 0-1 1z" />
+    <path d="M15.5 8.5a4 4 0 0 1 0 7" />
+    <path d="M18.5 5.5a8 8 0 0 1 0 13" />
+  </Stroke>
+);

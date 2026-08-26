@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { loadDb, requireUser } from "@/lib/auth";
 import { route } from "@/lib/api-helpers";
 import { toPublic } from "@/lib/db";
+import { toPublicMessages } from "@/lib/messages";
 import type { PublicDatabase } from "@/lib/types";
 
 /**
@@ -12,7 +13,12 @@ import type { PublicDatabase } from "@/lib/types";
  */
 export const GET = route(async () => {
   const user = await requireUser();
-  const db = toPublic(await loadDb());
+  const raw = await loadDb();
+  const db = toPublic(raw);
+
+  // Announcements go to everyone -- that is the point of them -- but the
+  // reaction map names other users, so it is shaped for the viewer.
+  db.cheatExeMessages = toPublicMessages(raw.cheatExeMessages, user.username, user.role);
 
   if (user.role === "OWNER") {
     return NextResponse.json(db);

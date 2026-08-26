@@ -5,6 +5,7 @@ import { route } from "@/lib/api-helpers";
 import { matchBan } from "@/lib/bans";
 import { accountBlock, readDb } from "@/lib/db";
 import { deviceIdentity } from "@/lib/device";
+import { unreadFor } from "@/lib/messages";
 import { lockedToAnotherDevice } from "@/lib/device-lock";
 import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/session";
 
@@ -38,5 +39,7 @@ export const GET = route(async () => {
     return response;
   }
 
-  return NextResponse.json({ user });
+  // Rides along on the poll the dashboard already runs, so a new
+  // announcement surfaces within one tick without a second request.
+  return NextResponse.json({ user, unread: unreadFor(db.cheatExeMessages, user.username) });
 });
