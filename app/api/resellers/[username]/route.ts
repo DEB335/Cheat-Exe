@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { HttpError, clientIp, requireOwner } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { findReseller, hashPassword, updateDb } from "@/lib/db";
+import { clearLock } from "@/lib/device-lock";
+import { expiryFromDays } from "@/lib/reseller";
 import { PACKAGE_NAMES } from "@/lib/packages";
 import type { ResellerStatus } from "@/lib/types";
 
@@ -10,7 +12,16 @@ interface PatchBody {
   status?: ResellerStatus;
   packages?: string[];
   password?: string;
+  /** Extend or shorten from now. 0 clears the expiry entirely. */
+  validityDays?: number;
+  keyLimit?: number;
+  deviceLocked?: boolean;
+  /** Drop the device binding so the next sign-in re-claims the account. */
+  resetLock?: boolean;
 }
+
+/** Statuses the owner may set directly. EXPIRED is derived, not assignable. */
+const SETTABLE_STATUS: ResellerStatus[] = ["ACTIVE", "SUSPENDED", "PENDING APPROVAL"];
 
 type Ctx = { params: Promise<{ username: string }> };
 
@@ -23,6 +34,14 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
   const hash = body.password ? await hashPassword(body.password) : null;
   if (body.password && body.password.length < 4) {
     throw new HttpError(400, "Password must be at least 4 characters.");
+  }
+
+  // Only these may be set by hand. EXPIRED is derived from the validity
+  // date, never assigned directly -- accepting it here would let a request
+  // pin an account EXPIRED with a future expiry, a state the rest of the
+  // code never expects.
+  if (body.status && !SETTABLE_STATUS.includes(body.status)) {
+    throw new HttpError(400, `Status must be one of: ${SETTABLE_STATUS.join(", ")}.`);
   }
 
   await updateDb((db) => {
@@ -63,6 +82,59 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
       pushAudit(db, {
         user: "Owner (OWNER)",
         action: `Changed password for reseller ${match.key}`,
+        ip,
+      });
+    }
+
+    if (body.validityDays !== undefined) {
+      const days = Number(body.validityDays);
+      if (!Number.isInteger(days) || days < 0) {
+        throw new HttpError(400, "Validity must be a whole number of days, 0 or more.");
+      }
+      match.user.expiresAt = expiryFromDays(days);
+      // Renewing a lapsed account is the point of setting a new validity,
+      // so lift the EXPIRED status that stamped it.
+      if (days > 0 && match.user.status === "EXPIRED") match.user.status = "ACTIVE";
+      pushAudit(db, {
+        user: "Owner (OWNER)",
+        action: days > 0 ? `Set ${match.key} validity to ${days} day(s)` : `Removed ${match.key} expiry`,
+        ip,
+      });
+    }
+
+    if (body.keyLimit !== undefined) {
+      const limit = Number(body.keyLimit);
+      if (!Number.isInteger(limit) || limit < 0) {
+        throw new HttpError(400, "Key limit must be a whole number, 0 or more.");
+      }
+      match.user.keyLimit = limit || undefined;
+      pushAudit(db, {
+        user: "Owner (OWNER)",
+        action: limit > 0 ? `Set ${match.key} key limit to ${limit}` : `Removed ${match.key} key limit`,
+        ip,
+      });
+    }
+
+    if (body.deviceLocked !== undefined) {
+      match.user.deviceLocked = body.deviceLocked;
+      if (!body.deviceLocked) clearLock(match.user);
+      pushAudit(db, {
+        user: "Owner (OWNER)",
+        action: `${body.deviceLocked ? "Enabled" : "Disabled"} device lock for ${match.key}`,
+        ip,
+      });
+    }
+
+    if (body.resetLock) {
+      clearLock(match.user);
+      // End open sessions too, otherwise the machine being unbound keeps
+      // working until its token expires and the reset achieves nothing.
+      db.cheatExeDevices = db.cheatExeDevices.filter(
+        (d) => (d.user.split(" ")[0] ?? "").toLowerCase() !== match.key.toLowerCase(),
+      );
+      pushAudit(db, {
+        user: "Owner (OWNER)",
+        action: `Reset device lock (HWID) for reseller ${match.key}`,
         ip,
       });
     }

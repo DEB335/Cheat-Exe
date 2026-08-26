@@ -5,6 +5,7 @@ import { route } from "@/lib/api-helpers";
 import { matchBan } from "@/lib/bans";
 import { accountBlock, readDb } from "@/lib/db";
 import { deviceIdentity } from "@/lib/device";
+import { lockedToAnotherDevice } from "@/lib/device-lock";
 import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/session";
 
 /**
@@ -22,11 +23,14 @@ export const GET = route(async () => {
 
   const blocked = accountBlock(db, user.username, user.role);
   const kicked = !db.cheatExeDevices.some((d) => d.sessionId === user.sessionId);
-  // The owner is exempt from device blocks -- see resolveLogin.
-  const rule =
-    user.role === "OWNER" ? null : matchBan(db, { ip: await clientIp(), hwid, fingerprint });
+  // The owner is exempt from device blocks and locks -- see resolveLogin.
+  const marks = { ip: await clientIp(), hwid, fingerprint };
+  const rule = user.role === "OWNER" ? null : matchBan(db, marks);
+  const locked =
+    user.role !== "OWNER" && lockedToAnotherDevice(db, user.username, marks);
 
-  const terminated = blocked ?? (rule ? "device" : kicked ? "kicked" : null);
+  const terminated =
+    blocked ?? (rule ? "device" : locked ? "locked" : kicked ? "kicked" : null);
 
   if (terminated) {
     const response = NextResponse.json({ user: null, terminated });

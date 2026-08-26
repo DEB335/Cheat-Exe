@@ -5,6 +5,7 @@ import { cache } from "react";
 
 import { matchBan } from "./bans";
 import { accountBlock, readDb } from "./db";
+import { lockedToAnotherDevice } from "./device-lock";
 import { deviceIdentity } from "./device";
 import { SESSION_COOKIE, readSessionToken } from "./session";
 import type { Database, SessionUser } from "./types";
@@ -35,6 +36,7 @@ const BLOCK_MESSAGE = {
   banned: "Your account has been terminated.",
   suspended: "Your account has been suspended.",
   pending: "Your account is still pending approval.",
+  expired: "Your account validity has ended.",
   deleted: "This account no longer exists.",
 } as const;
 
@@ -59,8 +61,15 @@ export async function requireUser(): Promise<SessionUser> {
   // the owner, so lifting one is always possible from any machine.
   if (user.role !== "OWNER") {
     const { hwid, fingerprint } = await deviceIdentity();
-    if (matchBan(db, { ip: await clientIp(), hwid, fingerprint })) {
+    const marks = { ip: await clientIp(), hwid, fingerprint };
+
+    if (matchBan(db, marks)) {
       throw new HttpError(403, "This device has been blocked.");
+    }
+    // Catches a session that was valid when it opened and then had its
+    // lock reset and re-claimed by a different machine.
+    if (lockedToAnotherDevice(db, user.username, marks)) {
+      throw new HttpError(403, "This account is locked to another device.");
     }
   }
 

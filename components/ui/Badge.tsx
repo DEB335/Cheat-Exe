@@ -29,6 +29,7 @@ const STATUS_STYLES: Record<ResellerStatus, string> = {
   ACTIVE: "bg-green-glow text-green border-[rgba(16,185,129,0.25)]",
   SUSPENDED: "bg-[rgba(239,68,68,0.15)] text-[#ef4444] border-[rgba(239,68,68,0.25)]",
   "PENDING APPROVAL": "bg-orange-glow text-orange border-[rgba(245,158,11,0.25)]",
+  EXPIRED: "bg-[rgba(148,163,184,0.15)] text-[#94a3b8] border-[rgba(148,163,184,0.3)]",
 };
 
 export function StatusBadge({ status }: { status: ResellerStatus }) {

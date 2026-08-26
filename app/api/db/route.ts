@@ -18,9 +18,15 @@ export const GET = route(async () => {
     return NextResponse.json(db);
   }
 
+  // A reseller sees their own record and no one else's -- the generator
+  // needs their key limit and expiry to show what they have left.
+  const own = Object.entries(db.cheatExeUsers).find(
+    ([name]) => name.toLowerCase() === user.username.toLowerCase(),
+  );
+
   const scoped: PublicDatabase = {
     ...db,
-    cheatExeUsers: {},
+    cheatExeUsers: own ? { [own[0]]: own[1] } : {},
     cheatExeBannedUsers: [],
     cheatExeBans: [],
     cheatExeKeyHistory: db.cheatExeKeyHistory.filter((k) => k.creator === user.username),

@@ -94,6 +94,26 @@ export async function callLicenseApi<T extends LicenseEnvelope>(
 
 export const getPackages = () => callLicenseApi<PackagesResponse>("get_admin_packages");
 
+/**
+ * Resolves a package id the bundled list does not know about.
+ *
+ * The generator renders whatever the API reports, so a package added
+ * upstream appears immediately -- but generation used to validate only
+ * against the hardcoded list and answer "Unknown package." for it. This
+ * asks the API instead, so the two can drift without breaking.
+ */
+export async function livePackage(
+  packageId: string,
+): Promise<{ id: string; name: string } | null> {
+  try {
+    const data = await getPackages();
+    const match = data.packages?.find((p) => p.package_id === packageId);
+    return match ? { id: match.package_id, name: match.package_name } : null;
+  } catch {
+    return null;
+  }
+}
+
 export const getStats = () => callLicenseApi<StatsResponse>("reseller_stats");
 
 export const getKeyInfo = (key: string) => callLicenseApi<KeyInfoResponse>("key_info", { key });

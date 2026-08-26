@@ -3,6 +3,13 @@ import type { LicensePackage } from "./types";
 /**
  * Package ids as accepted by the upstream license API. These are not
  * secrets -- they are opaque handles the API maps to a product.
+ *
+ * This list is a fallback and a permissions vocabulary: the generator
+ * shows whatever `get_admin_packages` returns live, and reseller grants
+ * are checked against the names here. A package added upstream but not
+ * added here can be picked in the UI and then refused on submit, so keep
+ * the two in step -- `/api/keys` re-checks against the live list before
+ * rejecting anything, which stops that mismatch being fatal.
  */
 export const PACKAGES: LicensePackage[] = [
   { id: "e52c1515c53453b85d0d4e87", name: "BASIC PANEL", description: "Basic Package" },
@@ -11,6 +18,7 @@ export const PACKAGES: LicensePackage[] = [
   { id: "3d1c6c948b4715fbd2fada2d", name: "EXTERNAL PANEL", description: "External Package" },
   { id: "d4f0ce93349f236711344cb5", name: "PVT AIMKILL", description: "Private Aimkill" },
   { id: "154d1edaddd7203fbfd847f4", name: "VAULT PANEL", description: "Vault Package" },
+  { id: "db3b90e8134ec738b94a9b05", name: "LIB BYPASS", description: "LIB Bypass Package" },
 ];
 
 export const PACKAGE_NAMES = PACKAGES.map((p) => p.name);
@@ -23,6 +31,7 @@ const SHORT_LABELS: Record<string, string> = {
   "EXTERNAL PANEL": "EXTERNAL",
   "PVT AIMKILL": "PVT AIMKILL",
   "VAULT PANEL": "VAULT",
+  "LIB BYPASS": "LIB",
 };
 
 export function shortPackageLabel(name: string): string {

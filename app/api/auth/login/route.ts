@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 
 import { HttpError, clientIp, userAgent } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
-import { updateDb } from "@/lib/db";
+import { expireOverdue, findReseller, updateDb } from "@/lib/db";
 import { DEVICE_COOKIE, deviceCookieOptions, deviceIdentity } from "@/lib/device";
+import { bindDevice } from "@/lib/device-lock";
 import { LOGIN_ERROR, resolveLogin } from "@/lib/login";
 import { rateLimit } from "@/lib/rate-limit";
 import { SESSION_COOKIE, createSessionToken, sessionCookieOptions } from "@/lib/session";
@@ -36,6 +37,11 @@ export const POST = route(async (request: Request) => {
   }
 
   const session = await updateDb(async (db): Promise<SessionUser> => {
+    // Stamp any account whose validity has lapsed, so the reseller table
+    // reads EXPIRED rather than a stale ACTIVE. Access does not depend on
+    // this -- resolveLogin computes expiry itself -- it is bookkeeping.
+    expireOverdue(db);
+
     const outcome = await resolveLogin(db, user, password, { ip, hwid, fingerprint });
 
     if (!outcome.ok) {
@@ -57,6 +63,20 @@ export const POST = route(async (request: Request) => {
       action: resolved.role === "OWNER" ? "Owner logged in successfully" : "Logged in successfully",
       ip,
     });
+
+    // A locked account claims its device here, on the first sign-in after
+    // the owner switched the lock on. resolveLogin has already refused
+    // anyone arriving at an account bound to a different machine.
+    if (resolved.role === "RESELLER") {
+      const match = findReseller(db, resolved.username);
+      if (match && bindDevice(match.user, { ip, hwid, fingerprint }, formatTimestamp())) {
+        pushAudit(db, {
+          user: displayUser(resolved.username, resolved.role),
+          action: `Device locked to this machine (${device})`,
+          ip,
+        });
+      }
+    }
 
     // Register this device session.
     db.cheatExeDevices.unshift({

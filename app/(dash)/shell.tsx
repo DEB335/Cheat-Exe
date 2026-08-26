@@ -15,7 +15,15 @@ import type { SessionUser } from "@/lib/types";
 const SESSION_POLL_MS = 15_000;
 
 /** Reason codes /api/auth/session returns when it terminates a session. */
-type Terminated = "banned" | "suspended" | "pending" | "deleted" | "device" | "kicked";
+type Terminated =
+  | "banned"
+  | "suspended"
+  | "pending"
+  | "expired"
+  | "deleted"
+  | "device"
+  | "locked"
+  | "kicked";
 
 const TERMINATED_COPY: Record<Terminated, { title: string; body: string; tone: string }> = {
   banned: {
@@ -38,10 +46,20 @@ const TERMINATED_COPY: Record<Terminated, { title: string; body: string; tone: s
     body: "This account no longer exists.",
     tone: "#ef4444",
   },
+  expired: {
+    title: "VALIDITY ENDED",
+    body: "This account's validity period has run out. Ask the owner to renew it.",
+    tone: "#f59e0b",
+  },
   device: {
     title: "DEVICE BLOCKED",
     body: "This device or network has been blocked from the panel.",
     tone: "#ef4444",
+  },
+  locked: {
+    title: "WRONG DEVICE",
+    body: "This account is locked to another machine. Ask the owner to reset its HWID.",
+    tone: "#f59e0b",
   },
   kicked: {
     title: "SESSION ENDED",

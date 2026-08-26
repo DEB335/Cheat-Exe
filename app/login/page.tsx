@@ -91,13 +91,20 @@ function LoginView() {
 
   // The button only snaps home and turns green for credentials the
   // server confirms. Anything else keeps it running from the cursor.
+  //
+  // Red means one specific thing: the server looked at this pair and
+  // said no. Not "still typing" (teal) and not "asking" (amber) -- the
+  // debounce means red only ever appears once you have stopped typing
+  // and been told the credentials are wrong.
   const state: TetherState = error
     ? "invalid"
     : check === "valid"
       ? "ready"
       : check === "checking"
         ? "checking"
-        : "empty";
+        : check === "invalid"
+          ? "invalid"
+          : "empty";
 
   // Which full-screen panel, if any, this render should show. Derived
   // rather than pushed into state from an effect: the live check, a
@@ -322,12 +329,22 @@ type CheckState =
   | "banned"
   | "suspended"
   | "pending"
+  | "expired"
   | "device"
+  | "locked"
   /** The check itself failed. Never unlocks -- but says so, rather than
       leaving someone with correct credentials chasing a locked button. */
   | "unreachable";
 
-type BlockKind = "banned" | "suspended" | "pending" | "device" | "kicked" | "deleted";
+type BlockKind =
+  | "banned"
+  | "suspended"
+  | "pending"
+  | "expired"
+  | "device"
+  | "locked"
+  | "kicked"
+  | "deleted";
 
 interface BlockedScreen {
   kind: BlockKind;
@@ -339,7 +356,9 @@ const WIRE_TO_BLOCK: Record<string, BlockKind | undefined> = {
   BANNED: "banned",
   SUSPENDED: "suspended",
   PENDING: "pending",
+  EXPIRED: "expired",
   DEVICE_BANNED: "device",
+  DEVICE_LOCKED: "locked",
 };
 
 const BLOCK_COPY: Record<BlockKind, { title: string; body: string; tone: string }> = {
@@ -358,10 +377,20 @@ const BLOCK_COPY: Record<BlockKind, { title: string; body: string; tone: string 
     body: "This account exists but has not been approved yet. You will be able to sign in once the owner activates it.",
     tone: "#f59e0b",
   },
+  expired: {
+    title: "VALIDITY ENDED",
+    body: "Your credentials are correct, but this account's validity period has run out. Ask the owner to renew it.",
+    tone: "#f59e0b",
+  },
   device: {
     title: "DEVICE BLOCKED",
     body: "This device or network has been blocked from the panel. No account can be used from here.",
     tone: "#ef4444",
+  },
+  locked: {
+    title: "WRONG DEVICE",
+    body: "This account is locked to one machine and this is not it. If it is really yours, ask the owner to reset the HWID.",
+    tone: "#f59e0b",
   },
   kicked: {
     title: "SESSION ENDED",
@@ -378,8 +407,10 @@ const BLOCK_COPY: Record<BlockKind, { title: string; body: string; tone: string 
 /** How long to wait after the last keystroke before asking the server. */
 const CHECK_DEBOUNCE_MS = 400;
 
+const BLOCKING_CHECKS = ["banned", "suspended", "pending", "expired", "device", "locked"] as const;
+
 function isBlockKind(check: CheckState): check is BlockKind & CheckState {
-  return check === "banned" || check === "suspended" || check === "pending" || check === "device";
+  return (BLOCKING_CHECKS as readonly string[]).includes(check);
 }
 
 /**
@@ -400,7 +431,13 @@ function useCredentialCheck(username: string, password: string): CheckState {
     if (!askable) return;
 
     const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
+    const timers: number[] = [];
+
+    // One check, with a small budget of retries for a throttle. A busy
+    // typist can out-run the verify rate limit, and a throttled check is
+    // not an answer about the credentials -- so instead of flashing an
+    // error, the button stays "checking" and asks again shortly.
+    const runCheck = async (attempt: number) => {
       try {
         const response = await fetch("/api/auth/verify", {
           method: "POST",
@@ -409,28 +446,39 @@ function useCredentialCheck(username: string, password: string): CheckState {
           signal: controller.signal,
           cache: "no-store",
         });
-        // A rate limit or a server fault is not an answer about the
-        // credentials, so it must not be reported as "wrong password".
+
+        // Throttled: wait out the window (the server says how long) and
+        // retry, up to twice, without disturbing the "checking" state.
+        if (response.status === 429 && attempt < 2) {
+          const data = (await response.json().catch(() => ({}))) as { retryAfter?: number };
+          const waitMs = Math.min(3000, Math.max(600, (data.retryAfter ?? 1) * 1000));
+          timers.push(window.setTimeout(() => void runCheck(attempt + 1), waitMs));
+          return;
+        }
+
+        // Any other non-2xx is a real fault, not a verdict on the
+        // credentials, so it must not read as "wrong password".
         if (!response.ok) {
           setAnswer({ key, state: "unreachable" });
           return;
         }
 
         const data = (await response.json()) as { ok?: boolean; reason?: string };
-
         if (data.ok) setAnswer({ key, state: "valid" });
         else if (data.reason && data.reason !== "invalid") {
           setAnswer({ key, state: data.reason as CheckState });
         } else setAnswer({ key, state: "invalid" });
       } catch {
-        // Offline or the request failed. Stay locked -- only the server
-        // may unlock the button -- but tell the user why.
+        // Offline or aborted. Stay locked -- only the server may unlock the
+        // button -- but say so rather than lie about the credentials.
         if (!controller.signal.aborted) setAnswer({ key, state: "unreachable" });
       }
-    }, CHECK_DEBOUNCE_MS);
+    };
+
+    timers.push(window.setTimeout(() => void runCheck(0), CHECK_DEBOUNCE_MS));
 
     return () => {
-      window.clearTimeout(timer);
+      for (const t of timers) window.clearTimeout(t);
       controller.abort();
     };
   }, [key, askable, username, password]);

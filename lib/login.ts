@@ -2,10 +2,19 @@ import "server-only";
 
 import { matchBan, type DeviceMarks } from "./bans";
 import { findReseller, statusBlock, verifyPassword } from "./db";
+import { effectiveStatus } from "./reseller";
+import { lockedToAnotherDevice } from "./device-lock";
 import { PACKAGE_NAMES } from "./packages";
 import type { BanRule, Database, Role } from "./types";
 
-export type LoginReason = "invalid" | "banned" | "suspended" | "pending" | "device";
+export type LoginReason =
+  | "invalid"
+  | "banned"
+  | "suspended"
+  | "pending"
+  | "expired"
+  | "device"
+  | "locked";
 
 export type LoginOutcome =
   | { ok: true; username: string; role: Role; packages: string[] }
@@ -60,8 +69,14 @@ export async function resolveLogin(
   );
   if (banned) return { ok: false, reason: "banned" };
 
-  const blocked = statusBlock(match.user.status);
+  const blocked = statusBlock(effectiveStatus(match.user));
   if (blocked) return { ok: false, reason: blocked };
+
+  // Right password, right account, wrong machine: the login has been
+  // handed to someone else.
+  if (lockedToAnotherDevice(db, match.key, marks)) {
+    return { ok: false, reason: "locked" };
+  }
 
   return {
     ok: true,
@@ -76,5 +91,7 @@ export const LOGIN_ERROR: Record<Exclude<LoginReason, "invalid">, string> = {
   banned: "BANNED",
   suspended: "SUSPENDED",
   pending: "PENDING",
+  expired: "EXPIRED",
   device: "DEVICE_BANNED",
+  locked: "DEVICE_LOCKED",
 };

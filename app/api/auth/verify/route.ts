@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { HttpError, clientIp } from "@/lib/auth";
+import { clientIp } from "@/lib/auth";
 import { readJson, route } from "@/lib/api-helpers";
 import { readDb } from "@/lib/db";
 import { deviceIdentity } from "@/lib/device";
@@ -29,9 +29,17 @@ export const POST = route(async (request: Request) => {
   const { username = "", password = "" } = await readJson<VerifyBody>(request);
   const ip = await clientIp();
 
+  // The limit stays low because this is a credential oracle -- it must not
+  // become a faster brute-force channel than the login route. When it does
+  // trip, the answer is "retry", not "wrong": a throttled check says
+  // nothing about the credentials, and `retryAfter` lets the button wait
+  // and try again rather than flashing an error mid-typing.
   const limit = rateLimit(`verify:${ip}`, 60, 60_000);
   if (!limit.ok) {
-    throw new HttpError(429, `Too many checks. Try again in ${limit.retryAfter}s.`);
+    return NextResponse.json(
+      { ok: false, retry: true, retryAfter: limit.retryAfter },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+    );
   }
 
   if (!username.trim() || !password) {

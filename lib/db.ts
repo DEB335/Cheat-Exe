@@ -2,6 +2,7 @@ import "server-only";
 
 import bcrypt from "bcryptjs";
 
+import { effectiveStatus } from "./reseller";
 import { sql } from "./sql";
 import type {
   Database,
@@ -159,7 +160,7 @@ export function accountBlock(
   db: Database,
   username: string,
   role: "OWNER" | "RESELLER",
-): "banned" | "suspended" | "pending" | "deleted" | null {
+): "banned" | "suspended" | "pending" | "expired" | "deleted" | null {
   const isOwnerName = username.toLowerCase() === db.adminUser.toLowerCase();
 
   const banned = db.cheatExeBannedUsers.some(
@@ -171,13 +172,39 @@ export function accountBlock(
 
   const match = findReseller(db, username);
   if (!match) return "deleted";
-  return statusBlock(match.user.status);
+  // effectiveStatus, not the stored value: an account whose validity ran
+  // out is refused immediately, without waiting for anything to sweep it.
+  return statusBlock(effectiveStatus(match.user));
 }
 
-export function statusBlock(status: ResellerStatus): "suspended" | "pending" | null {
+export function statusBlock(status: ResellerStatus): "suspended" | "pending" | "expired" | null {
   if (status === "SUSPENDED") return "suspended";
   if (status === "PENDING APPROVAL") return "pending";
+  if (status === "EXPIRED") return "expired";
   return null;
+}
+
+/**
+ * Flips overdue accounts to EXPIRED so the reseller table shows the
+ * truth. Bookkeeping only -- access is already decided by
+ * effectiveStatus, so nothing depends on this having run.
+ */
+export function expireOverdue(db: Database): number {
+  let changed = 0;
+  for (const user of Object.values(db.cheatExeUsers)) {
+    const now = effectiveStatus(user);
+    if (now === "EXPIRED" && user.status !== "EXPIRED") {
+      user.status = "EXPIRED";
+      changed += 1;
+    }
+  }
+  return changed;
+}
+
+/** Keys this reseller has generated, for the quota check. */
+export function keysUsedBy(db: Database, username: string): number {
+  const lower = username.toLowerCase();
+  return db.cheatExeKeyHistory.filter((k) => k.creator.toLowerCase() === lower).length;
 }
 
 export function hashPassword(plain: string): Promise<string> {

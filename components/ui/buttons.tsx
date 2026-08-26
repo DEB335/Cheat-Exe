@@ -140,7 +140,7 @@ export function TintButton({ tone, children, className, ...rest }: TintButtonPro
 /* ------------------------------------------------------------------
    Shimmering gradient pills in the reseller table row actions.
    ------------------------------------------------------------------ */
-export type PillTone = "suspend" | "activate" | "perms" | "pass" | "delete";
+export type PillTone = "suspend" | "activate" | "perms" | "pass" | "hwid" | "delete";
 
 const PILL_TONES: Record<PillTone, string> = {
   suspend:
@@ -150,6 +150,7 @@ const PILL_TONES: Record<PillTone, string> = {
   perms:
     "bg-[linear-gradient(135deg,#7c3aed,#c084fc)] hover:bg-[linear-gradient(135deg,#6d28d9,#a855f7)] hover:shadow-[0_6px_15px_rgba(168,85,247,0.35)]",
   pass: "bg-[linear-gradient(135deg,#1d4ed8,#60a5fa)] hover:bg-[linear-gradient(135deg,#1e40af,#3b82f6)] hover:shadow-[0_6px_15px_rgba(59,130,246,0.35)]",
+  hwid: "bg-[linear-gradient(135deg,#0f766e,#2dd4bf)] hover:bg-[linear-gradient(135deg,#115e59,#14b8a6)] hover:shadow-[0_6px_15px_rgba(45,212,191,0.35)]",
   delete:
     "bg-[linear-gradient(135deg,#b91c1c,#f87171)] hover:bg-[linear-gradient(135deg,#991b1b,#ef4444)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.35)]",
 };
