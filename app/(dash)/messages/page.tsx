@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { MegaphoneIcon, SendIcon, TrashIcon, UsersIcon } from "@/components/icons";
-import { PrimaryButton } from "@/components/ui/buttons";
+import { PrimaryButton, TintButton } from "@/components/ui/buttons";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { FormLabel, HelpText } from "@/components/ui/form";
 import { useToast } from "@/components/ui/Toast";
@@ -47,6 +47,24 @@ export default function MessagesPage() {
         reaction: message.myReaction === reaction ? null : reaction,
       });
       await refresh();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
+  };
+
+  /**
+   * Owner clears for everyone (they wrote them); a reseller clears only
+   * their own view, so tidying up never silences someone else's panel.
+   */
+  const clearAll = async () => {
+    const question = isOwner
+      ? "Delete every announcement for everyone? This cannot be undone."
+      : "Clear all announcements from your list? Others keep theirs.";
+    if (!confirm(question)) return;
+    try {
+      await del(`/api/messages?scope=${isOwner ? "all" : "mine"}`);
+      await refresh();
+      toast(isOwner ? "All announcements deleted." : "Your list is cleared.", "success");
     } catch (err) {
       toast((err as Error).message, "error");
     }
@@ -113,7 +131,23 @@ export default function MessagesPage() {
           subtitle={
             isOwner
               ? "Reactions and read counts come back here."
-              : "Notices from the owner. Tap a reaction to reply."
+              : "Notices from the owner. Tap a reaction to reply. They stay until you clear them."
+          }
+          actions={
+            messages.length > 0 ? (
+              <TintButton
+                tone="red"
+                onClick={clearAll}
+                title={
+                  isOwner
+                    ? "Delete every announcement for everyone"
+                    : "Remove these from your list only"
+                }
+              >
+                <TrashIcon className="size-[13px]" strokeWidth={2.5} />
+                {isOwner ? "Delete All" : "Clear All"}
+              </TintButton>
+            ) : undefined
           }
         />
 

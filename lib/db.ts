@@ -1,6 +1,7 @@
 import "server-only";
 
 import bcrypt from "bcryptjs";
+import type postgres from "postgres";
 
 import { effectiveStatus } from "./reseller";
 import { sql } from "./sql";
@@ -93,7 +94,18 @@ export async function readDb(): Promise<Database> {
  * is the part the old file store could not do once the app runs on more
  * than one instance, which is every deployment on Vercel.
  */
-export async function updateDb<T>(mutate: (db: Database) => T | Promise<T>): Promise<T> {
+/**
+ * The transaction handle `updateDb` hands to its callback.
+ *
+ * Taken from the driver's own namespace rather than inferred from
+ * `begin`, which is overloaded -- inference picks the `(options, cb)`
+ * form and lands on `string`.
+ */
+export type Tx = postgres.TransactionSql<Record<string, never>>;
+
+export async function updateDb<T>(
+  mutate: (db: Database, tx: Tx) => T | Promise<T>,
+): Promise<T> {
   const db = sql();
 
   return db.begin(async (tx) => {
@@ -106,7 +118,7 @@ export async function updateDb<T>(mutate: (db: Database) => T | Promise<T>): Pro
         ? await normalise(rows[0]!.data)
         : emptyDb(await bcrypt.hash(DEFAULT_ADMIN_PASS, 10));
 
-    const result = await mutate(current);
+    const result = await mutate(current, tx);
 
     await tx`
       insert into app_state (id, data, updated_at)

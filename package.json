@@ -12,6 +12,7 @@
     "measure": "node scripts/measure.mjs http://localhost:3211 http://localhost:3000"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.4",
     "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",
     "jose": "^6.2.10",

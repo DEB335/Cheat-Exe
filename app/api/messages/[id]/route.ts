@@ -4,6 +4,7 @@ import { HttpError, clientIp, requireOwner, requireUser } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
 import { isReaction } from "@/lib/messages";
+import { ping } from "@/lib/realtime";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -30,7 +31,7 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
 
   const me = user.username.toLowerCase();
 
-  await updateDb((db) => {
+  await updateDb(async (db, tx) => {
     const message = db.cheatExeMessages.find((m) => m.id === id);
     if (!message) throw new HttpError(404, "Message not found.");
 
@@ -42,6 +43,10 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
 
     // Reacting means they have seen it.
     if (!message.readBy.includes(me)) message.readBy.push(me);
+
+    // Push it out too. The owner is watching reactions land, and a
+    // reaction is exactly the kind of thing nobody wants to reload for.
+    await ping("message", tx);
   });
 
   return NextResponse.json({ success: true });
@@ -53,17 +58,20 @@ export const DELETE = route(async (_request: Request, ctx: Ctx) => {
   const { id } = await ctx.params;
   const ip = await clientIp();
 
-  const removed = await updateDb((db) => {
+  const removed = await updateDb(async (db, tx) => {
     const before = db.cheatExeMessages.length;
     db.cheatExeMessages = db.cheatExeMessages.filter((m) => m.id !== id);
     const gone = db.cheatExeMessages.length < before;
 
     if (gone) {
       pushAudit(db, { user: "Owner (OWNER)", action: "Deleted an announcement", ip });
+      // A withdrawn announcement should vanish as fast as it appeared.
+      await ping("message", tx);
     }
     return gone;
   });
 
   if (!removed) throw new HttpError(404, "Message not found.");
+
   return NextResponse.json({ success: true });
 });

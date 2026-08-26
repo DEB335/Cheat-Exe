@@ -27,9 +27,15 @@ export const MAX_MESSAGES = 50;
 /** Longest an announcement may be. */
 export const MAX_BODY = 1000;
 
+/** Messages this viewer has not cleared away. */
+export function visibleTo(messages: Announcement[], username: string): Announcement[] {
+  const me = username.toLowerCase();
+  return messages.filter((m) => !(m.clearedBy ?? []).includes(me));
+}
+
 export function unreadFor(messages: Announcement[], username: string): number {
   const me = username.toLowerCase();
-  return messages.filter((m) => !m.readBy.includes(me)).length;
+  return visibleTo(messages, username).filter((m) => !m.readBy.includes(me)).length;
 }
 
 /**
@@ -47,7 +53,7 @@ export function toPublicMessages(
   const me = username.toLowerCase();
   const isOwner = role === "OWNER";
 
-  return messages.map((m) => {
+  return visibleTo(messages, username).map((m) => {
     const counts: Record<string, number> = {};
     for (const reaction of Object.values(m.reactions)) {
       counts[reaction] = (counts[reaction] ?? 0) + 1;

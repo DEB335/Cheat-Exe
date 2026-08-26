@@ -124,6 +124,14 @@ export interface Announcement {
   readBy: string[];
   /** Lowercased username -> reaction. One reaction per person. */
   reactions: Record<string, string>;
+  /**
+   * Lowercased usernames who have cleared it from their own list.
+   *
+   * Per person on purpose: a reseller tidying their notifications must
+   * not remove an announcement from anybody else's. Only the owner can
+   * withdraw one globally, which deletes the record outright.
+   */
+  clearedBy?: string[];
 }
 
 /** What actually reaches a browser, shaped for the viewer. */

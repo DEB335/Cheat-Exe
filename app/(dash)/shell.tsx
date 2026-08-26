@@ -10,6 +10,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/components/ui/Toast";
 import { useDashboard } from "@/lib/store";
+import { useRealtimePing } from "@/lib/use-realtime";
 import type { SessionUser } from "@/lib/types";
 
 /**
@@ -162,6 +163,13 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [terminated, refresh]);
+
+  // Instant path for announcements. The poll above still runs and still
+  // decides everything about session validity -- this only shortens the
+  // wait when the socket is up, and changes nothing when it is not.
+  useRealtimePing(() => {
+    if (!terminated) void refresh();
+  });
 
   // Hold the notice on screen long enough to read, then hand over to the
   // login page, which shows the same reason.

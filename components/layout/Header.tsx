@@ -16,7 +16,7 @@ import {
   UserIcon,
 } from "@/components/icons";
 import { useToast } from "@/components/ui/Toast";
-import { api, patchJson } from "@/lib/client-api";
+import { api, del, patchJson } from "@/lib/client-api";
 import { REACTIONS } from "@/lib/messages";
 import { PAGE_TITLES, SEARCH_ITEMS } from "@/lib/nav";
 import { useDashboard } from "@/lib/store";
@@ -175,6 +175,19 @@ function Notifications() {
     }
   };
 
+  // Personal, not global: this hides the list for whoever clicked it and
+  // leaves everybody else's untouched.
+  const clearMine = async () => {
+    try {
+      await del("/api/messages?scope=mine");
+      await refresh();
+      setOpen(false);
+      toast("Notifications cleared.", "success");
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
+  };
+
   const react = async (id: string, reaction: string, mine: string | null) => {
     try {
       await patchJson(`/api/messages/${id}`, { reaction: mine === reaction ? null : reaction });
@@ -233,16 +246,28 @@ function Notifications() {
             <span className="text-[10px] font-extrabold tracking-[1.2px] text-muted uppercase">
               Announcements
             </span>
-            <button
-              type="button"
-              onClick={() => {
-                router.push("/messages");
-                setOpen(false);
-              }}
-              className="cursor-pointer text-[11px] font-bold text-[#22d3ee] hover:underline"
-            >
-              View all
-            </button>
+            <div className="flex items-center gap-3">
+              {messages.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearMine}
+                  title="Remove these from your list only"
+                  className="cursor-pointer text-[11px] font-bold text-muted hover:text-[#ef4444]"
+                >
+                  Clear all
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  router.push("/messages");
+                  setOpen(false);
+                }}
+                className="cursor-pointer text-[11px] font-bold text-[#22d3ee] hover:underline"
+              >
+                View all
+              </button>
+            </div>
           </div>
 
           <div className="max-h-[340px] overflow-y-auto">
