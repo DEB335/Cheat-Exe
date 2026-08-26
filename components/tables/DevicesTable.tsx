@@ -1,8 +1,8 @@
 "use client";
 
-import { BanIcon, CpuChipIcon, WifiOffIcon } from "@/components/icons";
+import { BanIcon, CpuChipIcon, MonitorIcon, WifiOffIcon } from "@/components/icons";
 import { SmallButton } from "@/components/ui/buttons";
-import { RoleBadge } from "@/components/ui/Badge";
+import { DotBadge, RoleBadge } from "@/components/ui/Badge";
 import { Cell, DataTable, EmptyRow, Row } from "@/components/ui/Table";
 import { useToast } from "@/components/ui/Toast";
 import { del, postJson } from "@/lib/client-api";
@@ -74,16 +74,18 @@ export function DevicesTable({ variant }: { variant: "overview" | "full" }) {
 
           return (
             <Row key={device.sessionId}>
+              {/* "(This Device)" used to live inside the pill, which then
+                  wrapped to three lines in a 47px-wide column. It is its own
+                  line now, and the pill itself never wraps. */}
               <Cell dense>
-                <span
-                  className={
-                    isCurrent
-                      ? "rounded-xl border border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.1)] px-2 py-[3px] text-[10px] font-bold text-[#34d399]"
-                      : "rounded-xl border border-[rgba(16,185,129,0.1)] bg-[rgba(16,185,129,0.05)] px-2 py-[3px] text-[10px] font-bold text-[#10b981]"
-                  }
-                >
-                  &#9679; ONLINE{isCurrent ? " (This Device)" : ""}
-                </span>
+                <div className="flex flex-col items-start gap-1">
+                  <DotBadge tone="green">Online</DotBadge>
+                  {isCurrent && (
+                    <span className="text-[9.5px] font-bold tracking-[0.8px] text-[#60a5fa] uppercase">
+                      This device
+                    </span>
+                  )}
+                </div>
               </Cell>
 
               <Cell dense className="font-semibold text-fg">
@@ -96,19 +98,30 @@ export function DevicesTable({ variant }: { variant: "overview" | "full" }) {
                 </Cell>
               )}
 
+              {/* A real icon rather than a laptop emoji -- the emoji renders
+                  at a different size on every platform and sat off-baseline.
+                  Capped and truncated so a long UA string cannot stretch the
+                  column or wrap the pill. */}
               <Cell dense>
-                <span className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white/2 px-3 py-1.5 text-[12.5px] text-fg shadow-[0_2px_8px_rgba(0,0,0,0.2)] lt:bg-slate-100">
-                  <span className="text-[12px]">&#128187;</span>
-                  {device.device}
+                <span
+                  title={device.device}
+                  className="inline-flex w-max max-w-[190px] items-center gap-2 rounded-lg border border-line bg-white/2 px-2.5 py-1.5 text-[12.5px] whitespace-nowrap text-fg shadow-[0_2px_8px_rgba(0,0,0,0.2)] lt:bg-slate-100"
+                >
+                  <MonitorIcon className="size-3.5 shrink-0 text-muted" />
+                  <span className="truncate">{device.device}</span>
                 </span>
               </Cell>
 
-              <Cell dense className="font-mono text-[#94a3b8]">
+              <Cell dense className="font-mono text-[12px] whitespace-nowrap text-[#94a3b8]">
                 {device.ip}
               </Cell>
 
-              <Cell dense className="text-[#94a3b8]">
-                {device.timestamp}
+              {/* Split on the comma the timestamp already contains, so date
+                  and time stack on purpose instead of wrapping at whatever
+                  character happens to hit the column edge. */}
+              <Cell dense className="whitespace-nowrap">
+                <div className="text-[12.5px] text-fg">{splitStamp(device.timestamp).date}</div>
+                <div className="text-[11px] text-muted">{splitStamp(device.timestamp).time}</div>
               </Cell>
 
               <Cell dense>
@@ -117,7 +130,10 @@ export function DevicesTable({ variant }: { variant: "overview" | "full" }) {
                     {isOverview ? "Active" : "Current Device"}
                   </span>
                 ) : (
-                  <div className="flex flex-wrap gap-1.5">
+                  // Never wrap: the table already scrolls sideways, so
+                  // wrapping only made every row twice as tall on a narrow
+                  // screen without revealing anything.
+                  <div className="flex flex-nowrap gap-1.5">
                     <SmallButton tone="danger" onClick={() => kick(device.sessionId, cleanUser)}>
                       <BanIcon className="size-2.5" />
                       Kick
@@ -182,4 +198,10 @@ export function DevicesTable({ variant }: { variant: "overview" | "full" }) {
       )}
     </DataTable>
   );
+}
+
+/** "26/08/2026, 16:07:52" -> { date, time }. */
+function splitStamp(stamp: string): { date: string; time: string } {
+  const [date = stamp, time = ""] = stamp.split(", ");
+  return { date, time };
 }

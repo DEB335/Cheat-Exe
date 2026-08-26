@@ -12,7 +12,7 @@ import {
   WifiOffIcon,
   XSquareIcon,
 } from "@/components/icons";
-import { Badge, RoleBadge } from "@/components/ui/Badge";
+import { Badge, DotBadge, RoleBadge } from "@/components/ui/Badge";
 import { IconButton, SmallButton, TintButton } from "@/components/ui/buttons";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Input } from "@/components/ui/form";
@@ -121,9 +121,7 @@ export default function BannedVaultPage() {
             filtered.map((record, index) => (
               <Row key={`${record.username}-${index}`}>
                 <Cell dense>
-                  <span className="rounded-xl border border-[rgba(239,68,68,0.2)] bg-[rgba(239,68,68,0.1)] px-2 py-[3px] text-[10px] font-bold text-[#f87171]">
-                    &#9679; KICKED / BANNED
-                  </span>
+                  <DotBadge tone="red">Kicked / Banned</DotBadge>
                 </Cell>
 
                 <Cell dense className="font-semibold text-fg">
@@ -146,18 +144,29 @@ export default function BannedVaultPage() {
                   <div>
                     <RoleBadge role={record.role} />
                   </div>
-                  <div className="mt-0.5 text-[10px] text-[#64748b]">
+                  <div
+                    title={record.packages.join(", ")}
+                    className="mt-0.5 max-w-[150px] truncate text-[10px] text-[#64748b]"
+                  >
                     {record.packages.length > 0 ? record.packages.join(", ") : "NONE"}
                   </div>
                 </Cell>
 
-                <Cell dense>
-                  <div className="font-mono font-semibold text-fg">{record.ip}</div>
-                  <div className="mt-0.5 text-[10px] text-[#64748b]">{record.device}</div>
+                <Cell dense className="whitespace-nowrap">
+                  <div className="font-mono text-[12.5px] font-semibold text-fg">{record.ip}</div>
+                  <div
+                    title={record.device}
+                    className="mt-0.5 max-w-[170px] truncate text-[10.5px] text-[#64748b]"
+                  >
+                    {record.device}
+                  </div>
                 </Cell>
 
-                <Cell dense className="text-[#94a3b8]">
-                  {record.kickedTime}
+                <Cell dense className="whitespace-nowrap">
+                  <div className="text-[12.5px] text-fg">{record.kickedTime.split(", ")[0]}</div>
+                  <div className="text-[11px] text-muted">
+                    {record.kickedTime.split(", ")[1] ?? ""}
+                  </div>
                 </Cell>
 
                 <Cell dense>

@@ -25,6 +25,51 @@ export function Badge({
   );
 }
 
+const DOT_TONES = {
+  green: "border-[rgba(16,185,129,0.25)] bg-[rgba(16,185,129,0.1)] text-[#34d399]",
+  red: "border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.1)] text-[#f87171]",
+  blue: "border-[rgba(96,165,250,0.25)] bg-[rgba(96,165,250,0.1)] text-[#60a5fa]",
+} as const;
+
+const DOT_COLORS = {
+  green: "bg-[#10b981] shadow-[0_0_6px_rgba(16,185,129,0.9)]",
+  red: "bg-[#ef4444] shadow-[0_0_6px_rgba(239,68,68,0.9)]",
+  blue: "bg-[#60a5fa] shadow-[0_0_6px_rgba(96,165,250,0.9)]",
+} as const;
+
+/**
+ * Status pill with a leading dot, for the monitoring tables.
+ *
+ * `whitespace-nowrap` is the point of it: these sit in the narrowest
+ * column of a table that also carries three action buttons, and the old
+ * markup let a two-word label wrap to three lines inside a 47px pill.
+ * The dot is a styled span rather than a literal bullet character so it
+ * keeps its size and glow whatever the font does.
+ */
+export function DotBadge({
+  tone,
+  className,
+  children,
+}: {
+  tone: keyof typeof DOT_TONES;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex w-max items-center gap-1.5 rounded-full border px-2.5 py-1",
+        "text-[10px] font-bold tracking-[0.5px] whitespace-nowrap uppercase",
+        DOT_TONES[tone],
+        className,
+      )}
+    >
+      <span className={cn("size-1.5 shrink-0 rounded-full", DOT_COLORS[tone])} />
+      {children}
+    </span>
+  );
+}
+
 const STATUS_STYLES: Record<ResellerStatus, string> = {
   ACTIVE: "bg-green-glow text-green border-[rgba(16,185,129,0.25)]",
   SUSPENDED: "bg-[rgba(239,68,68,0.15)] text-[#ef4444] border-[rgba(239,68,68,0.25)]",
