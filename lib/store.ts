@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { create } from "zustand";
 
 import { PACKAGES } from "./packages";
@@ -115,6 +116,33 @@ export const useDashboard = create<DashboardState>((set, get) => ({
 }));
 
 /**
+ * The packages this account may generate for, as they stand right now.
+ *
+ * Deliberately not `user.packages`. That array is a copy taken at login
+ * and signed into the session token, which is never re-issued -- so a
+ * permission the owner grants or revokes mid-session stayed invisible
+ * here for the rest of the twelve-hour token, and the reseller had to
+ * sign out and back in before a newly granted panel appeared.
+ *
+ * The reseller's own record comes down with /api/db on every refresh and
+ * a permission change pings, so reading the grant from there is what
+ * makes it land live. The token's copy is the fallback only until that
+ * record has loaded, and for the owner, who has no reseller record.
+ */
+export function useMyPackages(): string[] {
+  const user = useDashboard((s) => s.user);
+  const users = useDashboard((s) => s.db.cheatExeUsers);
+
+  return useMemo(() => {
+    if (!user) return [];
+    const record = Object.entries(users).find(
+      ([name]) => name.toLowerCase() === user.username.toLowerCase(),
+    )?.[1];
+    return record?.packages ?? user.packages;
+  }, [user, users]);
+}
+
+/**
  * Numbers behind the five overview tiles.
  *
  * For the owner these come from the license API, which is the only place
@@ -127,6 +155,7 @@ export function useMetrics() {
   const user = useDashboard((s) => s.user);
   const stats = useDashboard((s) => s.stats);
   const packages = useDashboard((s) => s.packages);
+  const mine = useMyPackages();
   const isOwner = user?.role === "OWNER";
 
   if (isOwner && stats) {
@@ -155,7 +184,7 @@ export function useMetrics() {
   // is hidden for non-owners instead of showing a zero that reads as a
   // measurement.
   return {
-    apps: isOwner ? packages.length : (user?.packages.length ?? 0),
+    apps: isOwner ? packages.length : mine.length,
     licenses: db.cheatExeKeyHistory.length,
     users: 0,
     devices: db.cheatExeDevices.length,

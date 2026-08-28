@@ -9,7 +9,7 @@ import { FormLabel, HelpText, Input, PackageCard } from "@/components/ui/form";
 import { useToast } from "@/components/ui/Toast";
 import { postJson } from "@/lib/client-api";
 import { keysRemaining } from "@/lib/reseller";
-import { useDashboard } from "@/lib/store";
+import { useDashboard, useMyPackages } from "@/lib/store";
 
 export default function GeneratorPage() {
   const toast = useToast();
@@ -37,10 +37,14 @@ export default function GeneratorPage() {
     return left === null ? null : { used, left, limit: record.keyLimit ?? 0 };
   }, [user, users, history]);
 
+  // Read from the reseller's live record rather than the session token,
+  // so a panel the owner grants shows up on the next ping instead of
+  // waiting for them to sign in again. See useMyPackages.
+  const mine = useMyPackages();
   const allowed = useMemo(() => {
     if (user?.role === "OWNER") return packages;
-    return packages.filter((p) => user?.packages.includes(p.name));
-  }, [user, packages]);
+    return packages.filter((p) => mine.includes(p.name));
+  }, [user, packages, mine]);
 
   // Default to the first package this account may actually use. Keying
   // off `packages[0]` meant a reseller without BASIC PANEL arrived with a

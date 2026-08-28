@@ -4,10 +4,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { CheckIcon, DiscordIcon, LogOutIcon, UserIcon } from "@/components/icons";
+import { GlowingPackageBadge } from "@/components/ui/Badge";
 import { PrimaryButton } from "@/components/ui/buttons";
 import { FormLabel, Input } from "@/components/ui/form";
 import { useToast } from "@/components/ui/Toast";
 import { api, patchJson } from "@/lib/client-api";
+import { shortPackageLabel } from "@/lib/packages";
 import { daysLeft, effectiveStatus, formatExpiry } from "@/lib/reseller";
 import { useDashboard } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -82,6 +84,23 @@ export default function ProfilePage() {
 
             {!isOwner && own && (
               <>
+                {/* Straight off `own`, the record /api/db refreshes -- so a
+                    panel the owner grants or revokes shows up here on the
+                    next ping rather than at the next sign-in. */}
+                <MetaRow label="Panels">
+                  <div className="flex max-w-[175px] flex-wrap justify-end gap-0.5">
+                    {own.packages.length > 0 ? (
+                      own.packages.map((pkg) => (
+                        <GlowingPackageBadge key={pkg}>{shortPackageLabel(pkg)}</GlowingPackageBadge>
+                      ))
+                    ) : (
+                      <span className="m-0.5 inline-block rounded-full border border-white/10 px-2.5 py-[3px] text-[9.5px] font-[750] tracking-[0.8px] text-muted uppercase">
+                        None
+                      </span>
+                    )}
+                  </div>
+                </MetaRow>
+
                 <MetaRow label="Valid Until">
                   <span
                     className={cn(

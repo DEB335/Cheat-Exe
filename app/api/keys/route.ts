@@ -30,11 +30,6 @@ export const POST = route(async (request: Request) => {
   const pkg = packageById(requested) ?? (await livePackage(requested));
   if (!pkg) throw new HttpError(400, "Unknown package.");
 
-  // A reseller may only generate for packages the owner granted them.
-  if (user.role !== "OWNER" && !user.packages.includes(pkg.name)) {
-    throw new HttpError(403, `You are not allowed to generate keys for ${pkg.name}.`);
-  }
-
   const duration = String(body.duration ?? "30");
   const amount = Number(body.amount ?? 1);
   if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
@@ -52,7 +47,19 @@ export const POST = route(async (request: Request) => {
   if (isReseller) {
     await updateDb((db) => {
       const match = findReseller(db, user.username);
-      if (!match) return;
+      if (!match) throw new HttpError(403, "This account no longer exists.");
+
+      // A reseller may only generate for packages the owner granted them,
+      // read from the record rather than from `user.packages`. That field
+      // is a copy frozen into the session token at login, so trusting it
+      // left a revoked package usable for the rest of the twelve-hour
+      // token and refused a freshly granted one until the next sign-in.
+      // The row lock this runs under also means a revocation landing
+      // mid-request is seen, not raced past.
+      if (!match.user.packages.includes(pkg.name)) {
+        throw new HttpError(403, `You are not allowed to generate keys for ${pkg.name}.`);
+      }
+
       const limit = keysRemaining(match.user, keysUsedBy(db, user.username));
       if (limit === null) return; // uncapped
 
