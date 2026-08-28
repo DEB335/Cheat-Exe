@@ -86,21 +86,17 @@ export default function ResellerHistoryPage() {
 /**
  * The validity column.
  *
- * A key whose real expiry was never read back is shown as unknown rather
- * than as the number typed into the generator. That number is a request
- * the upstream discards, and printing it here as fact is how a lifetime
- * key came to be listed as "10 Days".
+ * The provider decides a key's validity and its API will not report it,
+ * so this states who decides rather than inventing a number. Printing the
+ * value typed into the generator is how a key the provider issued as 30
+ * days came to be listed here as "10 Days".
  */
 function ValidityCell({ item }: { item: KeyRecord }) {
   const { label, certain } = keyValidity(item);
   return (
     <Cell
       className={certain ? undefined : "text-muted italic"}
-      title={
-        certain
-          ? undefined
-          : "The provider never reported an expiry for this key, so this is only what was asked for."
-      }
+      title={certain ? undefined : ' + TIP + '}
     >
       {label}
     </Cell>

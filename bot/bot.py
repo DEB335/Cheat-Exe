@@ -184,8 +184,13 @@ async def genkey(interaction: discord.Interaction, package: str, days: int = 30,
         description=f"Package: **{package_name}**\n\n{listing}",
         color=BRAND,
     )
-    # Say so rather than let someone believe the days field did something.
-    embed.add_field(name="Expiry", value=data.get("expiry_date", "Never (Lifetime)"), inline=True)
+    # Not the requested days, which the provider discards -- but not the
+    # API's answer either, which calls a key its own portal lists as 30
+    # days a lifetime one. Neither can be stated, so neither is.
+    expiry = data.get("expiry_date") or ""
+    if not expiry or "lifetime" in expiry.lower() or "never" in expiry.lower():
+        expiry = "Set by provider"
+    embed.add_field(name="Expiry", value=expiry, inline=True)
     embed.add_field(name="Issued by", value=interaction.user.mention, inline=True)
     embed.set_footer(text="CHEAT EXE - licence automation")
 

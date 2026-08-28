@@ -45,25 +45,31 @@ export function packageById(id: string): LicensePackage | undefined {
 /**
  * How long a key is actually good for, ready to display.
  *
- * There are two numbers in play and only one of them is true. The
- * generator's "validity (days)" box is a request, and the upstream API
- * discards it -- verified against the live API with fifteen different
- * parameter spellings in one call, every one ignored, every key issued
- * as lifetime. `expiry` is what the API said it actually did, read back
- * after minting, so it is the only one that can be stated as fact.
+ * Three sources claim to answer this and no two of them agree, so the
+ * honest answer is usually that we do not know:
  *
- * When there is no `expiry` to go on, this says so. Falling back to the
- * requested number is exactly the bug this replaces: a key generated for
- * ten days was listed as "10 Days" while the provider had issued it as
- * lifetime.
+ *   - the generator's "validity (days)" box is only a request, and the
+ *     provider discards it. Two keys minted moments apart with `days`
+ *     set to 10 and to 0 came out identical.
+ *   - `key_info` answers `duration_days: 0` and `expiry_date: "Never
+ *     (Lifetime)"` for those same keys.
+ *   - the provider's own portal lists both of them as 30 days.
+ *
+ * The likeliest reading is that a key has no expiry until it is first
+ * used -- the portal says "On First Use" beside the number -- and that
+ * their API reports that empty column as lifetime. Whatever the cause,
+ * an unused key's reported expiry cannot be repeated as fact, and the
+ * requested number never could be.
+ *
+ * So only a real date is shown. Anything else says who actually decides,
+ * which is the one thing here that is definitely true.
  */
 export function keyValidity(record: Pick<KeyRecord, "duration" | "expiry">): {
   label: string;
   certain: boolean;
 } {
-  if (!record.expiry) return { label: `${record.duration}d requested`, certain: false };
-  // The API spells lifetime "Never (Lifetime)", which reads oddly in a
-  // column headed Validity.
-  if (/lifetime|never/i.test(record.expiry)) return { label: "Lifetime", certain: true };
-  return { label: record.expiry, certain: true };
+  if (record.expiry && !/lifetime|never/i.test(record.expiry)) {
+    return { label: record.expiry, certain: true };
+  }
+  return { label: "Set by provider", certain: false };
 }

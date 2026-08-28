@@ -154,14 +154,15 @@ export default function GeneratorPage() {
               onChange={(event) => setDays(event.target.value)}
             />
             <HelpText>Sent to the provider, who decides the real expiry.</HelpText>
-            {/* Verified against the live API: fifteen spellings of a duration
-                parameter sent in one request, every one ignored, every key
-                issued as "Never (Lifetime)". There is also no action to change
-                a key's expiry afterwards. Still sent, so it starts working the
-                day the provider honours it. */}
+            {/* Sent as `days`, the name the provider documents. Verified
+                ignored: two keys minted moments apart with days set to 10 and
+                to 0 both came out as 30 days in the provider's portal, while
+                its own key_info called both of them lifetime. There is no
+                action to change a key's expiry afterwards either. Still sent,
+                so it starts working the day they honour it. */}
             <span className="mt-1.5 block text-[11px] font-medium text-orange">
-              Note: the connected API ignores this and issues every key as lifetime. Key History
-              shows the expiry it actually returns, not this number.
+              Note: the provider currently ignores this and applies its own duration to every key.
+              Check the TERMINALX999 portal for a key&apos;s real validity.
             </span>
           </div>
           <div>

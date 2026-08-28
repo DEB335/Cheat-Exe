@@ -41,26 +41,31 @@ than a view object, which would die with the process.
 
 ## Known limitation: `days` does nothing
 
-The `days` option is sent, but the licence API ignores it and issues every
-key as lifetime. Verified twice against the live API:
+`days` is sent under the name the provider documents, and the provider
+ignores it. Two keys were minted moments apart, one with `days: 10` and one
+with `days: 0`. The provider's portal listed **both as 30 days**.
 
-- JSON body with `days`, form body with `days`, and JSON with `duration`
-- fifteen spellings in a single request -- `days`, `duration`,
-  `duration_days`, `expiry_days`, `validity`, `validity_days`,
-  `valid_days`, `expiry`, `expires_in`, `period`, `length`,
-  `key_duration`, `days_valid`, `exp_days`, `time_days`
+Three sources, no two agreeing:
 
-Every one returned `"expiry_date": "Never (Lifetime)", "duration_days": 0`.
-There is also no action to change a key's expiry afterwards -- the
-supported list is `generate_key, reset_hwid, ban_key, unban_key,
-delete_key, key_info, reseller_stats, get_admin_packages` plus
-Discord/free-panel actions.
+| Source | Says |
+| --- | --- |
+| what was requested | 10 days / 0 days |
+| `key_info` | `duration_days: 0`, `expiry_date: "Never (Lifetime)"` |
+| the provider's portal | `On First Use (30d)` for both |
 
-Note that the provider's own admin site displays these keys as 30 days,
-which does not match what its API reports for the same key. The API is
-what this project can see, so the API is what it repeats.
+Ruled out first, against the live API: fifteen spellings of a duration
+parameter in one request; a lifetime switch (`is_lifetime`, `expiry_type`
+and ten more) alongside a number; an explicit end date in seven spellings;
+and the same over JSON. Every one returned lifetime. There is no action
+that can change a key's expiry afterwards -- the supported list is
+`generate_key, reset_hwid, ban_key, unban_key, delete_key, key_info,
+reseller_stats, get_admin_packages` plus Discord/free-panel actions.
 
-Making keys expire needs a change on the provider's side. The option is
-kept so it starts working the moment they honour it. Neither `/genkey` nor
-the web panel displays the requested number as though it were the result:
-both show the expiry the API actually reports.
+The "On First Use" wording suggests a key has no expiry until it is
+claimed, and that `key_info` reports that empty column as lifetime. Either
+way its answer cannot be repeated as fact for an unused key, so neither
+`/genkey` nor the web panel states a validity it cannot stand behind.
+
+Making `days` work needs a change on the provider's side. It is still sent,
+so it starts working the moment they honour it.
+
