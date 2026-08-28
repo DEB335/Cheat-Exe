@@ -75,8 +75,12 @@ export const POST = route(async (request: Request) => {
   try {
     data = await callLicenseApi<GenerateResponse>("generate_key", {
       package_id: pkg.id,
-      duration,
-      amount: String(amount),
+      // The provider names these `days` and `count`. This panel inherited
+      // `duration` and `amount` from the one it replaced, and neither is
+      // read: `count` is what actually sets the quantity, so asking for
+      // ten keys minted exactly one, every time, without complaint.
+      days: duration,
+      count: String(amount),
     });
   } catch (err) {
     // The mint never happened, so hand the reservation back before
