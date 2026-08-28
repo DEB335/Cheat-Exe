@@ -23,6 +23,12 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "CHEAT EXE",
   description: "License key management dashboard.",
+  // The mark sits in `public/`, which Next serves but does not go
+  // looking through, so nothing declares it unless this does. Naming it
+  // here is what puts the <link> in the head, and it is the only icon
+  // the page declares -- browsers that ask for /favicon.ico unprompted
+  // and browsers that read the tag both land on the same file.
+  icons: { icon: "/favicon.ico" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

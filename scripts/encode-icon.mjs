@@ -1,5 +1,5 @@
 /**
- * Bakes a source logo into the two icons the panel ships.
+ * Bakes a source logo into the icon the panel ships.
  *
  * A browser tab gets 16 or 32 real pixels, so the artwork cannot just be
  * pointed at: it has to be trimmed to the mark, downscaled with a good
@@ -9,10 +9,8 @@
  *
  *   node scripts/encode-icon.mjs "logo.png"
  *
- * Writes public/favicon.ico (16/32/48/64 in one file, for the
- * /favicon.ico browsers ask for unprompted) and rewrites the base64 in
- * lib/assets/icon-fallback.ts (the 64px mark app/icon.tsx serves). Both
- * come out of the same pipeline so the tab never disagrees with itself.
+ * Writes public/favicon.ico, all four sizes in the one file that
+ * app/layout.tsx declares and that browsers ask for unprompted.
  *
  * sharp is already a dependency, so unlike the video encoder this needs
  * nothing installed. Keep the source file somewhere safe -- it is not
@@ -26,13 +24,11 @@ import sharp from "sharp";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_ICO = path.join(ROOT, "public", "favicon.ico");
-const OUT_TS = path.join(ROOT, "lib", "assets", "icon-fallback.ts");
 
 /**
  * 16 and 32 are what tabs and bookmark bars actually draw; 48 is what
- * Windows shortcuts pick up, and 64 matches the `size` app/icon.tsx
- * declares, so a browser that prefers the .ico still gets the same
- * pixels it would have got from the route.
+ * Windows shortcuts pick up, and 64 is what a hi-dpi tab scales from --
+ * a browser handed only a 16 has nothing to work with on a 2x display.
  */
 const SIZES = [16, 32, 48, 64];
 
@@ -85,13 +81,11 @@ for (const size of SIZES) {
 }
 
 fs.writeFileSync(OUT_ICO, ico(icons));
-writeFallback(icons.find((icon) => icon.size === 64).data);
 
 const kb = (bytes) => `${(bytes / 1024).toFixed(1)} kB`;
 console.log(`source   ${source} (${kb(fs.statSync(source).size)})`);
 for (const { size, data } of icons) console.log(`  ${size}x${size}   ${kb(data.length)}`);
 console.log(`icon     public/favicon.ico (${kb(fs.statSync(OUT_ICO).size)})`);
-console.log(`fallback lib/assets/icon-fallback.ts`);
 
 /**
  * Trims the flat border off the source and squares up what is left.
@@ -165,29 +159,4 @@ function ico(images) {
   });
 
   return Buffer.concat([header, directory, ...images.map(({ data }) => data)]);
-}
-
-/** Swaps the baked bytes into the module app/icon.tsx falls back to. */
-function writeFallback(png) {
-  const current = fs.readFileSync(OUT_TS, "utf8");
-  // Match whatever the file already uses, so a rebake shows up as one
-  // changed constant and not as every line in the file.
-  const eol = current.includes("\r\n") ? "\r\n" : "\n";
-
-  const literal = png
-    .toString("base64")
-    .match(/.{1,100}/g)
-    .map((chunk) => `  "${chunk}"`)
-    .join(` +${eol}`);
-
-  const next = current.replace(
-    /^(const ICON_FALLBACK_BASE64 =\r?\n)[\s\S]*?";\r?\n/m,
-    `$1${literal};${eol}`,
-  );
-  if (next === current) {
-    console.error(`Could not find ICON_FALLBACK_BASE64 in ${OUT_TS}`);
-    process.exit(1);
-  }
-
-  fs.writeFileSync(OUT_TS, next);
 }
