@@ -42,13 +42,25 @@ than a view object, which would die with the process.
 ## Known limitation: `days` does nothing
 
 The `days` option is sent, but the licence API ignores it and issues every
-key as lifetime. This was verified directly against the live API: JSON body
-with `days`, form body with `days`, and JSON with `duration` all returned
-`"expiry_date": "Never (Lifetime)", "duration_days": 0`. There is also no
-`set_expiry` action -- the supported list is `generate_key, reset_hwid,
-ban_key, unban_key, delete_key, key_info, reseller_stats,
-get_admin_packages` plus Discord/free-panel actions.
+key as lifetime. Verified twice against the live API:
+
+- JSON body with `days`, form body with `days`, and JSON with `duration`
+- fifteen spellings in a single request -- `days`, `duration`,
+  `duration_days`, `expiry_days`, `validity`, `validity_days`,
+  `valid_days`, `expiry`, `expires_in`, `period`, `length`,
+  `key_duration`, `days_valid`, `exp_days`, `time_days`
+
+Every one returned `"expiry_date": "Never (Lifetime)", "duration_days": 0`.
+There is also no action to change a key's expiry afterwards -- the
+supported list is `generate_key, reset_hwid, ban_key, unban_key,
+delete_key, key_info, reseller_stats, get_admin_packages` plus
+Discord/free-panel actions.
+
+Note that the provider's own admin site displays these keys as 30 days,
+which does not match what its API reports for the same key. The API is
+what this project can see, so the API is what it repeats.
 
 Making keys expire needs a change on the provider's side. The option is
-kept so it starts working the moment they honour it, and `/genkey` shows
-the real expiry the API reports rather than the value that was asked for.
+kept so it starts working the moment they honour it. Neither `/genkey` nor
+the web panel displays the requested number as though it were the result:
+both show the expiry the API actually reports.

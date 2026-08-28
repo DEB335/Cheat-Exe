@@ -57,7 +57,19 @@ export interface Reseller {
 export interface KeyRecord {
   key: string;
   package: string;
+  /** Validity typed into the generator. Only ever a request -- see `expiry`. */
   duration: string;
+  /**
+   * What the upstream reported this key's expiry to actually be, read
+   * back just after it was minted.
+   *
+   * The license API discards the duration we send and decides for
+   * itself, so `duration` above says nothing about the key that exists.
+   * This does. Absent on records created before it was captured, and
+   * absent if the read-back failed -- in both cases the panel says the
+   * validity is unknown rather than repeating what was asked for.
+   */
+  expiry?: string;
   /** "admin" for the owner, otherwise the reseller username. */
   creator: string;
   date: string;

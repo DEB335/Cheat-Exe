@@ -5,13 +5,15 @@ import { useMemo } from "react";
 import { RefreshIcon, TrashIcon } from "@/components/icons";
 import { CopyButton, TintButton } from "@/components/ui/buttons";
 import { PackageBadge } from "@/components/ui/Badge";
+import { keyValidity } from "@/lib/packages";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Cell, DataTable, EmptyRow, Row } from "@/components/ui/Table";
 import { useToast } from "@/components/ui/Toast";
 import { del } from "@/lib/client-api";
 import { useDashboard } from "@/lib/store";
+import type { KeyRecord } from "@/lib/types";
 
-const COLUMNS = ["License Key", "Package", "Duration", "Created On", "Actions"];
+const COLUMNS = ["License Key", "Package", "Validity", "Created On", "Actions"];
 
 export default function OwnerHistoryPage() {
   const toast = useToast();
@@ -67,7 +69,7 @@ export default function OwnerHistoryPage() {
               <Cell>
                 <PackageBadge>{item.package}</PackageBadge>
               </Cell>
-              <Cell>{item.duration} Days</Cell>
+              <ValidityCell item={item} />
               <Cell>{item.date}</Cell>
               <Cell>
                 <CopyButton
@@ -84,5 +86,29 @@ export default function OwnerHistoryPage() {
         )}
       </DataTable>
     </Card>
+  );
+}
+
+/**
+ * The validity column.
+ *
+ * A key whose real expiry was never read back is shown as unknown rather
+ * than as the number typed into the generator. That number is a request
+ * the upstream discards, and printing it here as fact is how a lifetime
+ * key came to be listed as "10 Days".
+ */
+function ValidityCell({ item }: { item: KeyRecord }) {
+  const { label, certain } = keyValidity(item);
+  return (
+    <Cell
+      className={certain ? undefined : "text-muted italic"}
+      title={
+        certain
+          ? undefined
+          : "The provider never reported an expiry for this key, so this is only what was asked for."
+      }
+    >
+      {label}
+    </Cell>
   );
 }

@@ -153,11 +153,15 @@ export default function GeneratorPage() {
               value={days}
               onChange={(event) => setDays(event.target.value)}
             />
-            <HelpText>Use 0 for lifetime if your API supports it.</HelpText>
-            {/* Verified against the live API: it returns duration_days 0 and
-                "Never (Lifetime)" for every value tried, on every package. */}
+            <HelpText>Sent to the provider, who decides the real expiry.</HelpText>
+            {/* Verified against the live API: fifteen spellings of a duration
+                parameter sent in one request, every one ignored, every key
+                issued as "Never (Lifetime)". There is also no action to change
+                a key's expiry afterwards. Still sent, so it starts working the
+                day the provider honours it. */}
             <span className="mt-1.5 block text-[11px] font-medium text-orange">
-              Note: the connected API currently ignores this and issues every key as lifetime.
+              Note: the connected API ignores this and issues every key as lifetime. Key History
+              shows the expiry it actually returns, not this number.
             </span>
           </div>
           <div>

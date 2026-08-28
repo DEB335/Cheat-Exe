@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 
 import { HttpError, clientIp, requireUser } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { findReseller, keysUsedBy, updateDb } from "@/lib/db";
 import { keysRemaining, pendingCount } from "@/lib/reseller";
-import { callLicenseApi, livePackage, type GenerateResponse } from "@/lib/license-api";
+import { callLicenseApi, getKeyInfo, livePackage, type GenerateResponse } from "@/lib/license-api";
 import { packageById } from "@/lib/packages";
 import { ping } from "@/lib/realtime";
 import type { KeyRecord } from "@/lib/types";
@@ -129,8 +129,49 @@ export const POST = route(async (request: Request) => {
     await ping("key", tx);
   });
 
+  recordRealExpiry(generated);
+
   return NextResponse.json({ success: true, keys: generated, raw: data });
 });
+
+/**
+ * Asks the upstream what expiry it actually gave these keys, and records
+ * that against them.
+ *
+ * The API ignores the duration we send, so the number the generator
+ * submitted describes nothing that exists -- listing it as the key's
+ * validity is how a lifetime key came to be shown as "10 Days". This
+ * reads back the truth instead.
+ *
+ * It runs in `after`, once the response has already gone out, so the
+ * extra round trip costs generation nothing; the tabs pick the value up
+ * through the realtime ping a moment later. One lookup covers the whole
+ * batch -- they came from a single call with identical parameters, so
+ * they cannot differ from each other.
+ */
+function recordRealExpiry(keys: string[]): void {
+  after(async () => {
+    let expiry: string | undefined;
+    try {
+      expiry = (await getKeyInfo(keys[0])).expiry_date;
+    } catch {
+      /* the keys are real either way; history just will not claim an expiry */
+    }
+    if (!expiry) return;
+
+    const minted = new Set(keys);
+    await updateDb(async (db, tx) => {
+      let changed = false;
+      for (const record of db.cheatExeKeyHistory) {
+        if (!minted.has(record.key) || record.expiry === expiry) continue;
+        record.expiry = expiry;
+        changed = true;
+      }
+      // Only ring the doorbell if a row actually moved.
+      if (changed) await ping("key", tx);
+    });
+  });
+}
 
 /** Hands a failed request's reserved allowance back. */
 async function releaseReservation(username: string, amount: number): Promise<void> {

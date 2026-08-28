@@ -1,4 +1,4 @@
-import type { LicensePackage } from "./types";
+import type { KeyRecord, LicensePackage } from "./types";
 
 /**
  * Package ids as accepted by the upstream license API. These are not
@@ -40,4 +40,30 @@ export function shortPackageLabel(name: string): string {
 
 export function packageById(id: string): LicensePackage | undefined {
   return PACKAGES.find((p) => p.id === id);
+}
+
+/**
+ * How long a key is actually good for, ready to display.
+ *
+ * There are two numbers in play and only one of them is true. The
+ * generator's "validity (days)" box is a request, and the upstream API
+ * discards it -- verified against the live API with fifteen different
+ * parameter spellings in one call, every one ignored, every key issued
+ * as lifetime. `expiry` is what the API said it actually did, read back
+ * after minting, so it is the only one that can be stated as fact.
+ *
+ * When there is no `expiry` to go on, this says so. Falling back to the
+ * requested number is exactly the bug this replaces: a key generated for
+ * ten days was listed as "10 Days" while the provider had issued it as
+ * lifetime.
+ */
+export function keyValidity(record: Pick<KeyRecord, "duration" | "expiry">): {
+  label: string;
+  certain: boolean;
+} {
+  if (!record.expiry) return { label: `${record.duration}d requested`, certain: false };
+  // The API spells lifetime "Never (Lifetime)", which reads oddly in a
+  // column headed Validity.
+  if (/lifetime|never/i.test(record.expiry)) return { label: "Lifetime", certain: true };
+  return { label: record.expiry, certain: true };
 }
