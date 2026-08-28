@@ -50,3 +50,6 @@ next-env.d.ts
 
 # Discord bot secrets
 bot/.env
+
+# background video source (the encoded copy in public/ is committed)
+/*.mp4
