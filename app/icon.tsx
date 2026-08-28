@@ -41,10 +41,10 @@ async function fromProfile(): Promise<Buffer | null> {
     const { profile } = await readDb();
     if (!profile.avatar) return null;
 
-    // The usual case. The bundled mark was cut from exactly this image and
-    // reads better small than anything the generic path below can produce
-    // from it, so prefer it -- and skip a CDN round trip and a GIF decode
-    // while we are at it.
+    // The usual case. The bundled mark is the same brand drawn for tab
+    // size, so it reads better small than anything the generic path below
+    // can pull out of this GIF -- and preferring it skips a CDN round trip
+    // and a GIF decode as well.
     if (profile.avatar === ICON_SOURCE_AVATAR) return ICON_FALLBACK_PNG;
 
     const url = new URL(profile.avatar);

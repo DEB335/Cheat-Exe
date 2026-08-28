@@ -53,3 +53,6 @@ bot/.env
 
 # background video source (the encoded copy in public/ is committed)
 /*.mp4
+
+# icon source (the baked copies in public/ and lib/assets/ are committed)
+/*.png
