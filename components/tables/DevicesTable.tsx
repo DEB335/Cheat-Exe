@@ -9,6 +9,7 @@ import { del, postJson } from "@/lib/client-api";
 import { applyKickDevice } from "@/lib/optimistic";
 import { useDashboard } from "@/lib/store";
 import type { BanScope } from "@/lib/types";
+import { splitStampForDisplay } from "@/lib/utils";
 
 const OVERVIEW_COLUMNS = ["STATUS", "USER ACCOUNT", "DEVICE & BROWSER", "IP ADDRESS", "LOGGED IN", "ACTION"];
 const FULL_COLUMNS = [
@@ -129,8 +130,8 @@ export function DevicesTable({ variant }: { variant: "overview" | "full" }) {
                   and time stack on purpose instead of wrapping at whatever
                   character happens to hit the column edge. */}
               <Cell dense className="whitespace-nowrap">
-                <div className="text-[12.5px] text-fg">{splitStamp(device.timestamp).date}</div>
-                <div className="text-[11px] text-muted">{splitStamp(device.timestamp).time}</div>
+                <div className="text-[12.5px] text-fg">{splitStampForDisplay(device.timestamp).date}</div>
+                <div className="text-[11px] text-muted">{splitStampForDisplay(device.timestamp).time}</div>
               </Cell>
 
               <Cell dense>
@@ -207,10 +208,4 @@ export function DevicesTable({ variant }: { variant: "overview" | "full" }) {
       )}
     </DataTable>
   );
-}
-
-/** "26/08/2026, 16:07:52" -> { date, time }. */
-function splitStamp(stamp: string): { date: string; time: string } {
-  const [date = stamp, time = ""] = stamp.split(", ");
-  return { date, time };
 }

@@ -7,7 +7,7 @@ import { useToast } from "@/components/ui/Toast";
 import { patchJson } from "@/lib/client-api";
 import { applyReadAll } from "@/lib/optimistic";
 import { useDashboard } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { cn, formatStampForDisplay } from "@/lib/utils";
 
 /**
  * Sticky strip for the newest unread announcement.
@@ -68,7 +68,7 @@ export function AnnouncementBanner() {
               </span>
             )}
             <span className="text-[11px] text-muted">
-              {newest.by} &bull; {newest.at}
+              {newest.by} &bull; {formatStampForDisplay(newest.at)}
             </span>
           </div>
           <p className="text-[13.5px] leading-[1.5] break-words whitespace-pre-wrap text-fg">

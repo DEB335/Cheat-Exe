@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { del } from "@/lib/client-api";
 import { useDashboard } from "@/lib/store";
 import type { KeyRecord } from "@/lib/types";
+import { formatStampForDisplay } from "@/lib/utils";
 
 const COLUMNS = ["License Key", "Package", "Validity", "Created On", "Actions"];
 
@@ -70,7 +71,7 @@ export default function OwnerHistoryPage() {
                 <PackageBadge>{item.package}</PackageBadge>
               </Cell>
               <ValidityCell item={item} />
-              <Cell>{item.date}</Cell>
+              <Cell>{formatStampForDisplay(item.date)}</Cell>
               <Cell>
                 <CopyButton
                   onClick={async () => {

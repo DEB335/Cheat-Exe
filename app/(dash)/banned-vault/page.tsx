@@ -22,6 +22,7 @@ import { del, postJson } from "@/lib/client-api";
 import { applyLiftBan, applyRemoveVaultEntry } from "@/lib/optimistic";
 import { useDashboard } from "@/lib/store";
 import type { BanScope } from "@/lib/types";
+import { formatStampForDisplay, splitStampForDisplay } from "@/lib/utils";
 
 const COLUMNS = [
   "STATUS",
@@ -168,9 +169,9 @@ export default function BannedVaultPage() {
                 </Cell>
 
                 <Cell dense className="whitespace-nowrap">
-                  <div className="text-[12.5px] text-fg">{record.kickedTime.split(", ")[0]}</div>
+                  <div className="text-[12.5px] text-fg">{splitStampForDisplay(record.kickedTime).date}</div>
                   <div className="text-[11px] text-muted">
-                    {record.kickedTime.split(", ")[1] ?? ""}
+                    {splitStampForDisplay(record.kickedTime).time}
                   </div>
                 </Cell>
 
@@ -369,7 +370,7 @@ function BlockedDevices() {
                 </Cell>
 
                 <Cell dense className="text-[#94a3b8]">
-                  {rule.at}
+                  {formatStampForDisplay(rule.at)}
                 </Cell>
 
                 <Cell dense>

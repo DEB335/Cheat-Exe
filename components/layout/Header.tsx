@@ -22,7 +22,7 @@ import { applyClearMine, applyReadAll, applyReaction } from "@/lib/optimistic";
 import { PAGE_TITLES, SEARCH_ITEMS } from "@/lib/nav";
 import { useDashboard } from "@/lib/store";
 import { useTheme } from "@/lib/use-theme";
-import { cn } from "@/lib/utils";
+import { cn, formatStampForDisplay } from "@/lib/utils";
 
 
 export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMobile: () => void }) {
@@ -284,7 +284,7 @@ function Notifications() {
                 <div key={m.id} className="border-b border-line/60 px-4 py-3 last:border-b-0">
                   <div className="mb-1 flex items-center gap-2 text-[10.5px] text-muted">
                     <span className="font-bold text-fg">{m.by}</span>
-                    <span>{m.at}</span>
+                    <span>{formatStampForDisplay(m.at)}</span>
                   </div>
                   <p className="mb-2 text-[12.5px] leading-[1.5] break-words whitespace-pre-wrap text-fg">
                     {m.body}

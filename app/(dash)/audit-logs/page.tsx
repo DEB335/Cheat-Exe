@@ -7,6 +7,7 @@ import { Cell, DataTable, EmptyRow, Row } from "@/components/ui/Table";
 import { useToast } from "@/components/ui/Toast";
 import { del } from "@/lib/client-api";
 import { useDashboard } from "@/lib/store";
+import { formatStampForDisplay } from "@/lib/utils";
 
 const COLUMNS = ["Timestamp", "User", "Action", "IP Address"];
 
@@ -60,7 +61,7 @@ export default function AuditLogsPage() {
         ) : (
           logs.map((log, index) => (
             <Row key={`${log.timestamp}-${index}`}>
-              <Cell dense>{log.timestamp}</Cell>
+              <Cell dense>{formatStampForDisplay(log.timestamp)}</Cell>
               <Cell dense className="font-semibold text-fg">
                 {log.user}
               </Cell>

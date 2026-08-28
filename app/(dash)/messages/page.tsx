@@ -16,7 +16,7 @@ import {
 import { MAX_BODY, REACTIONS } from "@/lib/messages";
 import { useDashboard } from "@/lib/store";
 import type { PublicAnnouncement } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, formatStampForDisplay } from "@/lib/utils";
 
 export default function MessagesPage() {
   const toast = useToast();
@@ -216,7 +216,7 @@ function MessageCard({
           </span>
         )}
         <span className="text-[12.5px] font-bold text-fg">{message.by}</span>
-        <span className="text-[11px] text-muted">{message.at}</span>
+        <span className="text-[11px] text-muted">{formatStampForDisplay(message.at)}</span>
 
         {isOwner && (
           <div className="ml-auto flex items-center gap-3">

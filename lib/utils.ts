@@ -51,6 +51,37 @@ export function formatDateOnly(date: Date = new Date()): string {
   });
 }
 
+/** "22:37:27" -> "10:37:27 PM". Anything that isn't 24-hour clock time
+ *  is handed back untouched, so a stamp that is already 12-hour (or a
+ *  shape this app never wrote) survives a round trip unchanged. */
+function to12Hour(time: string): string {
+  const match = /^(\d{1,2}):(\d{2})(:\d{2})?$/.exec(time.trim());
+  if (!match) return time;
+
+  const hours = Number(match[1]);
+  if (hours > 23) return time;
+
+  const suffix = hours < 12 ? "AM" : "PM";
+  return `${hours % 12 || 12}:${match[2]}${match[3] ?? ""} ${suffix}`;
+}
+
+/**
+ * Splits a stored stamp ("24/08/2026, 22:37:27") into its date and a
+ * 12-hour time ("10:37:27 PM") for display. Records keep the 24-hour
+ * shape on disk -- converting here means stamps written before this
+ * read as 12-hour too, rather than the table showing both formats.
+ */
+export function splitStampForDisplay(stamp: string): { date: string; time: string } {
+  const [date = stamp, time = ""] = stamp.split(", ");
+  return { date, time: to12Hour(time) };
+}
+
+/** The same conversion for the places that print the stamp in one piece. */
+export function formatStampForDisplay(stamp: string): string {
+  const { date, time } = splitStampForDisplay(stamp);
+  return time ? `${date}, ${time}` : date;
+}
+
 /** Parses a user-agent into the "Windows (Chrome)" shape the vault stores. */
 export function describeDevice(ua: string): string {
   let os = "Unknown OS";
