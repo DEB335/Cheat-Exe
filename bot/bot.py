@@ -144,7 +144,7 @@ async def on_interaction(interaction: discord.Interaction):
 )
 @discord.app_commands.describe(
     package="Which package the key unlocks",
-    days="Validity in days. NOTE: the licence API currently ignores this and issues every key as lifetime.",
+    days="Validity in days (0 for lifetime)",
     count="How many keys to generate (1-100)",
 )
 async def genkey(interaction: discord.Interaction, package: str, days: int = 30, count: int = 1):
@@ -184,12 +184,15 @@ async def genkey(interaction: discord.Interaction, package: str, days: int = 30,
         description=f"Package: **{package_name}**\n\n{listing}",
         color=BRAND,
     )
-    # Not the requested days, which the provider discards -- but not the
-    # API's answer either, which calls a key its own portal lists as 30
-    # days a lifetime one. Neither can be stated, so neither is.
-    expiry = data.get("expiry_date") or ""
-    if not expiry or "lifetime" in expiry.lower() or "never" in expiry.lower():
-        expiry = "Set by provider"
+    # The provider honours `days`, so the requested value is the real one.
+    # Its key_info is not: it calls every unused key lifetime whatever was
+    # applied, contradicting the provider's own portal. So a genuine date
+    # is used if one ever appears, and otherwise what was asked for.
+    reported = data.get("expiry_date") or ""
+    if reported and "lifetime" not in reported.lower() and "never" not in reported.lower():
+        expiry = reported
+    else:
+        expiry = "Lifetime" if days == 0 else f"{days} days"
     embed.add_field(name="Expiry", value=expiry, inline=True)
     embed.add_field(name="Issued by", value=interaction.user.mention, inline=True)
     embed.set_footer(text="CHEAT EXE - licence automation")

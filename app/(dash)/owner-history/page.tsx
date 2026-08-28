@@ -89,12 +89,18 @@ export default function OwnerHistoryPage() {
   );
 }
 
+/** Shown for keys minted before the provider's own parameter name was used. */
+const UNKNOWN_VALIDITY =
+  "Generated before the panel sent the validity under the name the provider reads, " +
+  "so the provider applied its own default instead of the chosen value. " +
+  "Check the TERMINALX999 portal for this key's real validity.";
+
 /**
  * The validity column.
  *
- * The provider decides a key's validity and its API will not report it,
- * so this states who decides rather than inventing a number. Printing the
- * value typed into the generator is how a key the provider issued as 30
+ * Keys minted before the panel sent `days` rather than `duration` were
+ * given the provider's default, so their chosen number describes nothing
+ * and is not printed -- doing that is how a key the provider issued as 30
  * days came to be listed here as "10 Days".
  */
 function ValidityCell({ item }: { item: KeyRecord }) {
@@ -102,7 +108,7 @@ function ValidityCell({ item }: { item: KeyRecord }) {
   return (
     <Cell
       className={certain ? undefined : "text-muted italic"}
-      title={certain ? undefined : ' + TIP + '}
+      title={certain ? undefined : UNKNOWN_VALIDITY}
     >
       {label}
     </Cell>

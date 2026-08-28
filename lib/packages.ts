@@ -45,31 +45,34 @@ export function packageById(id: string): LicensePackage | undefined {
 /**
  * How long a key is actually good for, ready to display.
  *
- * Three sources claim to answer this and no two of them agree, so the
- * honest answer is usually that we do not know:
+ * The provider honours the validity, but only under the name it
+ * documents. This panel sent `duration`; the name is `days`. Keys minted
+ * before that was corrected were given the provider's own default, so
+ * the number chosen for them describes nothing and is not shown -- that
+ * mismatch is the whole reason a key generated for 10 days turned up in
+ * the provider's portal as 30.
  *
- *   - the generator's "validity (days)" box is only a request, and the
- *     provider discards it. Two keys minted moments apart with `days`
- *     set to 10 and to 0 came out identical.
- *   - `key_info` answers `duration_days: 0` and `expiry_date: "Never
- *     (Lifetime)"` for those same keys.
- *   - the provider's own portal lists both of them as 30 days.
+ * `appliedDays` is set only when the request went out under the name
+ * that works, which is what separates a number worth printing from one
+ * that was quietly discarded.
  *
- * The likeliest reading is that a key has no expiry until it is first
- * used -- the portal says "On First Use" beside the number -- and that
- * their API reports that empty column as lifetime. Whatever the cause,
- * an unused key's reported expiry cannot be repeated as fact, and the
- * requested number never could be.
- *
- * So only a real date is shown. Anything else says who actually decides,
- * which is the one thing here that is definitely true.
+ * Their `key_info` is no help either way: it reports every unused key as
+ * `duration_days: 0`, `"Never (Lifetime)"`, contradicting their own
+ * portal. A genuine date is preferred if one ever appears, which is why
+ * it is checked first.
  */
-export function keyValidity(record: Pick<KeyRecord, "duration" | "expiry">): {
+export function keyValidity(record: Pick<KeyRecord, "appliedDays" | "expiry">): {
   label: string;
   certain: boolean;
 } {
   if (record.expiry && !/lifetime|never/i.test(record.expiry)) {
     return { label: record.expiry, certain: true };
+  }
+  if (record.appliedDays !== undefined) {
+    return {
+      label: record.appliedDays === 0 ? "Lifetime" : `${record.appliedDays} days`,
+      certain: true,
+    };
   }
   return { label: "Set by provider", certain: false };
 }

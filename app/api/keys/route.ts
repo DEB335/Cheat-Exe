@@ -101,10 +101,18 @@ export const POST = route(async (request: Request) => {
   }
 
   const creator = user.role === "OWNER" ? "admin" : user.username;
+  // `appliedDays` records that this key was minted through a request the
+  // provider honours, which is what makes the number worth showing later.
+  // A non-numeric box is possible, and an unusable number should not be
+  // recorded as though the provider had applied it.
+  const asked = Number(duration);
+  const applied = Number.isFinite(asked) && asked >= 0 ? asked : undefined;
+
   const records: KeyRecord[] = generated.map((key) => ({
     key,
     package: pkg.name,
     duration,
+    ...(applied === undefined ? {} : { appliedDays: applied }),
     creator,
     date: formatTimestamp(),
   }));
@@ -139,19 +147,20 @@ export const POST = route(async (request: Request) => {
 });
 
 /**
- * Asks the upstream what expiry it actually gave these keys, and records
- * that against them.
+ * Records a real expiry date against these keys, if the provider will
+ * give one.
  *
- * The API ignores the duration we send, so the number the generator
- * submitted describes nothing that exists -- listing it as the key's
- * validity is how a lifetime key came to be shown as "10 Days". This
- * reads back the truth instead.
+ * It usually will not: `key_info` answers `"Never (Lifetime)"` for every
+ * unused key regardless of the validity actually applied, contradicting
+ * the provider's own portal. Storing that would be storing a wrong
+ * answer, so only a genuine date is kept -- which makes this a no-op
+ * today and the thing that fills the column in by itself if they ever
+ * fix it.
  *
  * It runs in `after`, once the response has already gone out, so the
- * extra round trip costs generation nothing; the tabs pick the value up
- * through the realtime ping a moment later. One lookup covers the whole
- * batch -- they came from a single call with identical parameters, so
- * they cannot differ from each other.
+ * round trip costs generation nothing. One lookup covers the whole batch
+ * -- they came from a single call with identical parameters, so they
+ * cannot differ from each other.
  */
 function recordRealExpiry(keys: string[]): void {
   after(async () => {
@@ -161,7 +170,7 @@ function recordRealExpiry(keys: string[]): void {
     } catch {
       /* the keys are real either way; history just will not claim an expiry */
     }
-    if (!expiry) return;
+    if (!expiry || /lifetime|never/i.test(expiry)) return;
 
     const minted = new Set(keys);
     await updateDb(async (db, tx) => {

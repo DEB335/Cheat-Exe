@@ -57,17 +57,26 @@ export interface Reseller {
 export interface KeyRecord {
   key: string;
   package: string;
-  /** Validity typed into the generator. Only ever a request -- see `expiry`. */
+  /** Validity typed into the generator. */
   duration: string;
   /**
-   * What the upstream reported this key's expiry to actually be, read
-   * back just after it was minted.
+   * The validity the provider actually applied, in days. 0 is lifetime.
    *
-   * The license API discards the duration we send and decides for
-   * itself, so `duration` above says nothing about the key that exists.
-   * This does. Absent on records created before it was captured, and
-   * absent if the read-back failed -- in both cases the panel says the
-   * validity is unknown rather than repeating what was asked for.
+   * Identical to `duration` in value, and separate from it in meaning:
+   * this is only set when the key was minted through a request the
+   * provider honours. Keys generated before the parameter was corrected
+   * were sent a name it does not read, so it applied its own default
+   * instead and their `duration` describes nothing. Its absence is what
+   * marks those records as unknowable.
+   */
+  appliedDays?: number;
+  /**
+   * A real expiry date from the provider, if it ever reports one.
+   *
+   * Their `key_info` answers `"Never (Lifetime)"` and `duration_days: 0`
+   * for every unused key, whatever validity was applied -- their own
+   * portal contradicts it. Only a genuine date is stored, so this stays
+   * empty until they fix that, and then fills in by itself.
    */
   expiry?: string;
   /** "admin" for the owner, otherwise the reseller username. */

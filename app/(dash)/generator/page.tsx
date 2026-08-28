@@ -153,17 +153,14 @@ export default function GeneratorPage() {
               value={days}
               onChange={(event) => setDays(event.target.value)}
             />
-            <HelpText>Sent to the provider, who decides the real expiry.</HelpText>
-            {/* Sent as `days`, the name the provider documents. Verified
-                ignored: two keys minted moments apart with days set to 10 and
-                to 0 both came out as 30 days in the provider's portal, while
-                its own key_info called both of them lifetime. There is no
-                action to change a key's expiry afterwards either. Still sent,
-                so it starts working the day they honour it. */}
-            <span className="mt-1.5 block text-[11px] font-medium text-orange">
-              Note: the provider currently ignores this and applies its own duration to every key.
-              Check the TERMINALX999 portal for a key&apos;s real validity.
-            </span>
+            <HelpText>Use 0 for a lifetime key.</HelpText>
+            {/* Sent as `days`, the name the provider reads. It went out as
+                `duration` until 28/08/2026 -- a name the provider ignores, so
+                it applied its own default and a key asked for as 10 days
+                arrived in their portal as 30. Confirmed honoured now: keys
+                sent 7 and 45 came back as 7 and 45. Their key_info still
+                reports every unused key as lifetime, so the portal, not the
+                API, is what agrees with this box. */}
           </div>
           <div>
             <FormLabel htmlFor="genCount">Count</FormLabel>
