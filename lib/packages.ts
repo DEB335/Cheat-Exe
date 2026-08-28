@@ -61,7 +61,7 @@ export function packageById(id: string): LicensePackage | undefined {
  * portal. A genuine date is preferred if one ever appears, which is why
  * it is checked first.
  */
-export function keyValidity(record: Pick<KeyRecord, "appliedDays" | "expiry">): {
+export function keyValidity(record: Pick<KeyRecord, "duration" | "appliedDays" | "expiry">): {
   label: string;
   certain: boolean;
 } {
@@ -69,10 +69,20 @@ export function keyValidity(record: Pick<KeyRecord, "appliedDays" | "expiry">): 
     return { label: record.expiry, certain: true };
   }
   if (record.appliedDays !== undefined) {
-    return {
-      label: record.appliedDays === 0 ? "Lifetime" : `${record.appliedDays} days`,
-      certain: true,
-    };
+    return { label: daysLabel(record.appliedDays), certain: true };
   }
+
+  // An older key still shows the number it was asked for, marked as
+  // unconfirmed. Saying nothing at all was worse: the provider's default
+  // matched the request for most of these anyway, and a row reading only
+  // "Set by provider" tells the owner nothing about a key they are
+  // selling. The styling and the tooltip carry the doubt instead.
+  const asked = Number(record.duration);
+  if (Number.isFinite(asked) && asked >= 0) return { label: daysLabel(asked), certain: false };
+
   return { label: "Set by provider", certain: false };
+}
+
+function daysLabel(days: number): string {
+  return days === 0 ? "Lifetime" : `${days} days`;
 }

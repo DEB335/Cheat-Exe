@@ -90,25 +90,26 @@ export default function OwnerHistoryPage() {
 }
 
 /** Shown for keys minted before the provider's own parameter name was used. */
-const UNKNOWN_VALIDITY =
-  "Generated before the panel sent the validity under the name the provider reads, " +
-  "so the provider applied its own default instead of the chosen value. " +
-  "Check the TERMINALX999 portal for this key's real validity.";
+const UNCONFIRMED_VALIDITY =
+  "This is what was asked for, not what was confirmed. The key was generated before the panel " +
+  "sent the validity under the name the provider reads, so the provider may have applied its own " +
+  "default instead. Check the TERMINALX999 portal for this key.";
 
 /**
  * The validity column.
  *
- * Keys minted before the panel sent `days` rather than `duration` were
- * given the provider's default, so their chosen number describes nothing
- * and is not printed -- doing that is how a key the provider issued as 30
- * days came to be listed here as "10 Days".
+ * Keys minted before the panel sent `days` rather than `duration` may have
+ * been given the provider's default instead of the number chosen, so those
+ * are greyed and italic with the doubt in the tooltip. Printing one as
+ * though it were confirmed is how a key the provider issued as 30 days
+ * came to be listed here, flatly, as "10 Days".
  */
 function ValidityCell({ item }: { item: KeyRecord }) {
   const { label, certain } = keyValidity(item);
   return (
     <Cell
       className={certain ? undefined : "text-muted italic"}
-      title={certain ? undefined : UNKNOWN_VALIDITY}
+      title={certain ? undefined : UNCONFIRMED_VALIDITY}
     >
       {label}
     </Cell>
