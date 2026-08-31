@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { HttpError, clientIp, requireOwner, requireUser } from "@/lib/auth";
+import { addAnnouncement, announcementSummary } from "@/lib/announce";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
-import { MAX_BODY, MAX_MESSAGES } from "@/lib/messages";
+import { MAX_BODY } from "@/lib/messages";
 import { ping } from "@/lib/realtime";
-import type { Announcement } from "@/lib/types";
-import { formatTimestamp } from "@/lib/utils";
 
 interface CreateBody {
   body?: string;
@@ -25,32 +24,19 @@ export const POST = route(async (request: Request) => {
 
   const ip = await clientIp();
 
-  const message = await updateDb(async (db, tx): Promise<Announcement> => {
-    const entry: Announcement = {
-      id: crypto.randomUUID(),
+  const message = await updateDb((db, tx) =>
+    addAnnouncement(db, tx, {
       body: text,
       by: db.profile.displayName || owner.username,
-      at: formatTimestamp(),
-      // The sender does not need to be told about their own message.
-      readBy: [owner.username.toLowerCase()],
-      reactions: {},
-    };
-
-    db.cheatExeMessages.unshift(entry);
-    if (db.cheatExeMessages.length > MAX_MESSAGES) db.cheatExeMessages.length = MAX_MESSAGES;
-
-    pushAudit(db, {
-      user: "Owner (OWNER)",
-      action: `Sent an announcement: "${text.slice(0, 60)}${text.length > 60 ? "..." : ""}"`,
-      ip,
-    });
-
-    // Wake every open dashboard now rather than at their next poll --
-    // inside this transaction, so it costs no extra round trip.
-    await ping("message", tx);
-
-    return entry;
-  });
+      seenBy: owner.username.toLowerCase(),
+      source: "panel",
+      audit: {
+        user: "Owner (OWNER)",
+        action: `Sent an announcement: ${announcementSummary(text)}`,
+        ip,
+      },
+    }),
+  );
 
   return NextResponse.json({ success: true, id: message.id });
 });

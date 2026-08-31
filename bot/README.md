@@ -39,6 +39,60 @@ The buttons under a generated key keep working after a restart. They carry
 the key in their `custom_id` and are handled by a global listener rather
 than a view object, which would die with the process.
 
+## Announcement bridge: Discord -> the panel
+
+A post in **#client-announcement** (the one under *panel clients*) becomes
+an announcement on every client's dashboard, so a notice is written once
+rather than twice. It arrives there identically to one typed into the
+panel -- same reactions, same read receipts -- with a small Discord badge
+so the two can be told apart.
+
+Set four things in `bot/.env`, and `DISCORD_BRIDGE_SECRET` in the panel's
+environment as well (the same value in both places):
+
+| Variable | Meaning |
+|---|---|
+| `ANNOUNCE_CHANNEL_ID` | The channel's id. Already filled in `.env.example` |
+| `PANEL_INGEST_URL` | `https://your-panel/api/messages/ingest` |
+| `DISCORD_BRIDGE_SECRET` | Long random string, identical on both sides |
+| `ANNOUNCE_ALLOWED_IDS` | Optional. Role or user ids allowed to broadcast |
+
+Leave any of the first three blank and the bridge stays off; everything
+else about the bot is unaffected.
+
+**The channel is matched by id, never by name.** The server has a second
+announcements channel under the regulation category, and a name can be
+changed or duplicated across categories -- an id cannot. Threads started
+under the channel carry their own id, so side-discussion in a thread is
+not broadcast either.
+
+Ignored on the way in: other bots, webhook posts (which is how crossposted
+content arrives if this is an Announcement channel), and anyone
+`ANNOUNCE_ALLOWED_IDS` does not name -- or, when that is blank, anyone
+without Manage Messages in the channel. Without that last check, everyone
+who can type in the channel could message every paying customer.
+
+Attachments are appended to the text as links, because the panel stores
+plain text and an image-only post would otherwise arrive blank. Anything
+past the panel's 1000-character limit is cut rather than refused: better
+that most of a notice lands than that it silently fails to.
+
+### While the bot is offline
+
+Nothing is lost as long as it comes back. `bot/.announce-state.json`
+records the last message forwarded, and on startup the bot re-reads the
+channel from that point and sends what it missed. On the very *first* run
+it only records where the channel is now -- otherwise switching the bridge
+on would have broadcast the entire backlog to every client at once.
+
+Re-delivery is harmless: the panel keys each announcement by its Discord
+message id and refuses a second copy, so a retry, a reconnect, or a
+catch-up that overlaps cannot broadcast twice.
+
+The one thing to know: **posts made while the bot is not running only
+arrive when it starts again.** For same-day delivery it wants to be
+somewhere always-on rather than on a desktop that sleeps.
+
 ## Validity: send it as `days`, and ignore `key_info`
 
 The provider honours the validity, but only under the name it documents.

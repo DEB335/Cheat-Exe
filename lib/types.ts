@@ -153,6 +153,19 @@ export interface Announcement {
    * withdraw one globally, which deletes the record outright.
    */
   clearedBy?: string[];
+  /**
+   * Where it was posted from. Absent on records written before the
+   * Discord bridge existed, which were all panel sends.
+   */
+  source?: "panel" | "discord";
+  /**
+   * Id of the Discord message this mirrors.
+   *
+   * The bridge's idempotency key: the ingest route refuses a second copy
+   * of an id it already holds, so a retry after a timeout, or the
+   * catch-up sweep re-reading channel history, cannot broadcast twice.
+   */
+  discordId?: string;
 }
 
 /** What actually reaches a browser, shaped for the viewer. */
@@ -171,6 +184,8 @@ export interface PublicAnnouncement {
   reactions?: Record<string, string>;
   /** Owner only. */
   readCount?: number;
+  /** Shown as a badge, so a Discord post is recognisable as one. */
+  source?: "panel" | "discord";
 }
 
 /** Owner-editable branding, saved from the Profile page. */

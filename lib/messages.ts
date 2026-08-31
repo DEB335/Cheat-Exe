@@ -67,6 +67,7 @@ export function toPublicMessages(
       read: m.readBy.includes(me),
       myReaction: m.reactions[me] ?? null,
       reactionCounts: counts,
+      source: m.source ?? "panel",
       ...(isOwner ? { reactions: m.reactions, readCount: m.readBy.length } : {}),
     };
   });

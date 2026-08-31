@@ -56,3 +56,6 @@ bot/.env
 
 # icon source (the baked copies in public/ and lib/assets/ are committed)
 /*.png
+
+# Bridge high-water mark: local runtime state, not shared config
+bot/.announce-state.json

@@ -12,8 +12,12 @@ is a live admin credential and this repository is shared. Copy
     python bot.py
 """
 
-import os
+import asyncio
+import json
 import logging
+import os
+import re
+from pathlib import Path
 
 import discord
 import requests
@@ -45,6 +49,42 @@ _missing = [
 ]
 if _missing:
     raise SystemExit(f"Missing required environment variables: {', '.join(_missing)}")
+
+# ---------------------------------------------------------------------------
+# Discord -> panel announcement bridge
+#
+# A post in #client-announcement becomes an announcement on every client's
+# dashboard, so a notice is written once instead of twice. Entirely
+# optional: leave these unset and the bot behaves exactly as it did before.
+# ---------------------------------------------------------------------------
+
+# By id, never by name. The server has a second announcements channel under
+# the regulation category, names can be changed, and two channels in
+# different categories may even share one -- an id can do none of that.
+ANNOUNCE_CHANNEL_ID = int(os.environ.get("ANNOUNCE_CHANNEL_ID", "0") or 0)
+PANEL_INGEST_URL = os.environ.get("PANEL_INGEST_URL", "")
+BRIDGE_SECRET = os.environ.get("DISCORD_BRIDGE_SECRET", "")
+
+
+def _id_set(raw: str) -> set:
+    return {int(part) for part in re.split(r"[,\s]+", raw.strip()) if part.isdigit()}
+
+
+# Who may broadcast. Empty means anyone who can moderate the channel, which
+# is what an announcements channel normally limits posting to anyway. Set it
+# to role or user ids to say so explicitly instead.
+ANNOUNCE_ALLOWED_IDS = _id_set(os.environ.get("ANNOUNCE_ALLOWED_IDS", ""))
+
+BRIDGE_ON = bool(ANNOUNCE_CHANNEL_ID and PANEL_INGEST_URL and BRIDGE_SECRET)
+
+# Newest message already forwarded. Kept on disk so a restart neither
+# replays the channel nor loses what was posted while the bot was down.
+STATE_PATH = Path(__file__).with_name(".announce-state.json")
+
+# Lowest id that failed to deliver. The mark never advances past it, so a
+# blip that drops one message cannot strand it behind later successes --
+# the next catch-up reads from the mark and picks it up again.
+_stuck_at = None
 
 # Package ids, matching lib/packages.ts in the web panel. Keep the two in
 # step: a package added upstream has to be listed in both to be usable.
@@ -110,6 +150,210 @@ async def on_ready():
         log.info("Synced %d slash command(s)", len(synced))
     except Exception as err:  # noqa: BLE001
         log.error("Failed to sync commands: %s", err)
+
+    # Safe to repeat: on_ready fires again after a reconnect, and the mark
+    # plus the panel's own duplicate check make a second pass a no-op.
+    await catch_up()
+
+
+# ---------------------------------------------------------------------------
+# Announcement bridge
+# ---------------------------------------------------------------------------
+
+
+def read_mark():
+    """Newest message already forwarded, or None before the first run."""
+    try:
+        with open(STATE_PATH, encoding="utf-8") as handle:
+            return int(json.load(handle)["last_id"])
+    except Exception:  # noqa: BLE001 - a missing or damaged file means "unset"
+        return None
+
+
+def write_mark(message_id: int) -> None:
+    """Stored as a string: ids run past what some JSON readers keep exact."""
+    try:
+        with open(STATE_PATH, "w", encoding="utf-8") as handle:
+            json.dump({"last_id": str(message_id)}, handle)
+    except OSError as err:
+        log.warning("Could not save the announcement mark: %s", err)
+
+
+def advance_mark(message_id: int) -> None:
+    if _stuck_at is not None and message_id >= _stuck_at:
+        return
+    write_mark(message_id)
+
+
+def mark_failed(message_id: int) -> None:
+    global _stuck_at
+    if _stuck_at is None or message_id < _stuck_at:
+        _stuck_at = message_id
+
+
+def may_announce(author) -> bool:
+    """
+    Whether this person may broadcast to every client.
+
+    Worth checking rather than assuming: anyone who can type in the channel
+    would otherwise be sending a notice to every paying customer.
+    """
+    if ANNOUNCE_ALLOWED_IDS:
+        held = {author.id} | {role.id for role in getattr(author, "roles", ())}
+        return bool(held & ANNOUNCE_ALLOWED_IDS)
+    perms = getattr(author, "guild_permissions", None)
+    return bool(perms and (perms.manage_messages or perms.administrator))
+
+
+def announcement_body(message: discord.Message) -> str:
+    """
+    The text as a client should read it.
+
+    clean_content rather than content, so a mention arrives as a readable
+    name instead of a raw id. Attachments are appended as links because the
+    panel stores plain text -- without them an image-only post would turn
+    up blank.
+    """
+    parts = [message.clean_content.strip()]
+    parts.extend(attachment.url for attachment in message.attachments)
+    return "\n".join(part for part in parts if part)
+
+
+def post_announcement(body: str, author: str, message_id: int) -> dict:
+    """Blocking, like call_api. Callers run it off the event loop."""
+    try:
+        response = requests.post(
+            PANEL_INGEST_URL,
+            json={"body": body, "author": author, "discordId": str(message_id)},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {BRIDGE_SECRET}",
+            },
+            timeout=20,
+        )
+        return response.json()
+    except requests.Timeout:
+        return {"success": False, "message": "The panel did not respond in time."}
+    except Exception as err:  # noqa: BLE001 - logged, never raised
+        return {"success": False, "message": f"Could not reach the panel: {err}"}
+
+
+async def forward(message: discord.Message) -> bool:
+    """Sends one message to the panel. True once it is safely recorded."""
+    body = announcement_body(message)
+    if not body:
+        log.info("Announcement %s has nothing to forward.", message.id)
+        return True
+
+    author = getattr(message.author, "display_name", str(message.author))
+    # requests blocks; kept off the loop so the gateway heartbeat keeps time.
+    data = await asyncio.to_thread(post_announcement, body, author, message.id)
+
+    if data.get("success"):
+        if data.get("duplicate"):
+            log.info("Announcement %s was already on the panel.", message.id)
+        else:
+            log.info("Announcement %s sent to every client.", message.id)
+        if data.get("truncated"):
+            log.warning("Announcement %s was longer than the panel allows and was cut.", message.id)
+        return True
+
+    log.error(
+        "Announcement %s was not delivered: %s",
+        message.id,
+        data.get("message", "unknown error"),
+    )
+    return False
+
+
+@bot.event
+async def on_message(message: discord.Message):
+    # First and unconditionally: defining on_message replaces the default
+    # handler, and without this the prefix commands stop being processed.
+    await bot.process_commands(message)
+
+    if not BRIDGE_ON:
+        return
+    # The one channel, by id. The regulation announcements channel has a
+    # different id and never gets past this line -- and neither do threads
+    # started under this one, which each carry an id of their own.
+    if message.channel.id != ANNOUNCE_CHANNEL_ID:
+        return
+    # Ourselves, other bots, and webhook posts. That last one matters if
+    # this is an Announcement channel: content crossposted in from a
+    # followed server arrives as a webhook and is not ours to broadcast.
+    if message.author.bot or message.webhook_id:
+        return
+    if not may_announce(message.author):
+        log.warning("Ignored a post by %s: not allowed to broadcast.", message.author)
+        return
+
+    if await forward(message):
+        advance_mark(message.id)
+    else:
+        mark_failed(message.id)
+
+
+async def catch_up():
+    """
+    Forwards anything posted while the bot was offline.
+
+    On the very first run it only records where the channel is now. Without
+    that, switching the bridge on would broadcast the channel's whole
+    backlog to every client at once.
+    """
+    global _stuck_at
+
+    if not BRIDGE_ON:
+        log.info(
+            "Announcement bridge is off. Set ANNOUNCE_CHANNEL_ID, PANEL_INGEST_URL "
+            "and DISCORD_BRIDGE_SECRET to turn it on."
+        )
+        return
+
+    channel = bot.get_channel(ANNOUNCE_CHANNEL_ID)
+    if channel is None:
+        log.error(
+            "Announcement channel %s not found. Is the bot in that server, and can it "
+            "read the channel?",
+            ANNOUNCE_CHANNEL_ID,
+        )
+        return
+
+    # About to re-read from the mark, which is where anything stuck still is.
+    _stuck_at = None
+
+    mark = read_mark()
+    if mark is None:
+        newest = [m async for m in channel.history(limit=1)]
+        if newest:
+            write_mark(newest[0].id)
+        log.info(
+            "Bridge armed on #%s. Posts already there are left alone; the next one goes out.",
+            channel.name,
+        )
+        return
+
+    missed = [
+        m
+        async for m in channel.history(limit=50, after=discord.Object(id=mark), oldest_first=True)
+    ]
+
+    sent = 0
+    for message in missed:
+        if message.author.bot or message.webhook_id or not may_announce(message.author):
+            advance_mark(message.id)
+            continue
+        if not await forward(message):
+            # The panel is unreachable; stop rather than burn through the
+            # rest, and leave the mark where the next start can resume.
+            mark_failed(message.id)
+            break
+        advance_mark(message.id)
+        sent += 1
+
+    if sent:
+        log.info("Forwarded %d announcement(s) posted while offline.", sent)
 
 
 @bot.event

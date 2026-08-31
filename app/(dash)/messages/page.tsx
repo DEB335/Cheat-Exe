@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { MegaphoneIcon, SendIcon, TrashIcon, UsersIcon } from "@/components/icons";
+import { DiscordIcon, MegaphoneIcon, SendIcon, TrashIcon, UsersIcon } from "@/components/icons";
 import { PrimaryButton, TintButton } from "@/components/ui/buttons";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { FormLabel, HelpText } from "@/components/ui/form";
@@ -216,6 +216,18 @@ function MessageCard({
           </span>
         )}
         <span className="text-[12.5px] font-bold text-fg">{message.by}</span>
+        {/* Posted in Discord, mirrored here. Worth marking so nobody
+            wonders why a notice they never typed into the panel is in
+            the list -- and so the owner can tell the two apart. */}
+        {message.source === "discord" && (
+          <span
+            title="Posted in #client-announcement on Discord"
+            className="inline-flex items-center gap-1 rounded-full border border-[rgba(88,101,242,0.35)] bg-[rgba(88,101,242,0.12)] px-2 py-[2px] text-[9px] font-extrabold tracking-[0.6px] text-[#a5b4fc] uppercase"
+          >
+            <DiscordIcon className="size-[11px]" />
+            Discord
+          </span>
+        )}
         <span className="text-[11px] text-muted">{formatStampForDisplay(message.at)}</span>
 
         {isOwner && (
