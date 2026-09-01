@@ -247,18 +247,36 @@ def mark_failed(message_id: int) -> None:
         _stuck_at = message_id
 
 
-def may_announce(author) -> bool:
+def may_announce(message) -> bool:
     """
-    Whether this person may broadcast to every client.
+    Whether this post should go out to every client.
 
-    Worth checking rather than assuming: anyone who can type in the channel
-    would otherwise be sending a notice to every paying customer.
+    ANNOUNCE_ALLOWED_IDS narrows it to named roles or users. Left blank,
+    the channel decides: whoever Discord lets write here may broadcast.
+
+    That is the gate someone actually maintains. #client-announcement
+    denies Send to @everyone and to the Client role and names the few who
+    may post, so a client can read it but not write to it. Requiring
+    Manage Messages on top of that looked stricter and was really just a
+    second, different rule -- Founder can post there and holds neither
+    Manage Messages nor Administrator, so those posts were dropped with
+    nothing to show for it but a line in a log nobody reads.
     """
+    author = message.author
     if ANNOUNCE_ALLOWED_IDS:
         held = {author.id} | {role.id for role in getattr(author, "roles", ())}
         return bool(held & ANNOUNCE_ALLOWED_IDS)
-    perms = getattr(author, "guild_permissions", None)
-    return bool(perms and (perms.manage_messages or perms.administrator))
+
+    # History can hand back a plain User. The overwrites are written
+    # against roles, so resolve it to the member that carries them.
+    if not hasattr(author, "roles") and message.guild is not None:
+        author = message.guild.get_member(author.id) or author
+    try:
+        return bool(message.channel.permissions_for(author).send_messages)
+    except (AttributeError, TypeError):
+        # Unresolvable member: decline rather than guess, and say so.
+        log.warning("Could not resolve %s against the channel; post ignored.", author)
+        return False
 
 
 def announcement_body(message: discord.Message) -> str:
@@ -340,7 +358,7 @@ async def on_message(message: discord.Message):
     # followed server arrives as a webhook and is not ours to broadcast.
     if message.author.bot or message.webhook_id:
         return
-    if not may_announce(message.author):
+    if not may_announce(message):
         log.warning("Ignored a post by %s: not allowed to broadcast.", message.author)
         return
 
@@ -348,6 +366,27 @@ async def on_message(message: discord.Message):
         advance_mark(message.id)
     else:
         mark_failed(message.id)
+
+
+async def read_history(channel, **kwargs):
+    """
+    A page of channel history, or None when the bot may not read it.
+
+    Being in the server is not the same as being let into this channel:
+    #client-announcement denies @everyone and names the roles that may
+    look, so the bot needs its own overwrite there. Without one every read
+    comes back 403, and unhandled that surfaces as a traceback out of
+    on_ready rather than something anyone can act on.
+    """
+    try:
+        return [m async for m in channel.history(**kwargs)]
+    except discord.Forbidden:
+        log.error(
+            "Cannot read #%s. Give the bot View Channel and Read Message History "
+            "on that channel -- a channel overwrite, since @everyone is denied there.",
+            getattr(channel, "name", ANNOUNCE_CHANNEL_ID),
+        )
+        return None
 
 
 async def catch_up():
@@ -381,7 +420,12 @@ async def catch_up():
 
     mark = read_mark()
     if mark is None:
-        newest = [m async for m in channel.history(limit=1)]
+        newest = await read_history(channel, limit=1)
+        # Leave the mark unset rather than arming on a channel that cannot
+        # be read: the next start retries instead of silently deciding the
+        # channel is empty and skipping everything already in it.
+        if newest is None:
+            return
         if newest:
             write_mark(newest[0].id)
         log.info(
@@ -390,14 +434,15 @@ async def catch_up():
         )
         return
 
-    missed = [
-        m
-        async for m in channel.history(limit=50, after=discord.Object(id=mark), oldest_first=True)
-    ]
+    missed = await read_history(
+        channel, limit=50, after=discord.Object(id=mark), oldest_first=True
+    )
+    if missed is None:
+        return
 
     sent = 0
     for message in missed:
-        if message.author.bot or message.webhook_id or not may_announce(message.author):
+        if message.author.bot or message.webhook_id or not may_announce(message):
             advance_mark(message.id)
             continue
         if not await forward(message):

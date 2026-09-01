@@ -62,7 +62,7 @@ environment as well (the same value in both places):
 | `ANNOUNCE_CHANNEL_ID` | The channel's id. Already filled in `.env.example` |
 | `PANEL_INGEST_URL` | `https://your-panel/api/messages/ingest` |
 | `DISCORD_BRIDGE_SECRET` | Long random string, identical on both sides |
-| `ANNOUNCE_ALLOWED_IDS` | Optional. Role or user ids allowed to broadcast |
+| `ANNOUNCE_ALLOWED_IDS` | Optional. Narrows broadcasting to these role or user ids |
 
 Leave any of the first three blank and the bridge stays off; everything
 else about the bot is unaffected.
@@ -76,8 +76,16 @@ not broadcast either.
 Ignored on the way in: other bots, webhook posts (which is how crossposted
 content arrives if this is an Announcement channel), and anyone
 `ANNOUNCE_ALLOWED_IDS` does not name -- or, when that is blank, anyone
-without Manage Messages in the channel. Without that last check, everyone
-who can type in the channel could message every paying customer.
+Discord does not let post in the channel anyway.
+
+**Who may broadcast is decided by the channel, not by the bot.** Whoever
+can write in #client-announcement can reach every client, so that channel's
+Send Messages list *is* the permission -- which is the one you see and
+maintain in Discord. It denies Send to @everyone and to the Client role, so
+clients read it without being able to post. The bot used to demand Manage
+Messages on top, which sounds stricter but was simply a different rule: a
+Founder could post there and hold neither, and the notice vanished with
+only a log line to show for it.
 
 Attachments are appended to the text as links, because the panel stores
 plain text and an image-only post would otherwise arrive blank. Anything
