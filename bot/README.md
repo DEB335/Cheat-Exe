@@ -115,6 +115,35 @@ The one thing to know: **posts made while the bot is not running only
 arrive when it starts again.** For same-day delivery it wants to be
 somewhere always-on rather than on a desktop that sleeps.
 
+## Running it somewhere always-on
+
+The bridge only works while the process is running, so a desktop that
+sleeps is the wrong home for it. Two shapes of host, and they differ in
+one way that matters.
+
+**A plain server** -- a VM, a spare machine, a Raspberry Pi -- wants
+`bot/.env` on disk and something to keep the process up. systemd with
+`Restart=always` covers a crash and a reboot both.
+
+**A container host** -- Back4App, Koyeb, Render -- builds `bot/Dockerfile`
+instead. Set the service's root directory to `bot`, leave `.env` out of it
+entirely, and set the same variables in the host's dashboard: an image is
+readable by anyone who can reach the registry, and this one would
+otherwise carry a live admin API key. `.dockerignore` keeps `.env` out of
+the build context so it cannot be baked in by accident.
+
+Those hosts also health-check an HTTP port and kill whatever does not
+answer, which a Discord bot otherwise never would -- it dials out and
+listens for nothing. Set `PORT` and the bot serves one line on it to be
+seen alive. A plain server sets no `PORT` and no listener starts.
+
+**A container loses its disk on every restart, and that costs the
+catch-up.** `.announce-state.json` goes with it, so each start looks like
+a first run: the bot re-arms at wherever the channel is now. Posts made
+while it was down are skipped rather than delivered late, silently. On a
+plain server the mark survives and they arrive. Worth knowing before
+choosing a container host for something clients depend on.
+
 ## UID whitelist
 
 `/uid ...` drives TERMINALX999's UID bypass list -- **a different service

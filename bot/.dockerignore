@@ -1,0 +1,9 @@
+# Never let the live credentials near the build context.
+.env
+
+# Local runtime state and tooling, meaningless inside the image.
+.venv/
+__pycache__/
+*.pyc
+.announce-state.json
+README.md

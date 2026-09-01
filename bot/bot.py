@@ -99,6 +99,14 @@ ANNOUNCE_ALLOWED_IDS = _id_set(os.environ.get("ANNOUNCE_ALLOWED_IDS", ""))
 
 BRIDGE_ON = bool(ANNOUNCE_CHANNEL_ID and PANEL_INGEST_URL and BRIDGE_SECRET)
 
+# Container hosts -- Back4App, Koyeb, Render and the like -- health-check
+# an HTTP port and kill whatever does not answer on it. A Discord bot has
+# no web surface to offer them: it dials out to the gateway and listens
+# for nothing. So when the host names a port, serve one line on it purely
+# to be seen alive. A plain server sets no PORT and none of this runs.
+PORT = int(os.environ.get("PORT", "0") or 0)
+_health_started = False
+
 # Newest message already forwarded. Kept on disk so a restart neither
 # replays the channel nor loses what was posted while the bot was down.
 STATE_PATH = Path(__file__).with_name(".announce-state.json")
@@ -198,9 +206,37 @@ def key_controls(key: str) -> discord.ui.View:
     return view
 
 
+async def start_health_server() -> None:
+    """
+    Answers the host's health check, and nothing else.
+
+    aiohttp is already here as one of discord.py's own dependencies, so
+    this costs no extra install. Guarded because on_ready runs again on
+    every reconnect and the port is only free the first time.
+    """
+    global _health_started
+    if not PORT or _health_started:
+        return
+
+    from aiohttp import web
+
+    async def handler(_request):
+        return web.Response(text="ok" if bot.is_ready() else "starting")
+
+    app = web.Application()
+    app.router.add_get("/", handler)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await web.TCPSite(runner, "0.0.0.0", PORT).start()
+
+    _health_started = True
+    log.info("Health endpoint listening on port %d.", PORT)
+
+
 @bot.event
 async def on_ready():
     log.info("Logged in as %s (id %s)", bot.user.name, bot.user.id)
+    await start_health_server()
     try:
         synced = await bot.tree.sync()
         log.info("Synced %d slash command(s)", len(synced))
