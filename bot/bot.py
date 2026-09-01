@@ -312,6 +312,40 @@ def post_announcement(body: str, author: str, message_id: int) -> dict:
         return {"success": False, "message": f"Could not reach the panel: {err}"}
 
 
+def delete_announcement(message_id: int) -> dict:
+    """Blocking, like post_announcement. Callers run it off the event loop."""
+    try:
+        response = requests.delete(
+            PANEL_INGEST_URL,
+            params={"discordId": str(message_id)},
+            headers={"Authorization": f"Bearer {BRIDGE_SECRET}"},
+            timeout=20,
+        )
+        return response.json()
+    except requests.Timeout:
+        return {"success": False, "message": "The panel did not respond in time."}
+    except Exception as err:  # noqa: BLE001 - logged, never raised
+        return {"success": False, "message": f"Could not reach the panel: {err}"}
+
+
+async def withdraw(message_id: int) -> None:
+    """
+    Takes one deleted post back off the panel.
+
+    Quiet when there was nothing to remove: most deletions in the channel
+    are of posts that were never forwarded in the first place.
+    """
+    data = await asyncio.to_thread(delete_announcement, message_id)
+    if not data.get("success"):
+        log.error(
+            "Announcement %s could not be withdrawn: %s",
+            message_id,
+            data.get("message", "unknown error"),
+        )
+    elif data.get("removed"):
+        log.info("Announcement %s withdrawn from every client.", message_id)
+
+
 async def forward(message: discord.Message) -> bool:
     """Sends one message to the panel. True once it is safely recorded."""
     body = announcement_body(message)
@@ -366,6 +400,30 @@ async def on_message(message: discord.Message):
         advance_mark(message.id)
     else:
         mark_failed(message.id)
+
+
+@bot.event
+async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
+    """
+    A post taken back in Discord is taken back on the panel.
+
+    Raw rather than on_message_delete, which only fires for messages the
+    bot still holds in memory -- after a restart that is none of them, and
+    a notice that has been up a while is exactly the one somebody wants
+    withdrawn. The raw event always arrives, cached or not.
+    """
+    if not BRIDGE_ON or payload.channel_id != ANNOUNCE_CHANNEL_ID:
+        return
+    await withdraw(payload.message_id)
+
+
+@bot.event
+async def on_raw_bulk_message_delete(payload: discord.RawBulkMessageDeleteEvent):
+    """A purge is the same event many times over; Discord sends it once."""
+    if not BRIDGE_ON or payload.channel_id != ANNOUNCE_CHANNEL_ID:
+        return
+    for message_id in payload.message_ids:
+        await withdraw(message_id)
 
 
 async def read_history(channel, **kwargs):

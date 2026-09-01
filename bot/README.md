@@ -92,6 +92,13 @@ plain text and an image-only post would otherwise arrive blank. Anything
 past the panel's 1000-character limit is cut rather than refused: better
 that most of a notice lands than that it silently fails to.
 
+**Deleting the post in Discord withdraws it from the panel too**, so a
+notice sent by mistake can be taken back in the place it was written
+rather than in two. Bulk deletes count. Deleting something that was never
+forwarded does nothing, which is most deletions in that channel -- the bot
+reports them all and lets the panel find nothing to remove. Editing a post
+is not mirrored: only the text as first posted is ever sent.
+
 ### While the bot is offline
 
 Nothing is lost as long as it comes back. `bot/.announce-state.json`

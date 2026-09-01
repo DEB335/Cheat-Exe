@@ -3,11 +3,12 @@ import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { addAnnouncement, announcementSummary } from "@/lib/announce";
-import { readJson, route } from "@/lib/api-helpers";
+import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { HttpError } from "@/lib/auth";
 import { updateDb } from "@/lib/db";
 import { MAX_BODY } from "@/lib/messages";
 import { rateLimit } from "@/lib/rate-limit";
+import { ping } from "@/lib/realtime";
 
 /**
  * POST /api/messages/ingest -- a Discord post becomes an announcement.
@@ -110,4 +111,49 @@ export const POST = route(async (request: Request) => {
 
   // A duplicate is a success: the bot retried, and the message is here.
   return NextResponse.json({ success: true, ...result, truncated });
+});
+
+/**
+ * DELETE /api/messages/ingest?discordId=... -- withdraw a forwarded post.
+ *
+ * Deleting in Discord used to leave the copy standing on every client's
+ * dashboard, which is the one place it mattered: a notice sent by mistake
+ * could be taken back where a handful of staff would see it, and not
+ * where every paying client would. The bot reports the deletion and the
+ * panel withdraws its copy, exactly as the owner withdrawing one does.
+ *
+ * An id the panel does not hold is a success, not a 404. The bot cannot
+ * know whether a deleted message was ever forwarded -- posts by bots, by
+ * webhooks, ones older than the fifty the panel keeps, and everything
+ * posted before the bridge was switched on were not -- so it reports
+ * every deletion in the channel and lets the panel find nothing to do.
+ */
+export const DELETE = route(async (request: Request) => {
+  authorise(request);
+
+  // Its own budget rather than the ingest one: a purge in Discord arrives
+  // as a call per message, and clearing out old posts should not be able
+  // to lock out the announcements themselves.
+  const { ok, retryAfter } = rateLimit("discord-ingest-delete", 60, 60_000);
+  if (!ok) throw new HttpError(429, `Too many deletions. Try again in ${retryAfter}s.`);
+
+  const key = new URL(request.url).searchParams.get("discordId")?.trim() ?? "";
+  if (!key) throw new HttpError(400, "discordId is required.");
+
+  const removed = await updateDb(async (db, tx) => {
+    const entry = db.cheatExeMessages.find((m) => m.discordId === key);
+    if (!entry) return false;
+
+    db.cheatExeMessages = db.cheatExeMessages.filter((m) => m.discordId !== key);
+    pushAudit(db, {
+      user: "Discord",
+      action: `Withdrew an announcement deleted in Discord: ${announcementSummary(entry.body)}`,
+      ip: "discord-bridge",
+    });
+    // It should leave as quickly as it arrived.
+    await ping("message", tx);
+    return true;
+  });
+
+  return NextResponse.json({ success: true, removed });
 });
