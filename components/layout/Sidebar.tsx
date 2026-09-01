@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { emitClickWave } from "@/components/effects/ClickWave";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
-import { NAV_GROUPS, PROFILE_ITEM, type NavItem } from "@/lib/nav";
+import { NAV_GROUPS, PROFILE_ITEM, canSeeItem, type NavItem } from "@/lib/nav";
 import { useDashboard } from "@/lib/store";
 import { useMediaQuery, useStoredFlag } from "@/lib/use-external";
 import type { Role } from "@/lib/types";
@@ -56,7 +56,7 @@ export function Sidebar({
   };
 
   const visibleGroups = NAV_GROUPS.filter(
-    (group) => group.roles.includes(role) && group.items.some((item) => item.roles.includes(role)),
+    (group) => group.roles.includes(role) && group.items.some((item) => canSeeItem(item, user)),
   );
 
   return (
@@ -109,7 +109,7 @@ export function Sidebar({
                   </div>
                 )}
                 {group.items
-                  .filter((item) => item.roles.includes(role))
+                  .filter((item) => canSeeItem(item, user))
                   .map((item) => (
                     <NavLink
                       key={`${group.label}-${item.href}-${item.label}`}

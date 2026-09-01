@@ -205,6 +205,18 @@ export interface Database {
   cheatExeBans: BanRule[];
   /** Owner broadcasts, newest first. */
   cheatExeMessages: Announcement[];
+  /**
+   * Whitelisted UID -> lowercased username of whoever added it.
+   *
+   * One TX999 key backs the whole panel, so upstream stamps every entry
+   * with the key owner's name and offers no way to tell two resellers
+   * apart. Without this map any reseller holding the UID BYPASS package
+   * could delete another reseller's customer.
+   *
+   * Server-side only: `toPublic` builds its result from an explicit list
+   * of fields, so this never reaches a browser.
+   */
+  cheatExeWhitelistOwners: Record<string, string>;
   adminUser: string;
   /** bcrypt hash of the owner password. */
   adminPassHash: string;
@@ -230,6 +242,33 @@ export interface SessionUser {
   /** Packages this user may generate keys for. Owner gets all. */
   packages: string[];
   sessionId: string;
+}
+
+/**
+ * A UID whitelist record, shaped for the browser.
+ *
+ * Deliberately not the upstream shape. `reseller_list` echoes back
+ * `api_key_ref` -- the TX999 reseller key, in full -- on every record,
+ * and that key is the only credential the integration has. Mapping into
+ * this type in `lib/uid-api` is what keeps it server-side: nothing here
+ * can carry it.
+ */
+export interface WhitelistEntry {
+  uid: string;
+  name: string;
+  /**
+   * Always "ALL SERVER".
+   *
+   * The upstream ignores every region parameter tried against it --
+   * `region`, `server` and `region_code` all round-trip as ALL SERVER --
+   * so this is reported, never chosen.
+   */
+  region: string;
+  /** "YYYY-MM-DD". */
+  expireDate: string;
+  /** The TX999 account, not the panel user. Always the key's owner. */
+  createdBy: string;
+  sync: string;
 }
 
 export type KeyAction = "reset_hwid" | "ban_key" | "unban_key" | "delete_key";

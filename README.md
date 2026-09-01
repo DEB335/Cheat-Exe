@@ -31,6 +31,7 @@ Open http://localhost:3000. Sign in with the owner account from
 | `LICENSE_API_KEY` | Upstream API key — **server-side only**, never shipped to the browser |
 | `LICENSE_APP_ID` | Upstream app id |
 | `ADMIN_USER` / `ADMIN_PASSWORD` | Owner account, used only when seeding a fresh database |
+| `TX999_API_URL` / `TX999_API_KEY` | UID whitelist behind the UID Bypass section (`https://terminalx999.live/api.php`). A different service from the license API — **server-side only** |
 
 ---
 
@@ -91,6 +92,43 @@ the live API with `duration`, `days`, `expiry`, `duration_days` and
 Every key this panel has ever issued is a lifetime key. The generator now
 says so under the field. Fixing it properly needs a change on the API
 side, or the correct parameter name from whoever runs it.
+
+### UID Bypass runs on a second, blunter API
+
+The UID Bypass section talks to `terminalx999.live/api.php`, which is not
+the license API and behaves nothing like it. Three actions exist —
+`reseller_add`, `reseller_remove`, `reseller_list` — and everything else
+answers "Method not allowed" or an empty 200 body. `lib/uid-api.ts` is the
+only thing that speaks to it.
+
+Four of its behaviours shape the UI, and each one is the opposite of what
+the API appears to offer:
+
+- **`reseller_list` echoes the API key back** in an `api_key_ref` field on
+  every record. That key is the integration's only credential, so the
+  route maps records onto `WhitelistEntry` — a type with nowhere to put
+  it — rather than forwarding what it received.
+- **Region cannot be set.** `region`, `server` and `region_code` are all
+  ignored and every entry returns `ALL SERVER`, so the form shows a fixed
+  chip instead of a dropdown that would quietly do nothing.
+- **The player name is not verified.** It is stored exactly as typed, so
+  the field is labelled as a reference, not a check.
+- **There is no update action**, and `reseller_add` refuses a UID it
+  already holds. Extending validity is therefore remove-then-add, which
+  runs server-side in `PATCH` so the unwhitelisted window is milliseconds
+  rather than a browser round trip, and retries once before reporting.
+
+One key backs the whole panel, and upstream stamps every entry
+`created_by: cheatexe` whoever added it. `cheatExeWhitelistOwners` records
+the real author per UID so one reseller cannot delete another's customer.
+It is server-side only — `toPublic` builds its result from a fixed list of
+fields, so it never reaches a browser. A UID with no recorded owner (added
+from the Discord bot, from the provider's own panel, or before this
+existed) belongs to the owner rather than to whoever asks first.
+
+The credit balance is not readable: `get_my_api_key` is the login call
+that issues the key, so it wants a username and password, not a key. That
+is why no credits tile is shown.
 
 ### Writes are serialised
 
@@ -242,6 +280,8 @@ environments), and locally in `.env.local`:
 | `LICENSE_API_URL` | `https://auth.terminalx999.online/api_admin.php` |
 | `LICENSE_API_KEY` | server-side only |
 | `LICENSE_APP_ID` | |
+| `TX999_API_URL` | `https://terminalx999.live/api.php` |
+| `TX999_API_KEY` | server-side only. Omit it and the UID Bypass pages report the section as unconfigured rather than failing oddly |
 
 ### Use the transaction pooler, not the direct connection
 

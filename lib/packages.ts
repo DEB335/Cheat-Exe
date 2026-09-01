@@ -1,4 +1,4 @@
-import type { KeyRecord, LicensePackage } from "./types";
+import type { KeyRecord, LicensePackage, Role } from "./types";
 
 /**
  * Package ids as accepted by the upstream license API. These are not
@@ -36,6 +36,34 @@ const SHORT_LABELS: Record<string, string> = {
 
 export function shortPackageLabel(name: string): string {
   return SHORT_LABELS[name] ?? name;
+}
+
+/** The package that unlocks the UID Bypass whitelist section. */
+export const UID_BYPASS_PACKAGE = "UID BYPASS";
+
+/**
+ * Longest validity the upstream whitelist accepts, in days.
+ *
+ * Lives here rather than in `lib/uid-api` so the form can enforce it
+ * before spending a credit -- that module is server-only.
+ */
+export const MAX_WHITELIST_DAYS = 30;
+
+/**
+ * Who may manage the UID whitelist.
+ *
+ * The owner always may. A reseller needs the UID BYPASS grant, which is
+ * the same vocabulary the generator already checks against -- so taking
+ * the package away closes the section too, with nothing else to revoke.
+ *
+ * Both the sidebar and the API route read this, so the tab and the
+ * endpoint can never disagree about who is allowed in.
+ */
+export function canManageWhitelist(
+  user: { role: Role; packages: string[] } | null | undefined,
+): boolean {
+  if (!user) return false;
+  return user.role === "OWNER" || user.packages.includes(UID_BYPASS_PACKAGE);
 }
 
 export function packageById(id: string): LicensePackage | undefined {

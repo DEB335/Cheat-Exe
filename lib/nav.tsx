@@ -1,7 +1,9 @@
 import {
   BanIcon,
   MegaphoneIcon,
+  CheckCircleIcon,
   ColumnsIcon,
+  CpuChipIcon,
   FileTextIcon,
   GridIcon,
   HistoryIcon,
@@ -11,7 +13,8 @@ import {
   SlidersIcon,
   UserPlusIcon,
 } from "@/components/icons";
-import type { Role } from "./types";
+import { UID_BYPASS_PACKAGE, canManageWhitelist } from "./packages";
+import type { Role, SessionUser } from "./types";
 
 export interface NavItem {
   href: string;
@@ -21,6 +24,11 @@ export interface NavItem {
   color: string;
   roles: Role[];
   badge?: "devices" | "banned";
+  /**
+   * Package a reseller must hold for this item to appear. The owner is
+   * never gated by it.
+   */
+  pkg?: string;
   /** Header eyebrow shown above the page title. */
   section: string;
 }
@@ -160,7 +168,48 @@ export const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
+  // Last group on purpose: it lands directly under Audit Logs for both
+  // roles, since Monitoring is the owner's final group and History is
+  // the reseller's.
+  {
+    label: "UID Bypass",
+    roles: ["OWNER", "RESELLER"],
+    items: [
+      {
+        href: "/uid-bypass",
+        label: "Overview",
+        icon: CpuChipIcon,
+        color: "#8b5cf6",
+        roles: ["OWNER", "RESELLER"],
+        pkg: UID_BYPASS_PACKAGE,
+        section: "UID BYPASS",
+      },
+      {
+        href: "/uid-bypass/whitelist",
+        label: "Whitelist UID",
+        icon: CheckCircleIcon,
+        color: "#0ea5e9",
+        roles: ["OWNER", "RESELLER"],
+        pkg: UID_BYPASS_PACKAGE,
+        section: "UID BYPASS",
+      },
+    ],
+  },
 ];
+
+/**
+ * Whether a nav item belongs in this user's sidebar.
+ *
+ * The package check runs through the same `canManageWhitelist` the API
+ * route uses, so a tab can never appear for someone the endpoint behind
+ * it would refuse.
+ */
+export function canSeeItem(item: NavItem, user: SessionUser | null): boolean {
+  const role: Role = user?.role ?? "RESELLER";
+  if (!item.roles.includes(role)) return false;
+  if (item.pkg === UID_BYPASS_PACKAGE) return canManageWhitelist(user);
+  return true;
+}
 
 /** Pinned to the bottom of the rail, above the user card. */
 export const PROFILE_ITEM: NavItem = {
@@ -187,6 +236,8 @@ export const PAGE_TITLES: Record<string, { title: string; section: string }> = {
   "/devices": { title: "Active Devices", section: "MONITORING" },
   "/banned-vault": { title: "Banned & Kicked Vault", section: "MONITORING" },
   "/audit-logs": { title: "Audit Logs", section: "MONITORING" },
+  "/uid-bypass": { title: "Account Overview", section: "UID BYPASS" },
+  "/uid-bypass/whitelist": { title: "Whitelist Management", section: "UID BYPASS" },
 };
 
 export function navColor(pathname: string): string {
@@ -271,6 +322,24 @@ export const SEARCH_ITEMS: Array<{
     name: "Audit Logs",
     href: "/audit-logs",
     keywords: ["audit logs", "system logs", "actions history", "ip address logs", "clear logs"],
+  },
+  {
+    name: "UID Bypass Overview",
+    href: "/uid-bypass",
+    keywords: ["uid bypass", "whitelist overview", "terminalx999", "tx999", "sync status"],
+  },
+  {
+    name: "Whitelist UID",
+    href: "/uid-bypass/whitelist",
+    keywords: [
+      "whitelist uid",
+      "add uid",
+      "remove uid",
+      "uid bypass",
+      "bypass whitelist",
+      "expire date",
+      "delete expired",
+    ],
   },
   {
     name: "Profile Settings",
