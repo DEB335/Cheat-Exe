@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import re
+from datetime import date
 from pathlib import Path
 
 import discord
@@ -35,6 +36,27 @@ GUILD_ID = int(os.environ.get("DISCORD_GUILD_ID", "0") or 0)
 API_URL = os.environ.get("LICENSE_API_URL", "https://auth.terminalx999.online/api_admin.php")
 API_KEY = os.environ.get("LICENSE_API_KEY", "")
 APP_ID = os.environ.get("LICENSE_APP_ID", "")
+
+# ---------------------------------------------------------------------------
+# TERMINALX999 UID whitelist -- a different service from the licence API
+# above, with its own key and its own host. This is what the panel's UID
+# Bypass section drives; the commands here write to the same list.
+#
+# Optional: leave TX999_API_KEY blank and the /uid commands are simply not
+# registered, exactly like the announcement bridge.
+# ---------------------------------------------------------------------------
+
+WHITELIST_API_URL = os.environ.get("TX999_API_URL", "https://terminalx999.live/api.php")
+WHITELIST_API_KEY = os.environ.get("TX999_API_KEY", "")
+
+# Only for /credits. The provider has no way to read a balance from the API
+# key -- get_my_api_key is the *login* call that hands the key out, so it
+# wants an account instead. Blank means /credits says so rather than lying.
+WHITELIST_USER = os.environ.get("TX999_USER", "")
+WHITELIST_PASS = os.environ.get("TX999_PASS", "")
+
+WHITELIST_ON = bool(WHITELIST_API_KEY)
+MAX_WHITELIST_DAYS = 30
 
 # Fail loudly at startup rather than with a confusing API error later.
 _missing = [
@@ -121,6 +143,40 @@ def call_api(action: str, **params) -> dict:
         return {"success": False, "message": "The licence API did not respond in time."}
     except Exception as err:  # noqa: BLE001 - surfaced to the user, never raised
         return {"success": False, "message": f"Could not reach the licence API: {err}"}
+
+
+def call_whitelist(action: str, **params) -> dict:
+    """
+    One entry point to the UID whitelist API.
+
+    A GET with query parameters, unlike the licence API's JSON POST -- the
+    provider answers "Method not allowed" to anything else. Only three
+    actions exist: reseller_add, reseller_remove and reseller_list.
+
+    The reply is normalised onto `message`, because this service names its
+    failure field `error` while the licence API names it `message`, and
+    every caller here reads one shape.
+    """
+    query = {"api_key": WHITELIST_API_KEY, "action": action, **params}
+    try:
+        response = requests.get(WHITELIST_API_URL, params=query, timeout=20)
+        data = response.json()
+    except requests.Timeout:
+        return {"success": False, "message": "The whitelist API did not respond in time."}
+    except Exception as err:  # noqa: BLE001 - surfaced to the user, never raised
+        return {"success": False, "message": f"Could not reach the whitelist API: {err}"}
+
+    if not isinstance(data, dict):
+        return {"success": False, "message": "The whitelist API sent an unreadable reply."}
+    if "message" not in data and "error" in data:
+        data["message"] = data["error"]
+    return data
+
+
+def clean_uid(raw: str):
+    """The provider's own rule, applied here so a bad UID costs no credit."""
+    uid = raw.strip()
+    return uid if uid.isdigit() and len(uid) >= 8 else None
 
 
 def authorised(interaction: discord.Interaction) -> bool:
@@ -514,6 +570,233 @@ async def key_info(interaction: discord.Interaction, key: str):
     ):
         embed.add_field(name=label, value=str(data.get(field) or "—"), inline=True)
     await interaction.followup.send(embed=embed, view=key_controls(data.get("key", key)), ephemeral=True)
+
+
+# ---------------------------------------------------------------------------
+# UID whitelist
+#
+# The same list the panel's UID Bypass section shows. Registered only when
+# TX999_API_KEY is set, so an unconfigured bot advertises no command it
+# cannot carry out.
+# ---------------------------------------------------------------------------
+
+uid_group = discord.app_commands.Group(name="uid", description="TERMINALX999 UID whitelist.")
+
+
+def days_left(expire_date: str):
+    """
+    Whole days until an entry lapses, or None if the date is unreadable.
+
+    The provider counts the expiry day itself as valid, so this compares
+    dates rather than instants -- otherwise an entry would read as expired
+    partway through a customer's last day.
+    """
+    try:
+        year, month, day = (int(part) for part in expire_date.strip().split("-"))
+        return (date(year, month, day) - date.today()).days
+    except (ValueError, AttributeError):
+        return None
+
+
+@uid_group.command(name="add", description="Whitelist a UID.")
+@discord.app_commands.describe(
+    uid="The player UID, digits only",
+    days=f"Validity in days (1-{MAX_WHITELIST_DAYS}, default {MAX_WHITELIST_DAYS})",
+    name="A label for your own reference. The provider does not verify it.",
+)
+async def uid_add(
+    interaction: discord.Interaction,
+    uid: str,
+    days: int = MAX_WHITELIST_DAYS,
+    name: str = "",
+):
+    if not authorised(interaction):
+        await interaction.response.send_message("Not authorised in this server.", ephemeral=True)
+        return
+
+    cleaned = clean_uid(uid)
+    if cleaned is None:
+        await interaction.response.send_message("UID must be digits only, at least 8.", ephemeral=True)
+        return
+    if not 1 <= days <= MAX_WHITELIST_DAYS:
+        await interaction.response.send_message(
+            f"Validity must be between 1 and {MAX_WHITELIST_DAYS} days.", ephemeral=True
+        )
+        return
+
+    # Public on purpose, like /genkey: the channel is the record of what
+    # was sold, and this spends a credit.
+    await interaction.response.defer(ephemeral=False)
+
+    label = name.strip()[:40]
+    params = {"uid": cleaned, "days": days}
+    if label:
+        params["name"] = label
+    data = await asyncio.to_thread(call_whitelist, "reseller_add", **params)
+
+    if not data.get("success"):
+        await interaction.followup.send(f"\u274c {data.get('message', 'Could not whitelist that UID.')}")
+        return
+
+    embed = discord.Embed(
+        title="\u2705 UID whitelisted",
+        description=f"`{cleaned}`",
+        color=BRAND,
+    )
+    embed.add_field(name="Expires", value=data.get("expire_date") or "\u2014", inline=True)
+    embed.add_field(name="Validity", value=f"{days} day{'' if days == 1 else 's'}", inline=True)
+    # Echoed back exactly as given. Nothing upstream checks a name against
+    # the game, so calling it a verified player name -- as the standalone
+    # script did -- would invent a guarantee the provider never makes.
+    embed.add_field(name="Label", value=label or "\u2014", inline=True)
+    embed.add_field(name="Added by", value=interaction.user.mention, inline=True)
+    embed.set_footer(text="CHEAT EXE - UID bypass")
+    await interaction.followup.send(embed=embed)
+
+
+@uid_group.command(name="remove", description="Remove a UID from the whitelist.")
+@discord.app_commands.describe(uid="The UID to remove")
+async def uid_remove(interaction: discord.Interaction, uid: str):
+    if not authorised(interaction):
+        await interaction.response.send_message("Not authorised in this server.", ephemeral=True)
+        return
+
+    cleaned = clean_uid(uid)
+    if cleaned is None:
+        await interaction.response.send_message("UID must be digits only, at least 8.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    data = await asyncio.to_thread(call_whitelist, "reseller_remove", uid=cleaned)
+
+    if not data.get("success"):
+        await interaction.followup.send(f"\u274c {data.get('message', 'Removal failed.')}", ephemeral=True)
+        return
+
+    # Deliberately not "deleted". The provider answers success whether or
+    # not the UID was ever on the list, so the only honest claim is about
+    # the state now -- never that there was something there to remove.
+    await interaction.followup.send(
+        f"\U0001f5d1 `{cleaned}` is not on the whitelist.", ephemeral=True
+    )
+
+
+@uid_group.command(name="list", description="Show the whitelisted UIDs.")
+async def uid_list(interaction: discord.Interaction):
+    if not authorised(interaction):
+        await interaction.response.send_message("Not authorised in this server.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    data = await asyncio.to_thread(call_whitelist, "reseller_list")
+
+    if not data.get("success"):
+        await interaction.followup.send(
+            f"\u274c {data.get('message', 'Could not read the list.')}", ephemeral=True
+        )
+        return
+
+    entries = data.get("data") or []
+    if not entries:
+        await interaction.followup.send("The whitelist is empty.", ephemeral=True)
+        return
+
+    lines = []
+    expired = 0
+    for entry in entries:
+        # Field by field, never the whole record: reseller_list echoes the
+        # API key back in `api_key_ref`, and this reply goes to Discord.
+        entry_uid = str(entry.get("uid", "?"))
+        entry_name = entry.get("name") or "\u2014"
+        expiry = entry.get("expire_date") or "\u2014"
+
+        left = days_left(expiry)
+        if left is None:
+            state = ""
+        elif left < 0:
+            expired += 1
+            state = " - expired"
+        elif left == 0:
+            state = " - expires today"
+        else:
+            state = f" - {left}d left"
+
+        lines.append(f"`{entry_uid}` {entry_name} \u2014 {expiry}{state}")
+
+    listing = "\n".join(lines)
+    if len(listing) > 3900:
+        listing = listing[:3900].rsplit("\n", 1)[0] + "\n\u2026"
+
+    embed = discord.Embed(title="\U0001f4dc Whitelisted UIDs", description=listing, color=BRAND)
+    embed.set_footer(text=f"{len(entries)} total - {expired} expired")
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+@uid_group.command(name="credits", description="Check the TERMINALX999 credit balance.")
+async def uid_credits(interaction: discord.Interaction):
+    if not authorised(interaction):
+        await interaction.response.send_message("Not authorised in this server.", ephemeral=True)
+        return
+
+    # The API key cannot read a balance: get_my_api_key is the login call
+    # that issues the key, so it wants an account instead. Saying so beats
+    # the standalone script's behaviour, which sent the key, had the call
+    # rejected, and reported a balance of 0 every single time.
+    if not (WHITELIST_USER and WHITELIST_PASS):
+        await interaction.response.send_message(
+            "The provider cannot report a balance from the API key alone. Set "
+            "`TX999_USER` and `TX999_PASS` in the bot's .env to enable this.",
+            ephemeral=True,
+        )
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    def login() -> dict:
+        try:
+            response = requests.post(
+                WHITELIST_API_URL,
+                data={
+                    "action": "get_my_api_key",
+                    "username": WHITELIST_USER,
+                    "password": WHITELIST_PASS,
+                },
+                timeout=20,
+            )
+            return response.json()
+        except Exception as err:  # noqa: BLE001 - surfaced to the user
+            return {"success": False, "error": f"Could not reach the whitelist API: {err}"}
+
+    data = await asyncio.to_thread(login)
+    if not isinstance(data, dict):
+        await interaction.followup.send(
+            "The whitelist API sent an unreadable reply.", ephemeral=True
+        )
+        return
+    if not data.get("success"):
+        reason = data.get("error") or data.get("message") or "Sign-in failed."
+        await interaction.followup.send(f"\u274c {reason}", ephemeral=True)
+        return
+
+    credits = (data.get("data") or {}).get("credits")
+    if credits is None:
+        await interaction.followup.send(
+            "Signed in, but the provider did not report a credit balance.", ephemeral=True
+        )
+        return
+
+    embed = discord.Embed(
+        title="\U0001f4b3 Credit balance",
+        description=f"**{credits}** credit{'' if credits == 1 else 's'} remaining.",
+        color=BRAND,
+    )
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+if WHITELIST_ON:
+    bot.tree.add_command(uid_group)
+else:
+    log.info("UID whitelist commands are off. Set TX999_API_KEY to turn them on.")
 
 
 if __name__ == "__main__":

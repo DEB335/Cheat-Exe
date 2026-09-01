@@ -31,9 +31,16 @@ is a live admin credential, so it lives in `.env`, which is gitignored.
 | `/ban key` | Blocks the key |
 | `/unban key` | Restores it |
 | `/delete key` | Removes it permanently |
+| `/uid add uid days name` | Whitelists a UID for the bypass, posted publicly |
+| `/uid remove uid` | Takes a UID off the whitelist |
+| `/uid list` | Shows the whitelist with expiry and days left |
+| `/uid credits` | TERMINALX999 credit balance |
 
-`/genkey` posts to the channel so the server has a record; everything else
-answers privately.
+`/genkey` and `/uid add` post to the channel so the server has a record;
+everything else answers privately.
+
+The `/uid` commands appear only when `TX999_API_KEY` is set. They talk to
+a different service from the rest -- see below.
 
 The buttons under a generated key keep working after a restart. They carry
 the key in their `custom_id` and are handled by a global listener rather
@@ -92,6 +99,54 @@ catch-up that overlaps cannot broadcast twice.
 The one thing to know: **posts made while the bot is not running only
 arrive when it starts again.** For same-day delivery it wants to be
 somewhere always-on rather than on a desktop that sleeps.
+
+## UID whitelist
+
+`/uid ...` drives TERMINALX999's UID bypass list -- **a different service
+from the licence API above**, on its own host with its own key. It is the
+same list the web panel's *UID Bypass* section shows, so a UID added from
+Discord appears there and vice versa.
+
+| Variable | Meaning |
+|---|---|
+| `TX999_API_KEY` | The reseller key. Blank leaves the `/uid` commands unregistered |
+| `TX999_API_URL` | Defaults to `https://terminalx999.live/api.php` |
+| `TX999_USER` / `TX999_PASS` | Optional, only for `/uid credits` |
+
+Use the same `TX999_API_KEY` as the panel's `.env.local` so both write to
+one list.
+
+### What the provider actually does
+
+Three actions exist -- `reseller_add`, `reseller_remove`, `reseller_list`.
+Everything else answers "Method not allowed" or an empty 200 body. There
+is no update call and no bulk delete, which is why there is no `/uid edit`.
+
+Four behaviours are worth knowing, because each one contradicts what the
+API looks like it does:
+
+- **The name is not verified.** `name` is stored exactly as typed. A UID
+  belonging to nobody is accepted just as readily as a real one, so the
+  field is a label for your own records, not a check.
+- **Region cannot be set.** `region`, `server` and `region_code` are all
+  ignored; every entry comes back as `ALL SERVER`.
+- **Removal always reports success**, whether or not the UID was ever on
+  the list. `/uid remove` therefore says the UID *is not* whitelisted,
+  never that it deleted something.
+- **`reseller_list` echoes the API key back** in an `api_key_ref` field on
+  every record. The bot reads records field by field for that reason -- a
+  reply built from a whole record would print a live credential into
+  Discord.
+
+Validity is `days`, from 1 to 30, defaulting to 30 when omitted.
+
+### Why `/uid credits` needs a username and password
+
+The provider has no way to report a balance from the API key. Its
+`get_my_api_key` is the *login* call that hands the key out, so it wants
+an account: sent a key instead, it answers "Username and password are
+required". Leave `TX999_USER` and `TX999_PASS` blank and the command says
+so. It will not report a balance it cannot read.
 
 ## Validity: send it as `days`, and ignore `key_info`
 
