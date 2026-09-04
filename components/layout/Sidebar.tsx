@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { emitClickWave } from "@/components/effects/ClickWave";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { NAV_GROUPS, PROFILE_ITEM, canSeeItem, type NavItem } from "@/lib/nav";
-import { useDashboard } from "@/lib/store";
+import { useDashboard, useMyPackages } from "@/lib/store";
 import { useMediaQuery, useStoredFlag } from "@/lib/use-external";
 import type { Role } from "@/lib/types";
 import { cn, hexToRgbTriplet } from "@/lib/utils";
@@ -34,6 +34,10 @@ export function Sidebar({
   const user = useDashboard((s) => s.user);
   const db = useDashboard((s) => s.db);
   const role: Role = user?.role ?? "RESELLER";
+  // Grants as they stand, not as they were at sign-in -- a permission the
+  // owner revokes pings, the ping refetches the account record, and the
+  // section disappears on the spot instead of at the next sign-in.
+  const packages = useMyPackages();
 
   const [preferCollapsed, setPreferCollapsed] = useStoredFlag(STORAGE_KEY);
   const narrow = useMediaQuery(NARROW);
@@ -56,7 +60,9 @@ export function Sidebar({
   };
 
   const visibleGroups = NAV_GROUPS.filter(
-    (group) => group.roles.includes(role) && group.items.some((item) => canSeeItem(item, user)),
+    (group) =>
+      group.roles.includes(role) &&
+      group.items.some((item) => canSeeItem(item, user, packages)),
   );
 
   return (
@@ -109,7 +115,7 @@ export function Sidebar({
                   </div>
                 )}
                 {group.items
-                  .filter((item) => canSeeItem(item, user))
+                  .filter((item) => canSeeItem(item, user, packages))
                   .map((item) => (
                     <NavLink
                       key={`${group.label}-${item.href}-${item.label}`}

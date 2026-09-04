@@ -4,9 +4,10 @@ import { cookies, headers } from "next/headers";
 import { cache } from "react";
 
 import { matchBan } from "./bans";
-import { accountBlock, readDb } from "./db";
+import { accountBlock, findReseller, readDb } from "./db";
 import { lockedToAnotherDevice } from "./device-lock";
 import { deviceIdentity } from "./device";
+import { PACKAGE_NAMES } from "./packages";
 import { SESSION_COOKIE, readSessionToken } from "./session";
 import type { Database, SessionUser } from "./types";
 
@@ -53,6 +54,15 @@ export async function requireUser(): Promise<SessionUser> {
   if (!user) throw new HttpError(401, "Not authenticated");
 
   const db = await loadDb();
+  // Same reasoning as the block check below, one field over. `packages`
+  // is a copy taken at sign-in and signed into the token, so a grant the
+  // owner revoked mid-session stayed in force for the rest of that
+  // token's life -- and for the UID whitelist that is not a cosmetic
+  // stale menu, it is a reseller still able to spend credits on a
+  // package they no longer hold. Every authenticated route resolves its
+  // permissions here, from the database, so a revocation lands on the
+  // next request.
+  const live: SessionUser = { ...user, packages: livePackages(db, user) };
 
   const blocked = accountBlock(db, user.username, user.role);
   if (blocked) throw new HttpError(403, BLOCK_MESSAGE[blocked]);
@@ -73,7 +83,33 @@ export async function requireUser(): Promise<SessionUser> {
     }
   }
 
-  return user;
+  return live;
+}
+
+/**
+ * The grants this account holds right now, rather than at sign-in.
+ *
+ * The owner is not a reseller and has no record to read, so they hold
+ * everything -- the same answer resolveLogin gives them. A reseller
+ * whose record has since been deleted holds nothing; accountBlock will
+ * have already turned that request away, and answering with an empty
+ * list rather than the token's copy keeps this honest if it is ever
+ * called somewhere that has not made that check.
+ */
+export function livePackages(db: Database, user: SessionUser): string[] {
+  if (user.role === "OWNER") return PACKAGE_NAMES;
+  return findReseller(db, user.username)?.user.packages ?? [];
+}
+
+/**
+ * The session for a server component, with permissions as they stand
+ * now. Route handlers get this from requireUser; a layout that only
+ * needs to render cannot use that, since it throws rather than
+ * redirects.
+ */
+export async function withLivePackages(user: SessionUser): Promise<SessionUser> {
+  const db = await loadDb();
+  return { ...user, packages: livePackages(db, user) };
 }
 
 export async function requireOwner(): Promise<SessionUser> {

@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { clientIp } from "@/lib/auth";
+import { clientIp, livePackages, loadDb } from "@/lib/auth";
 import { pushAudit, route } from "@/lib/api-helpers";
 import { matchBan } from "@/lib/bans";
-import { accountBlock, readDb, updateDb } from "@/lib/db";
+import { accountBlock, updateDb } from "@/lib/db";
 import { deviceIdentity } from "@/lib/device";
 import { unreadFor } from "@/lib/messages";
 import { lockedToAnotherDevice } from "@/lib/device-lock";
@@ -63,7 +63,10 @@ export const GET = route(async () => {
   if (state.status !== "valid") return NextResponse.json({ user: null });
 
   const user = state.user;
-  const db = await readDb();
+  // loadDb rather than readDb: this handler reads the database twice
+  // -- once for the checks, once for the grants below -- and the cache
+  // keeps a poll running every five seconds from doubling its queries.
+  const db = await loadDb();
   const { hwid, fingerprint } = await deviceIdentity();
 
   const blocked = accountBlock(db, user.username, user.role);
@@ -81,8 +84,15 @@ export const GET = route(async () => {
 
   // Rides along on the poll the dashboard already runs, so a new
   // announcement surfaces within one tick without a second request.
+  //
+  // The grants are resolved from the account record for the same reason,
+  // and it is the poll that makes revoking one reliable. A permission
+  // change does ping, and the ping is far quicker -- but realtime is an
+  // accelerator here, not the mechanism, and a reseller keeping a section
+  // they no longer hold because a socket dropped is exactly the kind of
+  // failure the poll exists to cover.
   return NextResponse.json({
-    user,
+    user: { ...user, packages: livePackages(db, user) },
     unread: unreadFor(db.cheatExeMessages, user.username),
   });
 });

@@ -203,11 +203,24 @@ export const NAV_GROUPS: NavGroup[] = [
  * The package check runs through the same `canManageWhitelist` the API
  * route uses, so a tab can never appear for someone the endpoint behind
  * it would refuse.
+ *
+ * `packages` is passed in rather than read off `user` because the copy
+ * on the session is the one taken at sign-in: gating on it left a
+ * revoked section sitting in the sidebar, still clickable, until the
+ * reseller signed out and back in. Callers pass what useMyPackages
+ * reports, which follows the account record and so tracks a grant the
+ * owner changes while the panel is open.
  */
-export function canSeeItem(item: NavItem, user: SessionUser | null): boolean {
+export function canSeeItem(
+  item: NavItem,
+  user: SessionUser | null,
+  packages: string[],
+): boolean {
   const role: Role = user?.role ?? "RESELLER";
   if (!item.roles.includes(role)) return false;
-  if (item.pkg === UID_BYPASS_PACKAGE) return canManageWhitelist(user);
+  if (item.pkg === UID_BYPASS_PACKAGE) {
+    return user !== null && canManageWhitelist({ role, packages });
+  }
   return true;
 }
 
@@ -250,6 +263,8 @@ export const SEARCH_ITEMS: Array<{
   href: string;
   keywords: string[];
   ownerOnly?: boolean;
+  /** Same gate as the sidebar item: without the grant, not offered. */
+  pkg?: string;
 }> = [
   {
     name: "Overview / Dashboard",
@@ -327,6 +342,7 @@ export const SEARCH_ITEMS: Array<{
     name: "UID Bypass Overview",
     href: "/uid-bypass",
     keywords: ["uid bypass", "whitelist overview", "terminalx999", "tx999", "sync status"],
+    pkg: UID_BYPASS_PACKAGE,
   },
   {
     name: "Whitelist UID",
@@ -340,6 +356,7 @@ export const SEARCH_ITEMS: Array<{
       "expire date",
       "delete expired",
     ],
+    pkg: UID_BYPASS_PACKAGE,
   },
   {
     name: "Profile Settings",

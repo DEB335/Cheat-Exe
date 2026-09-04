@@ -20,7 +20,8 @@ import { api, del, patchJson } from "@/lib/client-api";
 import { REACTIONS } from "@/lib/messages";
 import { applyClearMine, applyReadAll, applyReaction } from "@/lib/optimistic";
 import { PAGE_TITLES, SEARCH_ITEMS } from "@/lib/nav";
-import { useDashboard } from "@/lib/store";
+import { UID_BYPASS_PACKAGE, canManageWhitelist } from "@/lib/packages";
+import { useDashboard, useMyPackages } from "@/lib/store";
 import { useTheme } from "@/lib/use-theme";
 import { cn, formatStampForDisplay } from "@/lib/utils";
 
@@ -65,6 +66,7 @@ export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMob
 function QuickSearch() {
   const router = useRouter();
   const user = useDashboard((s) => s.user);
+  const packages = useMyPackages();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,9 +76,14 @@ function QuickSearch() {
     if (!q) return [];
     return SEARCH_ITEMS.filter((item) => {
       if (item.ownerOnly && user?.role !== "OWNER") return false;
+      // Otherwise search stays a way into a section the sidebar has
+      // already taken away -- typing "uid" would still offer it.
+      if (item.pkg === UID_BYPASS_PACKAGE && user) {
+        if (!canManageWhitelist({ role: user.role, packages })) return false;
+      }
       return item.name.toLowerCase().includes(q) || item.keywords.some((k) => k.includes(q));
     });
-  }, [query, user?.role]);
+  }, [query, user, packages]);
 
   useEffect(() => {
     const onClick = (event: MouseEvent) => {

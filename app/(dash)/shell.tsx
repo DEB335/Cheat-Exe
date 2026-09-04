@@ -9,8 +9,9 @@ import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/components/ui/Toast";
+import { canManageWhitelist } from "@/lib/packages";
 import { SESSION_LIFETIME_MINUTES } from "@/lib/session-lifetime";
-import { useDashboard } from "@/lib/store";
+import { useDashboard, useMyPackages } from "@/lib/store";
 import { useRealtimePing } from "@/lib/use-realtime";
 import type { SessionUser } from "@/lib/types";
 
@@ -105,6 +106,26 @@ export function Shell({
   const refresh = useDashboard((s) => s.refresh);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [terminated, setTerminated] = useState<Terminated | null>(null);
+  const storeUser = useDashboard((s) => s.user);
+  const packages = useMyPackages();
+
+  // Losing a package while standing on the page it unlocked should not
+  // leave someone parked there. Hiding the sidebar entry does nothing for
+  // whoever is already on /uid-bypass -- the tab simply disappears from
+  // under them and the page stays up, making its own requests, which the
+  // API now answers with 403.
+  //
+  // Waiting for `storeUser` matters: it is null for the first render,
+  // and useMyPackages answers [] for a null user. Acting on that would
+  // bounce the owner off their own page every time the panel loaded.
+  useEffect(() => {
+    if (terminated || !storeUser) return;
+    if (!pathname.startsWith("/uid-bypass")) return;
+    if (canManageWhitelist({ role: storeUser.role, packages })) return;
+
+    toast("The UID BYPASS package was removed from your account.", "error");
+    router.replace("/dashboard");
+  }, [terminated, storeUser, packages, pathname, router, toast]);
 
   useEffect(() => {
     setUser(user);
@@ -147,12 +168,25 @@ export function Shell({
       };
 
       if (data.user) {
+        const store = useDashboard.getState();
+
+        // A grant the owner changed mid-session. Both halves are needed:
+        // setUser so the session carries it, and a refetch because
+        // useMyPackages prefers the account record and would otherwise go
+        // on reporting the copy already in the store. Compared as a set,
+        // since the order the owner happened to tick the boxes in is not
+        // a change worth a refetch.
+        const held = store.user?.packages ?? [];
+        const now = data.user.packages;
+        if (held.length !== now.length || !now.every((p) => held.includes(p))) {
+          setUser(data.user);
+          void refresh();
+        }
+
         // The poll carries the unread count, so a new announcement costs
         // no extra request -- pull the messages themselves only when the
         // server's count disagrees with what is already loaded.
-        const loaded = useDashboard
-          .getState()
-          .db.cheatExeMessages.filter((m) => !m.read).length;
+        const loaded = store.db.cheatExeMessages.filter((m) => !m.read).length;
         if (typeof data.unread === "number" && data.unread !== loaded) void refresh();
         return;
       }
@@ -161,7 +195,7 @@ export function Shell({
     } catch {
       /* offline -- try again on the next tick */
     }
-  }, [refresh]);
+  }, [refresh, setUser]);
 
   useEffect(() => {
     if (terminated) return;

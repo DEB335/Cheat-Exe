@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { withLivePackages } from "@/lib/auth";
 import { SESSION_COOKIE, readSessionState, secondsUntil } from "@/lib/session";
 
 import { Shell } from "./shell";
@@ -24,8 +25,14 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
   // fast or slow would otherwise place it minutes off; a remaining count
   // started at mount is immune to that, since only the elapsed time
   // matters and both agree on how long a second is.
+  // Permissions resolved from the account record, not from the copy the
+  // token was signed with. Without this a hard reload paints the sidebar
+  // from a grant that may have been revoked hours ago, and the section
+  // only vanishes once the first /api/db lands.
+  const user = await withLivePackages(state.user);
+
   return (
-    <Shell user={state.user} expiresIn={secondsUntil(state.expiresAt)}>
+    <Shell user={user} expiresIn={secondsUntil(state.expiresAt)}>
       {children}
     </Shell>
   );
