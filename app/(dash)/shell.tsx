@@ -12,6 +12,7 @@ import { useToast } from "@/components/ui/Toast";
 import { canManageWhitelist } from "@/lib/packages";
 import { SESSION_LIFETIME_MINUTES } from "@/lib/session-lifetime";
 import { useDashboard, useMyPackages } from "@/lib/store";
+import { useInspectGuard } from "@/lib/use-inspect-guard";
 import { useRealtimePing } from "@/lib/use-realtime";
 import type { SessionUser } from "@/lib/types";
 
@@ -261,15 +262,10 @@ export function Shell({
     return () => window.clearTimeout(id);
   }, [terminated, router]);
 
-  // Matches the original panel behaviour.
-  useEffect(() => {
-    const onContextMenu = (event: MouseEvent) => {
-      event.preventDefault();
-      toast("Right click is disabled on this panel!", "error");
-    };
-    document.addEventListener("contextmenu", onContextMenu);
-    return () => document.removeEventListener("contextmenu", onContextMenu);
-  }, [toast]);
+  // Matches the original panel's right-click block, extended to the
+  // keyboard shortcuts that open the same inspector. See the hook for
+  // what this does and does not actually prevent.
+  useInspectGuard((message) => toast(message, "error"));
 
   return (
     <>
