@@ -1,9 +1,15 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { HttpError, clientIp, requireOwner } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { hashPassword, updateDb } from "@/lib/db";
-import { SESSION_COOKIE, createSessionToken, sessionCookieOptions } from "@/lib/session";
+import {
+  SESSION_COOKIE,
+  createSessionToken,
+  readSessionState,
+  sessionCookieOptions,
+} from "@/lib/session";
 import { PACKAGE_NAMES } from "@/lib/packages";
 import { ping } from "@/lib/realtime";
 
@@ -73,12 +79,21 @@ export const PATCH = route(async (request: Request) => {
   });
 
   // The username is part of the session payload, so mint a fresh cookie.
-  const token = await createSessionToken({
-    username,
-    role: "OWNER",
-    packages: PACKAGE_NAMES,
-    sessionId: owner.sessionId,
-  });
+  // It inherits the deadline of the one it replaces: sessions run for a
+  // fixed twenty minutes from sign-in, and without this the owner could
+  // hold one open indefinitely by re-saving this form every quarter of
+  // an hour. requireOwner above has already refused an expired cookie,
+  // so there is always a live deadline to carry over.
+  const current = await readSessionState((await cookies()).get(SESSION_COOKIE)?.value);
+  const token = await createSessionToken(
+    {
+      username,
+      role: "OWNER",
+      packages: PACKAGE_NAMES,
+      sessionId: owner.sessionId,
+    },
+    current.status === "valid" ? current.expiresAt : undefined,
+  );
 
   const response = NextResponse.json({ success: true });
   response.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);

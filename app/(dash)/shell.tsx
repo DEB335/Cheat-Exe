@@ -9,6 +9,7 @@ import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/components/ui/Toast";
+import { SESSION_LIFETIME_MINUTES } from "@/lib/session-lifetime";
 import { useDashboard } from "@/lib/store";
 import { useRealtimePing } from "@/lib/use-realtime";
 import type { SessionUser } from "@/lib/types";
@@ -33,7 +34,8 @@ type Terminated =
   | "deleted"
   | "device"
   | "locked"
-  | "kicked";
+  | "kicked"
+  | "timeout";
 
 const TERMINATED_COPY: Record<Terminated, { title: string; body: string; tone: string }> = {
   banned: {
@@ -76,12 +78,26 @@ const TERMINATED_COPY: Record<Terminated, { title: string; body: string; tone: s
     body: "Your session was closed from the owner panel.",
     tone: "#60a5fa",
   },
+  timeout: {
+    title: "SESSION EXPIRED",
+    body: `Sessions last ${SESSION_LIFETIME_MINUTES} minutes. Sign in again to continue.`,
+    tone: "#60a5fa",
+  },
 };
 
 /** How long the notice stays up before the redirect. */
 const NOTICE_MS = 2600;
 
-export function Shell({ user, children }: { user: SessionUser; children: React.ReactNode }) {
+export function Shell({
+  user,
+  expiresIn,
+  children,
+}: {
+  user: SessionUser;
+  /** Seconds left in this session, measured on the server at render. */
+  expiresIn: number;
+  children: React.ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
@@ -94,6 +110,24 @@ export function Shell({ user, children }: { user: SessionUser; children: React.R
     setUser(user);
     void refresh();
   }, [user, setUser, refresh]);
+
+  /**
+   * Ends the session on the deadline itself.
+   *
+   * The poll below would notice within five seconds, but only while it
+   * is running -- it stops with a hidden tab, so a panel left in the
+   * background would go on looking signed in until someone came back to
+   * it. The server stopped honouring the cookie at the deadline either
+   * way; this is so the screen stops claiming otherwise at the same
+   * moment. Nothing here grants access, so a tab that is asleep when the
+   * timer should fire is not a hole: it wakes to a session the server
+   * already refuses.
+   */
+  useEffect(() => {
+    if (terminated) return;
+    const id = window.setTimeout(() => setTerminated("timeout"), expiresIn * 1000);
+    return () => window.clearTimeout(id);
+  }, [expiresIn, terminated]);
 
   // Replaces the old client-side banned poll: the server decides. A
   // terminated session is told what happened -- a reseller who is

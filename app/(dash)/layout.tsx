@@ -1,12 +1,32 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { getSessionUser } from "@/lib/auth";
+import { SESSION_COOKIE, readSessionState, secondsUntil } from "@/lib/session";
 
 import { Shell } from "./shell";
 
 export default async function DashboardLayout({ children }: LayoutProps<"/">) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const store = await cookies();
+  const state = await readSessionState(store.get(SESSION_COOKIE)?.value);
 
-  return <Shell user={user}>{children}</Shell>;
+  if (state.status !== "valid") {
+    // Carry the reason across, so a session that simply ran out of time
+    // says so. The poll in Shell normally gets there first and shows the
+    // notice in place, but it cannot when nothing is mounted to run it:
+    // a tab that was closed before the deadline and reopened after it
+    // arrives straight here, and without this would land on a blank
+    // sign-in form with no hint that anything had expired.
+    redirect(state.status === "expired" ? "/login?reason=timeout" : "/login");
+  }
+
+  // How long this session has left, resolved here rather than in the
+  // browser. The deadline is the server's, and a client whose clock runs
+  // fast or slow would otherwise place it minutes off; a remaining count
+  // started at mount is immune to that, since only the elapsed time
+  // matters and both agree on how long a second is.
+  return (
+    <Shell user={state.user} expiresIn={secondsUntil(state.expiresAt)}>
+      {children}
+    </Shell>
+  );
 }

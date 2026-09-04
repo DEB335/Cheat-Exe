@@ -22,6 +22,7 @@ import {
 } from "@/components/icons";
 import { TetherButton, type TetherState } from "@/components/login/TetherButton";
 import { postJson } from "@/lib/client-api";
+import { SESSION_LIFETIME_MINUTES } from "@/lib/session-lifetime";
 import { playClick, playError, playType } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
 
@@ -344,7 +345,8 @@ type BlockKind =
   | "device"
   | "locked"
   | "kicked"
-  | "deleted";
+  | "deleted"
+  | "timeout";
 
 interface BlockedScreen {
   kind: BlockKind;
@@ -395,6 +397,11 @@ const BLOCK_COPY: Record<BlockKind, { title: string; body: string; tone: string 
   kicked: {
     title: "SESSION ENDED",
     body: "Your session was closed from the owner panel. Sign in again to continue.",
+    tone: "#60a5fa",
+  },
+  timeout: {
+    title: "SESSION EXPIRED",
+    body: `Sessions last ${SESSION_LIFETIME_MINUTES} minutes. Sign in again to continue.`,
     tone: "#60a5fa",
   },
   deleted: {
