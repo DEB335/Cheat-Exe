@@ -889,7 +889,9 @@ async def uid_add(
         record = record[0] if record else {}
     if not isinstance(record, dict):
         record = {}
-    player = record.get("name") or ""
+    # Top level first: whitelist_uid answers flat, where the list nests
+    # its records under "data".
+    player = data.get("name") or record.get("name") or ""
     expiry = expiry_day(record) or expiry_day(data)
 
     embed.add_field(name="Player", value=player or "\u2014", inline=True)

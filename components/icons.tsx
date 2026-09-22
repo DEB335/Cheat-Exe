@@ -322,6 +322,12 @@ export const WhatsappIcon = (p: IconProps) => (
   </svg>
 );
 
+export const ChevronDownIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <polyline points="6 9 12 15 18 9" />
+  </Stroke>
+);
+
 export const ChevronLeftIcon = (p: IconProps) => (
   <Stroke {...p}>
     <polyline points="15 18 9 12 15 6" />

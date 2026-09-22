@@ -3,19 +3,12 @@ import { NextResponse } from "next/server";
 import { HttpError, clientIp, loadDb, requireUser } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
-import {
-  DEFAULT_WHITELIST_REGION,
-  MAX_WHITELIST_DAYS,
-  canManageWhitelist,
-  isWhitelistRegion,
-} from "@/lib/packages";
+import { canManageWhitelist } from "@/lib/packages";
 import { ping } from "@/lib/realtime";
 import type { SessionUser, WhitelistEntry } from "@/lib/types";
 import { MAINTENANCE, addWhitelist, listWhitelist, removeWhitelist } from "@/lib/uid-api";
+import { cleanDays, cleanNote, cleanRegion, cleanUid } from "@/lib/whitelist-input";
 import { displayUser } from "@/lib/utils";
-
-/** Upstream's own rule, enforced here so a bad UID never costs a credit. */
-const UID_PATTERN = /^\d{6,}$/;
 
 async function requireWhitelistAccess(): Promise<SessionUser> {
   const user = await requireUser();
@@ -36,40 +29,6 @@ function assertAvailable(): void {
   if (MAINTENANCE) {
     throw new HttpError(503, "UID Bypass is under maintenance. Whitelisting is paused.");
   }
-}
-
-function cleanUid(value: unknown): string {
-  const uid = String(value ?? "").trim();
-  if (!UID_PATTERN.test(uid)) throw new HttpError(400, "UID must be at least 6 digits.");
-  return uid;
-}
-
-function cleanDays(value: unknown): number {
-  const days = Number(value ?? MAX_WHITELIST_DAYS);
-  if (!Number.isInteger(days) || days < 1 || days > MAX_WHITELIST_DAYS) {
-    throw new HttpError(400, `Validity must be a whole number of days from 1 to ${MAX_WHITELIST_DAYS}.`);
-  }
-  return days;
-}
-
-/**
- * Checked against the known list rather than passed through.
- *
- * The provider bills the add whether or not it recognised the region, so
- * a typo that reaches it is a spent credit on an entry pointed at the
- * wrong servers. Refusing it here costs nothing.
- */
-function cleanRegion(value: unknown): string {
-  const region = String(value ?? "").trim().toUpperCase() || DEFAULT_WHITELIST_REGION;
-  if (!isWhitelistRegion(region)) throw new HttpError(400, `Unknown server region "${region}".`);
-  return region;
-}
-
-/** The operator's own label. The player's name comes back from the game. */
-function cleanNote(value: unknown): string {
-  return String(value ?? "")
-    .trim()
-    .slice(0, 40);
 }
 
 /**
@@ -162,11 +121,12 @@ export const POST = route(async (request: Request) => {
  * Re-issues a UID with a new validity, region or note.
  *
  * There is no update action upstream, and `whitelist_uid` refuses a UID
- * it already holds, so the only way through is remove-then-add. That
- * sequence has a window where the customer is not whitelisted, which is
- * why it runs here rather than as two calls from the browser: back to
- * back on the server the gap is milliseconds, and a failed re-add is
- * retried once before anyone is told about it.
+ * that is already active ("This Account ID is already active"), so the
+ * only way through is remove-then-add. That sequence has a window where
+ * the customer is not whitelisted, which is why it runs here rather than
+ * as two calls from the browser: back to back on the server the gap is
+ * milliseconds, and a failed re-add is retried once before anyone is
+ * told about it.
  *
  * A UID the provider does not hold is no obstacle -- `removeWhitelist`
  * reports that rather than throwing -- so an entry that fell off upstream

@@ -70,7 +70,17 @@ export default function WhitelistPage() {
   const { entries, loading, maintenance, reason, reload } = useWhitelist(auto);
 
   const [uid, setUid] = useState("");
-  const [note, setNote] = useState("");
+  // The name the provider reads off the account. Never typed: the field
+  // that shows it is disabled, and it is cleared whenever the UID
+  // changes so a name can never be left standing against a different
+  // number than the one it was fetched for.
+  const [player, setPlayer] = useState("");
+  const [looking, setLooking] = useState(false);
+  // Set once the provider holds this UID, whether it was just verified
+  // or was already on the list. It decides which call the ADD button
+  // makes: an active UID is refused by a plain add and has to be
+  // re-issued instead.
+  const [onList, setOnList] = useState(false);
   const [region, setRegion] = useState<string>(DEFAULT_WHITELIST_REGION);
   const [days, setDays] = useState("");
   const [adding, setAdding] = useState(false);
@@ -92,21 +102,91 @@ export default function WhitelistPage() {
 
   const expiredCount = useMemo(() => entries.filter(isExpired).length, [entries]);
 
+  const changeUid = (value: string) => {
+    setUid(value.replace(/\D/g, ""));
+    setPlayer("");
+    setOnList(false);
+  };
+
+  /**
+   * Names the UID, at the cost of whitelisting it for a day.
+   *
+   * The provider sells names; it does not tell them. So this asks
+   * before spending, and only after the free answer has been ruled
+   * out -- a UID already on the list carries its verified name, and
+   * the provider would refuse a second add for it anyway.
+   */
+  const lookup = async () => {
+    const target = uid.trim();
+    if (target.length < 6) {
+      toast("Enter at least 6 digits first.", "error");
+      return;
+    }
+
+    const known = entries.find((entry) => entry.uid === target);
+    if (known) {
+      setPlayer(known.name);
+      setOnList(true);
+      toast(
+        `${known.name || target} is already whitelisted${known.expireDate ? ` until ${known.expireDate}` : ""}. No credit spent.`,
+        "success",
+      );
+      return;
+    }
+
+    const ok = confirm(
+      `Searching ${target} spends a credit: the provider only gives a name by whitelisting. ` +
+        `It will be whitelisted for 1 day, then re-issued for the validity you choose. Continue?`,
+    );
+    if (!ok) return;
+
+    setLooking(true);
+    setPlayer("");
+    try {
+      const found = await postJson<AddResult>("/api/uid-bypass/lookup", {
+        uid: target,
+        region,
+      });
+      setPlayer(found.name ?? "");
+      setOnList(true);
+      await reload();
+      toast(
+        found.name
+          ? `${found.name} — now choose the validity and press ADD UID.`
+          : "The provider returned no name for that UID.",
+        found.name ? "success" : "error",
+      );
+    } catch (err) {
+      toast((err as Error).message, "error");
+    } finally {
+      setLooking(false);
+    }
+  };
+
   const add = async (event: React.FormEvent) => {
     event.preventDefault();
     setAdding(true);
     const wanted = days.trim() === "" ? MAX_WHITELIST_DAYS : Number(days);
     const target = uid.trim();
     try {
-      const result = await postJson<AddResult>("/api/uid-bypass", {
+      const body = {
         uid: target,
-        note: note.trim(),
+        // What the panel showed at the point of sale. The provider
+        // verifies the name again on its side, so keeping this is a
+        // record of what was agreed, not a second source of truth.
+        note: player.trim(),
         region,
         days: wanted,
-      });
+      };
+      // A UID the provider already holds is refused by a plain add, so
+      // once it has been verified the second step is a re-issue.
+      const result = onList
+        ? await patchJson<AddResult>("/api/uid-bypass", body)
+        : await postJson<AddResult>("/api/uid-bypass", body);
       setUid("");
-      setNote("");
+      setPlayer("");
       setDays("");
+      setOnList(false);
       await reload();
       toast(addedMessage(result, target, wanted), "success");
     } catch (err) {
@@ -202,35 +282,57 @@ export default function WhitelistPage() {
         <form onSubmit={add} className="grid gap-5 md:grid-cols-2">
           <div>
             <FormLabel htmlFor="wl-uid">UID *</FormLabel>
-            <Input
-              id="wl-uid"
-              value={uid}
-              onChange={(e) => setUid(e.target.value.replace(/\D/g, ""))}
-              placeholder="Enter UID"
-              inputMode="numeric"
-              autoComplete="off"
-              required
-            />
+            <div className="relative">
+              <Input
+                id="wl-uid"
+                value={uid}
+                onChange={(e) => changeUid(e.target.value)}
+                placeholder="Enter UID"
+                inputMode="numeric"
+                autoComplete="off"
+                className="pr-12"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => void lookup()}
+                disabled={looking || uid.trim().length < 6}
+                aria-label="Look up the player name for this UID"
+                title="Look up the player name"
+                className={cn(
+                  "absolute top-1/2 right-2 -translate-y-1/2 cursor-pointer rounded-lg p-2",
+                  "text-muted transition-colors duration-200 hover:text-fg",
+                  "disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:text-muted",
+                )}
+              >
+                <SearchIcon className={cn("size-4", looking && "animate-pulse")} />
+              </button>
+            </div>
             {/* Worth saying plainly, because it is the opposite of how
                 this worked before: the provider looks the UID up in the
                 game and refuses one it cannot find. */}
+            {/* Said plainly because the icon looks free and is not: the
+                provider only reveals a name by selling the whitelist. */}
             <HelpText>
-              Digits only, at least 6. The provider checks it against the game and answers with the
-              player&apos;s name.
+              Digits only, at least 6. Search spends a credit unless the UID is already on your
+              list.
             </HelpText>
           </div>
 
           <div>
-            <FormLabel htmlFor="wl-note">Note</FormLabel>
+            <FormLabel htmlFor="wl-player">Player Name</FormLabel>
             <Input
-              id="wl-note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Buyer reference or customer name"
-              maxLength={40}
-              autoComplete="off"
+              id="wl-player"
+              value={looking ? "Searching…" : player}
+              readOnly
+              disabled
+              placeholder="Press the search icon to fetch the name"
             />
-            <HelpText>Your own reference. Stored as typed.</HelpText>
+            <HelpText>
+              {onList
+                ? "Verified. Choose the validity below and press ADD UID."
+                : "Read from the game, not typed. Press the search icon beside the UID."}
+            </HelpText>
           </div>
 
           <div>
@@ -522,9 +624,10 @@ function ExtendModal({
   return (
     <Modal open onClose={onClose} title={`Extend ${entry.uid}`}>
       <form onSubmit={submit}>
-        {/* The provider has no update call and refuses a duplicate add, so
-            the only route is remove-then-add. Saying so up front matters:
-            it spends a credit and it is not free of risk. */}
+        {/* The provider has no update call and refuses a UID that is
+            already active, so the only route is remove-then-add. Saying
+            so up front matters: it spends a credit and it is not free of
+            risk. */}
         <p className="mb-5 rounded-xl border border-[rgba(245,158,11,0.25)] bg-[rgba(245,158,11,0.08)] p-3 text-[12px] leading-relaxed text-orange">
           The provider has no edit action. This removes the UID and adds it
           back with the new validity, which spends a credit. If the re-add

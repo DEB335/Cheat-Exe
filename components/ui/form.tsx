@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDownIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 export function FormLabel({
@@ -39,29 +40,44 @@ export function Input({ className, ...rest }: React.InputHTMLAttributes<HTMLInpu
 }
 
 /**
- * Same shell as `Input`, so a select sits level with the fields beside
- * it. The chevron is a background image because `appearance-none` takes
- * the native one away and a positioned icon would sit over the text on
- * a narrow column.
+ * Same shell as `Input`, so a select sits level with the fields beside it.
+ *
+ * The chevron is a real element, not a background image. The background
+ * URL this used at first never compiled: a Tailwind arbitrary value cannot
+ * hold the spaces in an inline `<svg ...>` data URI, so the class was
+ * dropped and `appearance-none` was left to strip the native arrow with
+ * nothing put back -- a dropdown with no sign that it was one.
+ *
+ * `pointer-events-none` on the icon keeps the click falling through to the
+ * select, so the arrow opens the menu like the rest of the control.
  */
-export function Select({ className, children, ...rest }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+export function Select({
+  className,
+  children,
+  ...rest
+}: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select
-      {...rest}
-      className={cn(
-        "w-full appearance-none rounded-xl border border-input-line bg-input-bg py-3.5 pr-10 pl-4",
-        "text-[14px] font-medium text-fg outline-none transition-all duration-300 ease-smooth",
-        "bg-[length:16px] bg-[right_0.9rem_center] bg-no-repeat",
-        "bg-[url(\"data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23888%27 stroke-width=%273%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27M6 9l6 6 6-6%27/%3E%3C/svg%3E\")]",
-        "focus:border-accent focus:bg-[rgba(2,2,5,0.85)] focus:shadow-[0_0_0_3px_var(--accent-red-glow)]",
-        "lt:focus:bg-white",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        "[&>option]:bg-[#0b0b12] [&>option]:text-fg",
-        className,
-      )}
-    >
-      {children}
-    </select>
+    <div className="relative">
+      <select
+        {...rest}
+        className={cn(
+          "w-full appearance-none rounded-xl border border-input-line bg-input-bg py-3.5 pr-11 pl-4",
+          "cursor-pointer text-[14px] font-medium text-fg outline-none transition-all duration-300 ease-smooth",
+          "focus:border-accent focus:bg-[rgba(2,2,5,0.85)] focus:shadow-[0_0_0_3px_var(--accent-red-glow)]",
+          "lt:focus:bg-white",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          "[&>option]:bg-[#0b0b12] [&>option]:text-fg",
+          className,
+        )}
+      >
+        {children}
+      </select>
+
+      <ChevronDownIcon
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-muted"
+      />
+    </div>
   );
 }
 

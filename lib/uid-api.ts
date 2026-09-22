@@ -88,6 +88,12 @@ interface Envelope {
   error?: string;
   count?: number;
   data?: RawEntry | RawEntry[];
+  /**
+   * `whitelist_uid` answers flat -- name, uid, region, expires_at all
+   * at the top level -- where `get_whitelisted_uids` nests records
+   * under `data`. Both shapes are read rather than one assumed.
+   */
+  name?: string;
   /** Some actions answer the expiry at the top level instead. */
   expires_at?: number | string;
   expire_date?: number | string;
@@ -209,8 +215,16 @@ export async function listWhitelist(): Promise<WhitelistEntry[]> {
  * The provider verifies the UID against the game and answers with the
  * player's real in-game name, so an unknown UID is refused here rather
  * than stored under whatever was typed -- the reverse of the retired
- * service, which took any name for any number. `note` is the operator's
- * own label and is the only free text left.
+ * service, which took any name for any number.
+ *
+ * It refuses a UID that is already active, with a 502 and
+ * "External API Sync Error: This Account ID is already active." So a
+ * re-issue has to remove first; there is no update and no upsert.
+ *
+ * Measured once as succeeding on an active UID, which it is not: that
+ * call landed in the gap between the add and the provider's own
+ * external sync, and reset the expiry. The window is real but it is
+ * not a feature, and nothing here may depend on hitting it.
  */
 export async function addWhitelist(input: {
   uid: string;
@@ -228,9 +242,8 @@ export async function addWhitelist(input: {
   const data = Array.isArray(payload.data) ? payload.data[0] : payload.data;
 
   return {
-    name: text(data?.name),
-    // Not documented on this action, so it is reported when offered and
-    // left empty otherwise. Callers must not invent one.
+    // Top level first: that is where this action puts it.
+    name: text(payload.name ?? data?.name),
     expireDate: pickDate(data) || toDay(payload.expires_at ?? payload.expire_date),
   };
 }
