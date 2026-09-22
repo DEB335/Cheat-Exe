@@ -26,6 +26,22 @@ const API_URL =
   "https://auth.terminalx999.online/api_admin.php";
 const API_KEY = process.env.TX999_API_KEY ?? process.env.LICENSE_API_KEY;
 
+/**
+ * Forces UID Bypass into maintenance, whatever the provider says.
+ *
+ * The service can be down while its API still answers: the provider's
+ * own panel shows "UID Whitelist Service Under Maintenance" against an
+ * endpoint that returns success and an empty list. So an unreachable
+ * host is not the only way this breaks, and an unreachable host is the
+ * only way the panel could otherwise tell.
+ *
+ * Set UID_BYPASS_MAINTENANCE to 1 for that case. It stops the write
+ * paths too -- an add during maintenance is a credit spent on nothing.
+ */
+export const MAINTENANCE = /^(1|true|on|yes)$/i.test(
+  process.env.UID_BYPASS_MAINTENANCE ?? "",
+);
+
 export type { WhitelistEntry };
 
 export interface WhitelistAddResult {

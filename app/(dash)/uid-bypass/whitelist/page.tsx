@@ -7,6 +7,7 @@ import { DotBadge } from "@/components/ui/Badge";
 import { PrimaryButton, TintButton } from "@/components/ui/buttons";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { FormLabel, HelpText, Input, Select } from "@/components/ui/form";
+import { MaintenanceNotice } from "@/components/ui/MaintenanceNotice";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { del, patchJson, postJson } from "@/lib/client-api";
@@ -66,7 +67,7 @@ function RegionOptions() {
 export default function WhitelistPage() {
   const toast = useToast();
   const [auto, setAuto] = useStoredFlag(AUTO_KEY);
-  const { entries, loading, error, reload } = useWhitelist(auto);
+  const { entries, loading, maintenance, reason, reload } = useWhitelist(auto);
 
   const [uid, setUid] = useState("");
   const [note, setNote] = useState("");
@@ -185,6 +186,11 @@ export default function WhitelistPage() {
     }
   };
 
+  // Before anything else, and in place of the form rather than above
+  // it. Every button on this page spends a credit; none of them can
+  // work while the provider is unavailable.
+  if (maintenance) return <MaintenanceNotice reason={reason} />;
+
   return (
     <>
       <Card className="mb-[30px]">
@@ -267,11 +273,7 @@ export default function WhitelistPage() {
       <Card flat>
         <CardHeader
           title={`Whitelist Entries (${visible.length})`}
-          subtitle={
-            error
-              ? undefined
-              : `${entries.length} total · ${expiredCount} expired`
-          }
+          subtitle={`${entries.length} total · ${expiredCount} expired`}
           className="flex-wrap"
           actions={
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -333,9 +335,7 @@ export default function WhitelistPage() {
           }
         />
 
-        {error ? (
-          <p className="py-10 text-center text-[13px] text-[#f87171]">{error}</p>
-        ) : loading ? (
+        {loading ? (
           <p className="py-10 text-center text-[13px] text-muted">Loading whitelist…</p>
         ) : visible.length === 0 ? (
           <p className="py-10 text-center text-[13px] text-muted">

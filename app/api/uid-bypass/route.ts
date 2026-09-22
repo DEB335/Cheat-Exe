@@ -11,7 +11,7 @@ import {
 } from "@/lib/packages";
 import { ping } from "@/lib/realtime";
 import type { SessionUser, WhitelistEntry } from "@/lib/types";
-import { addWhitelist, listWhitelist, removeWhitelist } from "@/lib/uid-api";
+import { MAINTENANCE, addWhitelist, listWhitelist, removeWhitelist } from "@/lib/uid-api";
 import { displayUser } from "@/lib/utils";
 
 /** Upstream's own rule, enforced here so a bad UID never costs a credit. */
@@ -23,6 +23,19 @@ async function requireWhitelistAccess(): Promise<SessionUser> {
     throw new HttpError(403, "The UID BYPASS package is required to manage the whitelist.");
   }
   return user;
+}
+
+/**
+ * Refuses the write paths while maintenance is on.
+ *
+ * Separate from the read, which answers with a maintenance flag rather
+ * than an error: the page has to render something, and a button that
+ * spends a credit has to not work.
+ */
+function assertAvailable(): void {
+  if (MAINTENANCE) {
+    throw new HttpError(503, "UID Bypass is under maintenance. Whitelisting is paused.");
+  }
 }
 
 function cleanUid(value: unknown): string {
@@ -80,13 +93,40 @@ export const GET = route(async () => {
   const user = await requireWhitelistAccess();
   const db = await loadDb();
 
-  const entries = visibleTo(user, await listWhitelist(), db.cheatExeWhitelistOwners);
+  if (MAINTENANCE) {
+    return NextResponse.json({
+      success: true,
+      entries: [],
+      maintenance: true,
+      reason: "Switched on here with UID_BYPASS_MAINTENANCE.",
+    });
+  }
 
-  return NextResponse.json({ success: true, entries });
+  try {
+    const entries = visibleTo(user, await listWhitelist(), db.cheatExeWhitelistOwners);
+    return NextResponse.json({ success: true, entries, maintenance: false });
+  } catch (err) {
+    // A provider that is unreachable, or a key it will not take, is a
+    // state of the service rather than a fault in this request -- so it
+    // is reported as one instead of thrown, and the page shows the
+    // maintenance notice rather than a red line above a form that
+    // cannot work. Anything in the 400s is still a real error: those
+    // are answers about the request, not about the service.
+    if (err instanceof HttpError && err.status >= 500) {
+      return NextResponse.json({
+        success: true,
+        entries: [],
+        maintenance: true,
+        reason: err.message,
+      });
+    }
+    throw err;
+  }
 });
 
 export const POST = route(async (request: Request) => {
   const user = await requireWhitelistAccess();
+  assertAvailable();
   const ip = await clientIp();
 
   const body = await readJson<{
@@ -137,6 +177,7 @@ export const POST = route(async (request: Request) => {
  */
 export const PATCH = route(async (request: Request) => {
   const user = await requireWhitelistAccess();
+  assertAvailable();
   const ip = await clientIp();
 
   const body = await readJson<{
@@ -196,6 +237,7 @@ export const PATCH = route(async (request: Request) => {
 
 export const DELETE = route(async (request: Request) => {
   const user = await requireWhitelistAccess();
+  assertAvailable();
   const ip = await clientIp();
 
   const uid = cleanUid(new URL(request.url).searchParams.get("uid"));

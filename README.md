@@ -32,6 +32,7 @@ Open http://localhost:3000. Sign in with the owner account from
 | `LICENSE_APP_ID` | Upstream app id |
 | `ADMIN_USER` / `ADMIN_PASSWORD` | Owner account, used only when seeding a fresh database |
 | `TX999_API_URL` / `TX999_API_KEY` | Optional override for the UID whitelist. It now runs on the license API above, with the same key, so leave both unset |
+| `UID_BYPASS_MAINTENANCE` | Set to `1` to show the maintenance notice and refuse whitelist writes. Unset otherwise |
 
 ---
 
@@ -151,6 +152,34 @@ retired service and `api_admin.php` does not offer it; `reseller_stats`,
 which it does offer, counts license keys rather than whitelist credits.
 That is why no credits tile is shown and why `/uid credits` says so
 instead of reporting a number that would mean something else.
+
+### Maintenance is a state, not an error
+
+When the whitelist cannot be used, the section shows a maintenance notice
+in place of the form rather than a red line above it. Every control there
+spends a credit, so one that still looks available is an invitation to pay
+for a call that cannot succeed.
+
+It turns on two ways:
+
+- **On its own**, when the read fails with a 5xx — the provider unreachable,
+  or a key it will not take. `GET /api/uid-bypass` reports that as
+  `maintenance: true` with a `reason` rather than throwing. Anything in the
+  400s still throws: those are answers about the request, not the service.
+- **By hand**, with `UID_BYPASS_MAINTENANCE=1`. This is the case the API
+  cannot tell you about: the provider's own panel shows *UID Whitelist
+  Service Under Maintenance* while `get_whitelisted_uids` carries on
+  answering `success: true` with an empty list. Nothing in the response
+  says so, so nothing but a switch can.
+
+Set by hand it also refuses `POST`, `PATCH` and `DELETE` with a 503, so a
+stale tab or a direct call cannot spend a credit behind the notice. The
+automatic case needs no such guard: a write goes to the same provider the
+read could not reach, and fails on its own.
+
+**The Discord bot is not covered.** Its `/uid` commands call the provider
+directly rather than through this app, so they keep working while the
+panel shows the notice. Pausing both means pausing the bot as well.
 
 ### Writes are serialised
 
@@ -304,6 +333,7 @@ environments), and locally in `.env.local`:
 | `LICENSE_APP_ID` | |
 | `TX999_API_URL` | leave unset — falls back to `LICENSE_API_URL` |
 | `TX999_API_KEY` | leave unset — falls back to `LICENSE_API_KEY`. **Remove any value left over from the old `terminalx999.live` service**: it overrides the fallback and is rejected |
+| `UID_BYPASS_MAINTENANCE` | `1` while the provider is down. Unset otherwise |
 
 ### Use the transaction pooler, not the direct connection
 

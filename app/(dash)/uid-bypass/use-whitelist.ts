@@ -33,13 +33,30 @@ export function isExpired(entry: WhitelistEntry): boolean {
   return left !== null && left < 0;
 }
 
-async function fetchEntries(): Promise<WhitelistEntry[]> {
-  const data = await api<{ entries?: WhitelistEntry[] }>("/api/uid-bypass");
-  return data.entries ?? [];
+type WhitelistPayload = {
+  entries?: WhitelistEntry[];
+  maintenance?: boolean;
+  reason?: string;
+};
+
+interface Snapshot {
+  entries: WhitelistEntry[];
+  /** The provider is unreachable, or has been paused deliberately. */
+  maintenance: boolean;
+  /** Why, in the provider's words. For whoever can act on it. */
+  reason: string | null;
 }
 
-interface WhitelistState {
-  entries: WhitelistEntry[];
+async function fetchState(): Promise<Snapshot> {
+  const data = await api<WhitelistPayload>("/api/uid-bypass");
+  return {
+    entries: data.entries ?? [],
+    maintenance: data.maintenance === true,
+    reason: data.reason ?? null,
+  };
+}
+
+interface WhitelistState extends Snapshot {
   /** First load only, so a background refresh never blanks the list. */
   loading: boolean;
   error: string | null;
@@ -53,11 +70,32 @@ interface WhitelistState {
  * upstream, not in `app_state`, so it has nothing to do with the
  * snapshot `/api/db` hands out and a `refresh()` there must not be made
  * to wait on a third-party API.
+ *
+ * The route reports an unreachable provider as `maintenance` rather than
+ * as an error, so what still throws here is this app's own failure --
+ * equally a reason not to offer a form that spends credits. Both land on
+ * the same flag, and `reason` is what tells them apart afterwards.
  */
 export function useWhitelist(auto: boolean): WhitelistState {
   const [entries, setEntries] = useState<WhitelistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [maintenance, setMaintenance] = useState(false);
+  const [reason, setReason] = useState<string | null>(null);
+
+  const apply = useCallback((next: Snapshot) => {
+    setEntries(next.entries);
+    setMaintenance(next.maintenance);
+    setReason(next.reason);
+    setError(null);
+  }, []);
+
+  const fail = useCallback((err: unknown) => {
+    const message = (err as Error).message;
+    setError(message);
+    setMaintenance(true);
+    setReason(message);
+  }, []);
 
   // The first read is written inline rather than through `reload` so the
   // `alive` guard can wrap it: the upstream call can outlive the page,
@@ -67,13 +105,10 @@ export function useWhitelist(auto: boolean): WhitelistState {
 
     void (async () => {
       try {
-        const next = await fetchEntries();
-        if (alive) {
-          setEntries(next);
-          setError(null);
-        }
+        const next = await fetchState();
+        if (alive) apply(next);
       } catch (err) {
-        if (alive) setError((err as Error).message);
+        if (alive) fail(err);
       } finally {
         if (alive) setLoading(false);
       }
@@ -82,18 +117,17 @@ export function useWhitelist(auto: boolean): WhitelistState {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [apply, fail]);
 
   const reload = useCallback(async () => {
     try {
-      setEntries(await fetchEntries());
-      setError(null);
+      apply(await fetchState());
     } catch (err) {
-      setError((err as Error).message);
+      fail(err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apply, fail]);
 
   useEffect(() => {
     if (!auto) return;
@@ -101,5 +135,5 @@ export function useWhitelist(auto: boolean): WhitelistState {
     return () => clearInterval(timer);
   }, [auto, reload]);
 
-  return { entries, loading, error, reload };
+  return { entries, loading, error, maintenance, reason, reload };
 }

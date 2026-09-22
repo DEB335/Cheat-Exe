@@ -12,6 +12,7 @@ import {
 import { RoleBadge } from "@/components/ui/Badge";
 import { TintButton } from "@/components/ui/buttons";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { MaintenanceNotice } from "@/components/ui/MaintenanceNotice";
 import { StatCard } from "@/components/ui/StatCard";
 import { UID_BYPASS_PACKAGE } from "@/lib/packages";
 import { useDashboard } from "@/lib/store";
@@ -24,7 +25,7 @@ const AUTO_KEY = "uidBypassAutoRefresh";
 
 export default function UidBypassOverviewPage() {
   const [auto] = useStoredFlag(AUTO_KEY);
-  const { entries, loading, error, reload } = useWhitelist(auto);
+  const { entries, loading, maintenance, reason, reload } = useWhitelist(auto);
 
   const user = useDashboard((s) => s.user);
   const db = useDashboard((s) => s.db);
@@ -85,7 +86,16 @@ export default function UidBypassOverviewPage() {
         />
       </div>
 
-      <div className="grid gap-[30px] lg:grid-cols-2">
+      {/* The usage card reads the provider; Account Information reads
+          this session. Only the first one has nothing to say while the
+          service is down, so only the first one is replaced. */}
+      {maintenance && (
+        <div className="mb-[30px]">
+          <MaintenanceNotice reason={reason} />
+        </div>
+      )}
+
+      <div className={cn("grid gap-[30px]", !maintenance && "lg:grid-cols-2")}>
         <Card flat>
           <CardHeader title="Account Information" subtitle="How this session reaches the service." />
 
@@ -101,6 +111,7 @@ export default function UidBypassOverviewPage() {
           </dl>
         </Card>
 
+        {!maintenance && (
         <Card flat>
           <CardHeader
             title="Whitelist Usage"
@@ -149,19 +160,17 @@ export default function UidBypassOverviewPage() {
                 )
               }
             />
+            {/* Only ever stable here. An unreachable provider replaces
+                this whole card with the maintenance notice, so there is
+                no longer an unreachable state for the tile to report. */}
             <MiniTile
               label="Engine Sync"
-              value={
-                <span className={error ? "text-[#f87171]" : "text-[#34d399]"}>
-                  {error ? "UNREACHABLE" : "STABLE"}
-                </span>
-              }
-              dot={error ? "#ef4444" : "#10b981"}
+              value={<span className="text-[#34d399]">STABLE</span>}
+              dot="#10b981"
             />
           </div>
-
-          {error && <p className="mt-4 text-[12px] leading-relaxed text-[#f87171]">{error}</p>}
         </Card>
+        )}
       </div>
     </>
   );
