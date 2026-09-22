@@ -111,10 +111,13 @@ export default function WhitelistPage() {
   /**
    * Names the UID, at the cost of whitelisting it for a day.
    *
-   * The provider sells names; it does not tell them. So this asks
-   * before spending, and only after the free answer has been ruled
-   * out -- a UID already on the list carries its verified name, and
-   * the provider would refuse a second add for it anyway.
+   * The provider sells names; it does not tell them. It runs without
+   * a confirm step by choice -- the operator asked for one click, and
+   * the price is stated under the field rather than in the way.
+   *
+   * The free answer is still tried first: a UID already on the list
+   * carries its verified name, and the provider would refuse a second
+   * add for it anyway.
    */
   const lookup = async () => {
     const target = uid.trim();
@@ -133,12 +136,6 @@ export default function WhitelistPage() {
       );
       return;
     }
-
-    const ok = confirm(
-      `Searching ${target} spends a credit: the provider only gives a name by whitelisting. ` +
-        `It will be whitelisted for 1 day, then re-issued for the validity you choose. Continue?`,
-    );
-    if (!ok) return;
 
     setLooking(true);
     setPlayer("");
@@ -321,17 +318,29 @@ export default function WhitelistPage() {
 
           <div>
             <FormLabel htmlFor="wl-player">Player Name</FormLabel>
+            {/* Green once there is a name: it is the one thing on this
+                form read back from the game rather than typed, and the
+                last chance to notice the wrong customer before paying.
+                `disabled:opacity-100` undoes the dimming that would
+                otherwise mute the very field being highlighted. */}
             <Input
               id="wl-player"
               value={looking ? "Searching…" : player}
               readOnly
               disabled
               placeholder="Press the search icon to fetch the name"
+              className={cn(
+                player && "font-semibold text-[#34d399] disabled:opacity-100",
+              )}
             />
             <HelpText>
-              {onList
-                ? "Verified. Choose the validity below and press ADD UID."
-                : "Read from the game, not typed. Press the search icon beside the UID."}
+              {onList ? (
+                <span className="font-semibold text-[#34d399]">
+                  Verified. Choose the validity below and press ADD UID.
+                </span>
+              ) : (
+                "Read from the game, not typed. Press the search icon beside the UID."
+              )}
             </HelpText>
           </div>
 
