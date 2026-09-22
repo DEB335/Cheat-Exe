@@ -99,10 +99,23 @@ export const POST = route(async (request: Request) => {
   const region = cleanRegion(body.region);
   const days = cleanDays(body.days);
 
-  // Upstream first: it owns both the "UID already whitelisted" answer and
-  // the check against the game, and a failure here must not leave an
-  // ownership row behind for a UID that was never whitelisted.
-  const added = await addWhitelist({ uid, region, days, note });
+  // Upstream first: it owns both the verification against the game and
+  // the refusal, and a failure here must not leave an ownership row
+  // behind for a UID that was never whitelisted.
+  //
+  // The provider can go on calling a UID active after it was removed --
+  // its own external sync lags, by seconds. That is reachable from
+  // ordinary use now that a search removes what it adds, so the refusal
+  // is answered by clearing again and retrying once, rather than by
+  // telling the operator to wait and guess how long.
+  let added;
+  try {
+    added = await addWhitelist({ uid, region, days, note });
+  } catch (err) {
+    if (!(err instanceof HttpError) || !/already active/i.test(err.message)) throw err;
+    await removeWhitelist(uid);
+    added = await addWhitelist({ uid, region, days, note });
+  }
 
   await updateDb(async (db, tx) => {
     db.cheatExeWhitelistOwners[uid] = user.username.toLowerCase();

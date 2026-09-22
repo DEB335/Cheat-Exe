@@ -31,6 +31,11 @@ type AddResult = {
   expireDate?: string;
 };
 
+type LookupResult = AddResult & {
+  alreadyWhitelisted?: boolean;
+  strayEntry?: boolean;
+};
+
 /**
  * What to tell someone after an add or a re-issue.
  *
@@ -100,14 +105,11 @@ export default function WhitelistPage() {
   // or was already on the list. It decides which call the ADD button
   // makes: an active UID is refused by a plain add and has to be
   // re-issued instead.
+  // Whether the provider already holds this UID. Decides whether ADD
+  // creates or re-issues, and nothing else: a UID the search had to
+  // whitelist to read its name is removed again before the reply comes
+  // back, so there is no longer anything to hide from the table.
   const [onList, setOnList] = useState(false);
-  // A UID the search had to whitelist to read its name. It is really
-  // up there for a day, but it is not something the operator has sold
-  // yet, so it is kept out of the table until they press ADD. That
-  // keeps the list meaning "what I have issued" rather than "what I
-  // have looked at" -- which is the only reading that makes the
-  // expiry column and the counts worth anything.
-  const [pending, setPending] = useState<string | null>(null);
   const [region, setRegion] = useState<string>(DEFAULT_WHITELIST_REGION);
   const [days, setDays] = useState("");
   const [adding, setAdding] = useState(false);
@@ -117,44 +119,35 @@ export default function WhitelistPage() {
 
   const [editing, setEditing] = useState<WhitelistEntry | null>(null);
 
-  // Everything below counts, searches and deletes against this rather
-  // than `entries`, so a held-back UID cannot be counted in a total,
-  // swept up by Delete All, or found by a search that does not show it.
-  const listed = useMemo(
-    () => (pending ? entries.filter((entry) => entry.uid !== pending) : entries),
-    [entries, pending],
-  );
-
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return listed;
-    return listed.filter(
+    if (!needle) return entries;
+    return entries.filter(
       (entry) =>
         entry.uid.toLowerCase().includes(needle) ||
         entry.name.toLowerCase().includes(needle) ||
         entry.note.toLowerCase().includes(needle),
     );
-  }, [listed, query]);
+  }, [entries, query]);
 
-  const expiredCount = useMemo(() => listed.filter(isExpired).length, [listed]);
+  const expiredCount = useMemo(() => entries.filter(isExpired).length, [entries]);
 
   const changeUid = (value: string) => {
     setUid(value.replace(/\D/g, ""));
     setPlayer("");
     setOnList(false);
-    setPending(null);
   };
 
   /**
    * Names the UID, at the cost of whitelisting it for a day.
    *
-   * The provider sells names; it does not tell them. It runs without
-   * a confirm step by choice -- the operator asked for one click, and
-   * the price is stated under the field rather than in the way.
+   * The provider sells names; it does not tell them. So the endpoint
+   * buys a day and gives it straight back, and the UID is not left
+   * whitelisted by having been looked at.
    *
-   * The free answer is still tried first: a UID already on the list
-   * carries its verified name, and the provider would refuse a second
-   * add for it anyway.
+   * The free answer is tried first: a UID already on the list carries
+   * its verified name, and the provider would refuse a second add for
+   * it anyway.
    */
   const lookup = async () => {
     const target = uid.trim();
@@ -177,20 +170,27 @@ export default function WhitelistPage() {
     setLooking(true);
     setPlayer("");
     try {
-      const found = await postJson<AddResult>("/api/uid-bypass/lookup", {
+      const found = await postJson<LookupResult>("/api/uid-bypass/lookup", {
         uid: target,
         region,
       });
       setPlayer(found.name ?? "");
-      setOnList(true);
-      setPending(target);
-      void reload();
-      toast(
-        found.name
-          ? `${found.name} — now choose the validity and press ADD UID.`
-          : "The provider returned no name for that UID.",
-        found.name ? "success" : "error",
-      );
+      setOnList(found.alreadyWhitelisted === true);
+      if (found.alreadyWhitelisted || found.strayEntry) void reload();
+
+      if (!found.name) {
+        toast("The provider returned no name for that UID.", "error");
+      } else if (found.strayEntry) {
+        // Rare, and worth saying: the check entry could not be taken
+        // back, so it is on the list for a day and the table will show
+        // it. Better said than quietly left.
+        toast(
+          `${found.name} — but the 1-day check entry could not be removed. Delete it from the list.`,
+          "error",
+        );
+      } else {
+        toast(`${found.name} — now choose the validity and press ADD UID.`, "success");
+      }
     } catch (err) {
       toast((err as Error).message, "error");
     } finally {
@@ -222,7 +222,6 @@ export default function WhitelistPage() {
       setPlayer("");
       setDays("");
       setOnList(false);
-      setPending(null);
       // The reply carries everything a card shows except who added it,
       // so the row can be drawn now and corrected by the reload behind
       // it rather than waited for.
@@ -437,7 +436,7 @@ export default function WhitelistPage() {
       <Card flat>
         <CardHeader
           title={`Whitelist Entries (${visible.length})`}
-          subtitle={`${listed.length} total · ${expiredCount} expired`}
+          subtitle={`${entries.length} total · ${expiredCount} expired`}
           className="flex-wrap"
           actions={
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -455,7 +454,7 @@ export default function WhitelistPage() {
               <TintButton
                 tone="red"
                 disabled={busy !== null || expiredCount === 0}
-                onClick={() => void removeMany(listed.filter(isExpired))}
+                onClick={() => void removeMany(entries.filter(isExpired))}
               >
                 <TrashIcon className="size-[13px]" strokeWidth={2.5} />
                 Delete Expired
@@ -463,8 +462,8 @@ export default function WhitelistPage() {
 
               <TintButton
                 tone="red"
-                disabled={busy !== null || listed.length === 0}
-                onClick={() => void removeMany(listed)}
+                disabled={busy !== null || entries.length === 0}
+                onClick={() => void removeMany(entries)}
               >
                 <TrashIcon className="size-[13px]" strokeWidth={2.5} />
                 Delete All
@@ -503,7 +502,7 @@ export default function WhitelistPage() {
           <p className="py-10 text-center text-[13px] text-muted">Loading whitelist…</p>
         ) : visible.length === 0 ? (
           <p className="py-10 text-center text-[13px] text-muted">
-            {listed.length === 0 ? "No UIDs whitelisted yet." : "No UID matches that search."}
+            {entries.length === 0 ? "No UIDs whitelisted yet." : "No UID matches that search."}
           </p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">

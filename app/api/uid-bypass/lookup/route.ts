@@ -1,35 +1,32 @@
 import { NextResponse } from "next/server";
 
-import { HttpError, clientIp, loadDb, requireUser } from "@/lib/auth";
+import { HttpError, clientIp, requireUser } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
 import { canManageWhitelist } from "@/lib/packages";
 import { ping } from "@/lib/realtime";
-import { MAINTENANCE, addWhitelist } from "@/lib/uid-api";
+import { MAINTENANCE, addWhitelist, listWhitelist, removeWhitelist } from "@/lib/uid-api";
 import { cleanRegion, cleanUid } from "@/lib/whitelist-input";
 import { displayUser } from "@/lib/utils";
 
-/** The throwaway validity a verification buys. Replaced by the re-issue. */
+/** The throwaway validity a name costs. Given straight back. */
 const PROBE_DAYS = 1;
 
 /**
- * Names a UID by whitelisting it for a single day.
+ * Names a UID without leaving it whitelisted.
  *
- * The provider has no lookup. `whitelist_uid` is the only action that
- * answers with a player's in-game name, and it bills for it -- so this
- * is a purchase wearing a search icon, not a query. Everything about it
- * is shaped to say so: it is a POST, it writes an ownership row and an
- * audit line exactly like an add, and the button that calls it asks
- * first.
+ * The provider has no lookup: `whitelist_uid` is the only action that
+ * answers with a player's in-game name, and it whitelists them to do it.
+ * So this buys one day and immediately hands it back, which is what lets
+ * the whitelist table keep meaning "what has been sold". The earlier
+ * version left the entry in place and hid it in the page's state, and
+ * that hiding died the moment the operator navigated -- the entry was
+ * always really there, which is the bug this replaces.
  *
- * One day rather than the validity the operator picked, because the
- * re-issue that follows replaces this entry anyway. That makes the
- * number throwaway and leaves a search nobody followed up as the
- * smallest thing it can be.
- *
- * Callers must check the whitelist they already hold before coming here:
- * a UID on that list carries its verified name for free, and asking the
- * provider again would be both billed and refused.
+ * The existence check is not an optimisation. It decides whether the
+ * entry about to be removed is one this request created or one a
+ * customer is paying for, so it asks the provider rather than trusting
+ * the list the browser happens to be holding.
  */
 export const POST = route(async (request: Request) => {
   const user = await requireUser();
@@ -45,23 +42,56 @@ export const POST = route(async (request: Request) => {
   const uid = cleanUid(body.uid);
   const region = cleanRegion(body.region);
 
-  const db = await loadDb();
-  const owner = db.cheatExeWhitelistOwners[uid];
-  if (owner && user.role !== "OWNER" && owner !== user.username.toLowerCase()) {
-    throw new HttpError(403, "That UID was whitelisted by someone else.");
+  // Already sold to someone: answer from the list and touch nothing. A
+  // removal here would cut off a paying customer to satisfy a search.
+  const existing = (await listWhitelist()).find((entry) => entry.uid === uid);
+  if (existing) {
+    return NextResponse.json({
+      success: true,
+      uid,
+      name: existing.name,
+      region: existing.region,
+      expireDate: existing.expireDate,
+      alreadyWhitelisted: true,
+    });
   }
 
   const added = await addWhitelist({ uid, region, days: PROBE_DAYS, note: "" });
 
-  await updateDb(async (current, tx) => {
-    current.cheatExeWhitelistOwners[uid] = owner ?? user.username.toLowerCase();
-    pushAudit(current, {
+  // The add succeeded, so something is up there now and this is the only
+  // code that knows it should not be. A failure to remove is reported
+  // rather than thrown: the name was still read, and telling the
+  // operator "search failed" while leaving an entry behind would be the
+  // worst of both.
+  let removed = true;
+  try {
+    await removeWhitelist(uid);
+  } catch {
+    removed = false;
+  }
+
+  await updateDb(async (db, tx) => {
+    // Only if it is still there. An owner row for an entry that does not
+    // exist would make the panel refuse a later add by someone else.
+    if (!removed) db.cheatExeWhitelistOwners[uid] = user.username.toLowerCase();
+
+    pushAudit(db, {
       user: displayUser(user.username, user.role),
-      action: `Verified UID ${uid}${added.name ? ` (${added.name})` : ""} on ${region} -- whitelisted for ${PROBE_DAYS} day`,
+      action: removed
+        ? `Checked UID ${uid}${added.name ? ` (${added.name})` : ""} on ${region}`
+        : `Checked UID ${uid}${added.name ? ` (${added.name})` : ""} on ${region} -- the ${PROBE_DAYS}-day check entry could not be removed`,
       ip,
     });
     await ping("audit", tx);
   });
 
-  return NextResponse.json({ success: true, uid, region, probeDays: PROBE_DAYS, ...added });
+  return NextResponse.json({
+    success: true,
+    uid,
+    region,
+    name: added.name,
+    alreadyWhitelisted: false,
+    /** True when the check entry is still on the provider's list. */
+    strayEntry: !removed,
+  });
 });
