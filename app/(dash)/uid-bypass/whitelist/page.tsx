@@ -6,11 +6,16 @@ import { CheckCircleIcon, RefreshIcon, SearchIcon, TrashIcon } from "@/component
 import { DotBadge } from "@/components/ui/Badge";
 import { PrimaryButton, TintButton } from "@/components/ui/buttons";
 import { Card, CardHeader } from "@/components/ui/Card";
-import { FormLabel, HelpText, Input } from "@/components/ui/form";
+import { FormLabel, HelpText, Input, Select } from "@/components/ui/form";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { del, patchJson, postJson } from "@/lib/client-api";
-import { MAX_WHITELIST_DAYS } from "@/lib/packages";
+import {
+  DEFAULT_WHITELIST_REGION,
+  MAX_WHITELIST_DAYS,
+  WHITELIST_REGIONS,
+  isWhitelistRegion,
+} from "@/lib/packages";
 import type { WhitelistEntry } from "@/lib/types";
 import { useStoredFlag } from "@/lib/use-external";
 import { cn } from "@/lib/utils";
@@ -19,13 +24,53 @@ import { daysLeft, isExpired, useWhitelist } from "../use-whitelist";
 
 const AUTO_KEY = "uidBypassAutoRefresh";
 
+/** A type, not an interface: `api<T>` wants an implicit index signature. */
+type AddResult = {
+  name?: string;
+  expireDate?: string;
+};
+
+/**
+ * What to tell someone after an add or a re-issue.
+ *
+ * The provider answers with the player it verified, which is the useful
+ * half -- it is the only confirmation that the UID typed belongs to the
+ * customer meant. It does not always answer with a date, so the validity
+ * asked for stands in rather than a guessed one.
+ */
+function addedMessage(result: AddResult, uid: string, days: number): string {
+  const who = result.name ? `${result.name} (${uid})` : `UID ${uid}`;
+  const until = result.expireDate
+    ? `until ${result.expireDate}`
+    : `for ${days} day${days === 1 ? "" : "s"}`;
+  return `${who} whitelisted ${until}.`;
+}
+
+/** Entries predating the move read "ALL SERVER", which is not selectable. */
+function startingRegion(region: string): string {
+  return isWhitelistRegion(region) ? region : DEFAULT_WHITELIST_REGION;
+}
+
+function RegionOptions() {
+  return (
+    <>
+      {WHITELIST_REGIONS.map((region) => (
+        <option key={region.code} value={region.code}>
+          {region.label} ({region.code})
+        </option>
+      ))}
+    </>
+  );
+}
+
 export default function WhitelistPage() {
   const toast = useToast();
   const [auto, setAuto] = useStoredFlag(AUTO_KEY);
   const { entries, loading, error, reload } = useWhitelist(auto);
 
   const [uid, setUid] = useState("");
-  const [name, setName] = useState("");
+  const [note, setNote] = useState("");
+  const [region, setRegion] = useState<string>(DEFAULT_WHITELIST_REGION);
   const [days, setDays] = useState("");
   const [adding, setAdding] = useState(false);
 
@@ -38,7 +83,9 @@ export default function WhitelistPage() {
     if (!needle) return entries;
     return entries.filter(
       (entry) =>
-        entry.uid.toLowerCase().includes(needle) || entry.name.toLowerCase().includes(needle),
+        entry.uid.toLowerCase().includes(needle) ||
+        entry.name.toLowerCase().includes(needle) ||
+        entry.note.toLowerCase().includes(needle),
     );
   }, [entries, query]);
 
@@ -47,17 +94,20 @@ export default function WhitelistPage() {
   const add = async (event: React.FormEvent) => {
     event.preventDefault();
     setAdding(true);
+    const wanted = days.trim() === "" ? MAX_WHITELIST_DAYS : Number(days);
+    const target = uid.trim();
     try {
-      const result = await postJson<{ expireDate?: string }>("/api/uid-bypass", {
-        uid: uid.trim(),
-        name: name.trim(),
-        days: days.trim() === "" ? MAX_WHITELIST_DAYS : Number(days),
+      const result = await postJson<AddResult>("/api/uid-bypass", {
+        uid: target,
+        note: note.trim(),
+        region,
+        days: wanted,
       });
       setUid("");
-      setName("");
+      setNote("");
       setDays("");
       await reload();
-      toast(`UID whitelisted until ${result.expireDate || "the provider's default date"}.`, "success");
+      toast(addedMessage(result, target, wanted), "success");
     } catch (err) {
       toast((err as Error).message, "error");
     } finally {
@@ -66,14 +116,22 @@ export default function WhitelistPage() {
   };
 
   const removeOne = async (entry: WhitelistEntry) => {
-    if (!confirm(`Remove UID ${entry.uid}${entry.name ? ` (${entry.name})` : ""} from the whitelist?`)) {
+    const who = entry.name || entry.note;
+    if (!confirm(`Remove UID ${entry.uid}${who ? ` (${who})` : ""} from the whitelist?`)) {
       return;
     }
     setBusy(entry.uid);
     try {
-      await del(`/api/uid-bypass?uid=${encodeURIComponent(entry.uid)}`);
+      const result = await del<{ existed?: boolean }>(
+        `/api/uid-bypass?uid=${encodeURIComponent(entry.uid)}`,
+      );
       await reload();
-      toast(`UID ${entry.uid} removed.`, "success");
+      toast(
+        result.existed === false
+          ? `UID ${entry.uid} was not on the provider's list. Cleared it here.`
+          : `UID ${entry.uid} removed.`,
+        "success",
+      );
     } catch (err) {
       toast((err as Error).message, "error");
     } finally {
@@ -87,7 +145,8 @@ export default function WhitelistPage() {
    * Upstream has no bulk endpoint, so this is a loop -- and a loop can
    * fail halfway. Every removal is counted separately and the summary
    * reports what actually happened rather than assuming the whole set
-   * went through.
+   * went through. UIDs the provider did not hold are counted apart from
+   * the ones genuinely taken off it: both leave, but only one was there.
    */
   const removeMany = async (targets: WhitelistEntry[], label: string) => {
     if (targets.length === 0) return;
@@ -97,12 +156,16 @@ export default function WhitelistPage() {
 
     setBusy("bulk");
     let removed = 0;
+    let stale = 0;
     const failed: string[] = [];
 
     for (const entry of targets) {
       try {
-        await del(`/api/uid-bypass?uid=${encodeURIComponent(entry.uid)}`);
-        removed += 1;
+        const result = await del<{ existed?: boolean }>(
+          `/api/uid-bypass?uid=${encodeURIComponent(entry.uid)}`,
+        );
+        if (result.existed === false) stale += 1;
+        else removed += 1;
       } catch {
         failed.push(entry.uid);
       }
@@ -111,10 +174,14 @@ export default function WhitelistPage() {
     setBusy(null);
     await reload();
 
+    const staleNote = stale === 0 ? "" : ` (${stale} not on the provider's list)`;
     if (failed.length === 0) {
-      toast(`Removed ${removed} UID${removed === 1 ? "" : "s"}.`, "success");
+      toast(`Removed ${removed} UID${removed === 1 ? "" : "s"}${staleNote}.`, "success");
     } else {
-      toast(`Removed ${removed}; ${failed.length} failed (${failed.slice(0, 3).join(", ")}).`, "error");
+      toast(
+        `Removed ${removed}${staleNote}; ${failed.length} failed (${failed.slice(0, 3).join(", ")}).`,
+        "error",
+      );
     }
   };
 
@@ -138,30 +205,41 @@ export default function WhitelistPage() {
               autoComplete="off"
               required
             />
-            <HelpText>Digits only, at least 8.</HelpText>
+            {/* Worth saying plainly, because it is the opposite of how
+                this worked before: the provider looks the UID up in the
+                game and refuses one it cannot find. */}
+            <HelpText>
+              Digits only, at least 6. The provider checks it against the game and answers with the
+              player&apos;s name.
+            </HelpText>
           </div>
 
           <div>
-            <FormLabel htmlFor="wl-name">Player Name</FormLabel>
+            <FormLabel htmlFor="wl-note">Note</FormLabel>
             <Input
-              id="wl-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Label for your own reference"
+              id="wl-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Buyer reference or customer name"
               maxLength={40}
               autoComplete="off"
             />
-            {/* Worth saying plainly: nothing upstream checks this against
-                the game, so a typo is stored exactly as typed. */}
-            <HelpText>Stored as typed — the provider does not verify it.</HelpText>
+            <HelpText>Your own reference. Stored as typed.</HelpText>
           </div>
 
           <div>
-            <FormLabel>Region</FormLabel>
-            <div className="flex w-full items-center rounded-xl border border-input-line bg-input-bg px-4 py-3.5 text-[14px] font-medium text-muted">
-              ALL SERVER
-            </div>
-            <HelpText>Every entry covers all servers. The provider ignores per-region routing.</HelpText>
+            <FormLabel htmlFor="wl-region">Server Region *</FormLabel>
+            <Select
+              id="wl-region"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              required
+            >
+              <RegionOptions />
+            </Select>
+            <HelpText>
+              The server the account plays on. A wrong one still spends a credit.
+            </HelpText>
           </div>
 
           <div>
@@ -292,7 +370,7 @@ export default function WhitelistPage() {
             toast(message, "success");
           }}
           onError={(message) => toast(message, "error")}
-          extend={(body) => patchJson<{ expireDate?: string }>("/api/uid-bypass", body)}
+          extend={(body) => patchJson<AddResult>("/api/uid-bypass", body)}
         />
       )}
     </>
@@ -325,10 +403,10 @@ function EntryCard({
       <div className="mb-4 font-mono text-[16px] font-bold break-all text-fg">{entry.uid}</div>
 
       <dl className="mb-3 grid grid-cols-2 gap-y-3 text-[11px]">
-        <Field label="Name" value={entry.name || "—"} />
+        <Field label="Player" value={entry.name || "—"} />
         <Field label="Region" value={entry.region} align="right" />
-        <Field label="Added By" value={entry.createdBy || "—"} accent />
-        <Field label="Sync" value={entry.sync === "external" ? "API" : entry.sync || "—"} align="right" accent />
+        <Field label="Note" value={entry.note || "—"} />
+        <Field label="Added By" value={entry.createdBy || "—"} align="right" accent />
       </dl>
 
       <div className="mb-4 border-t border-dashed border-line pt-3">
@@ -410,22 +488,30 @@ function ExtendModal({
   onClose: () => void;
   onDone: (message: string) => Promise<void>;
   onError: (message: string) => void;
-  extend: (body: { uid: string; name: string; days: number }) => Promise<{ expireDate?: string }>;
+  extend: (body: {
+    uid: string;
+    note: string;
+    region: string;
+    days: number;
+  }) => Promise<AddResult>;
 }) {
   const [days, setDays] = useState("");
-  const [name, setName] = useState("");
+  const [note, setNote] = useState(entry.note);
+  const [region, setRegion] = useState<string>(startingRegion(entry.region));
   const [saving, setSaving] = useState(false);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
+    const wanted = days.trim() === "" ? MAX_WHITELIST_DAYS : Number(days);
     try {
       const result = await extend({
         uid: entry.uid,
-        name: name.trim() || entry.name,
-        days: days.trim() === "" ? MAX_WHITELIST_DAYS : Number(days),
+        note: note.trim(),
+        region,
+        days: wanted,
       });
-      await onDone(`UID ${entry.uid} re-issued until ${result.expireDate || "the provider's default date"}.`);
+      await onDone(addedMessage(result, entry.uid, wanted));
     } catch (err) {
       onError((err as Error).message);
     } finally {
@@ -446,15 +532,28 @@ function ExtendModal({
         </p>
 
         <div className="mb-4">
-          <FormLabel htmlFor="ext-name">Player Name</FormLabel>
+          <FormLabel htmlFor="ext-region">Server Region</FormLabel>
+          <Select id="ext-region" value={region} onChange={(e) => setRegion(e.target.value)}>
+            <RegionOptions />
+          </Select>
+          {!isWhitelistRegion(entry.region) && (
+            <HelpText>
+              This entry predates per-region routing ({entry.region}). Re-issuing pins it to a real
+              server.
+            </HelpText>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <FormLabel htmlFor="ext-note">Note</FormLabel>
           <Input
-            id="ext-name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={entry.name || "Label for your own reference"}
+            id="ext-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Buyer reference or customer name"
             maxLength={40}
           />
-          <HelpText>Leave empty to keep “{entry.name || "—"}”.</HelpText>
+          <HelpText>Your own reference. The player name comes back from the game.</HelpText>
         </div>
 
         <div className="mb-6">

@@ -247,24 +247,34 @@ export interface SessionUser {
 /**
  * A UID whitelist record, shaped for the browser.
  *
- * Deliberately not the upstream shape. `reseller_list` echoes back
- * `api_key_ref` -- the TX999 reseller key, in full -- on every record,
- * and that key is the only credential the integration has. Mapping into
- * this type in `lib/uid-api` is what keeps it server-side: nothing here
- * can carry it.
+ * Deliberately not the upstream shape, and named field by field rather
+ * than spread: the whitelist now shares an endpoint -- and the admin
+ * credential -- with the licence API, so a record copied wholesale is a
+ * standing invitation for a future upstream field to carry something
+ * privileged into a browser. Mapping in `lib/uid-api` keeps that
+ * impossible rather than merely unlikely.
  */
 export interface WhitelistEntry {
   uid: string;
+  /**
+   * The in-game name the provider verified for this UID.
+   *
+   * Read from the game, not typed by whoever added the entry -- an
+   * unknown UID is refused rather than stored under a made-up name. The
+   * operator's own label is `note`.
+   */
   name: string;
   /**
-   * Always "ALL SERVER".
+   * Server region, as a provider code -- "IND", "BD", "BR" and so on.
    *
-   * The upstream ignores every region parameter tried against it --
-   * `region`, `server` and `region_code` all round-trip as ALL SERVER --
-   * so this is reported, never chosen.
+   * Genuinely chosen per entry. The retired service ignored every region
+   * parameter and reported "ALL SERVER" for everything, so entries
+   * predating the move still read that way.
    */
   region: string;
-  /** "YYYY-MM-DD". */
+  /** Whatever the buyer reference was set to. The provider stores it verbatim. */
+  note: string;
+  /** "YYYY-MM-DD", or "" when the provider reports no date. */
   expireDate: string;
   /** The TX999 account, not the panel user. Always the key's owner. */
   createdBy: string;

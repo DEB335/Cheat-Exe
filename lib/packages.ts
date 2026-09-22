@@ -42,12 +42,48 @@ export function shortPackageLabel(name: string): string {
 export const UID_BYPASS_PACKAGE = "UID BYPASS";
 
 /**
- * Longest validity the upstream whitelist accepts, in days.
+ * Longest validity this panel sells, in days.
+ *
+ * This panel's cap, not the provider's: the admin API takes longer
+ * runs (and 0 for lifetime). Raising it here is a pricing decision, so
+ * it is not pinned to whatever the API happens to allow.
  *
  * Lives here rather than in `lib/uid-api` so the form can enforce it
  * before spending a credit -- that module is server-only.
  */
 export const MAX_WHITELIST_DAYS = 30;
+
+/**
+ * The server regions the whitelist accepts, in the provider's own order.
+ *
+ * Region used to be fiction: the retired service ignored it and every
+ * entry came back as ALL SERVER. The admin API takes it for real, so it
+ * is chosen per UID now -- and a wrong one is a wasted credit, which is
+ * why the list is enumerated here rather than typed into a free field.
+ *
+ * Here rather than in `lib/uid-api` for the same reason as the day cap:
+ * the form has to offer these, and that module is server-only.
+ */
+export const WHITELIST_REGIONS = [
+  { code: "IND", label: "India" },
+  { code: "BD", label: "Bangladesh" },
+  { code: "BR", label: "Brazil" },
+  { code: "SG", label: "Singapore" },
+  { code: "RU", label: "Russia" },
+  { code: "ID", label: "Indonesia" },
+  { code: "TW", label: "Taiwan" },
+  { code: "US", label: "United States" },
+  { code: "VN", label: "Vietnam" },
+  { code: "PK", label: "Pakistan" },
+] as const;
+
+export type WhitelistRegion = (typeof WHITELIST_REGIONS)[number]["code"];
+
+export const DEFAULT_WHITELIST_REGION: WhitelistRegion = "IND";
+
+export function isWhitelistRegion(value: string): value is WhitelistRegion {
+  return WHITELIST_REGIONS.some((region) => region.code === value);
+}
 
 /**
  * Who may manage the UID whitelist.

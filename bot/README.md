@@ -31,16 +31,17 @@ is a live admin credential, so it lives in `.env`, which is gitignored.
 | `/ban key` | Blocks the key |
 | `/unban key` | Restores it |
 | `/delete key` | Removes it permanently |
-| `/uid add uid days name` | Whitelists a UID for the bypass, posted publicly |
+| `/uid add uid region days note` | Whitelists a UID for the bypass, posted publicly |
 | `/uid remove uid` | Takes a UID off the whitelist |
-| `/uid list` | Shows the whitelist with expiry and days left |
-| `/uid credits` | TERMINALX999 credit balance |
+| `/uid list` | Shows the whitelist with region, expiry and days left |
+| `/uid credits` | Explains that the provider exposes no balance |
 
 `/genkey` and `/uid add` post to the channel so the server has a record;
 everything else answers privately.
 
-The `/uid` commands appear only when `TX999_API_KEY` is set. They talk to
-a different service from the rest -- see below.
+The `/uid` commands register alongside the rest now: the whitelist moved
+onto the licence API and shares its key, so there is nothing extra to
+configure -- see below.
 
 The buttons under a generated key keep working after a restart. They carry
 the key in their `custom_id` and are handled by a global listener rather
@@ -146,51 +147,68 @@ choosing a container host for something clients depend on.
 
 ## UID whitelist
 
-`/uid ...` drives TERMINALX999's UID bypass list -- **a different service
-from the licence API above**, on its own host with its own key. It is the
-same list the web panel's *UID Bypass* section shows, so a UID added from
-Discord appears there and vice versa.
+`/uid ...` drives TERMINALX999's UID bypass list -- the same list the web
+panel's *UID Bypass* section shows, so a UID added from Discord appears
+there and vice versa.
+
+It used to be a service of its own, on its own host with its own reseller
+key. **That host no longer resolves.** The whitelist is now three actions
+on the licence API above -- `whitelist_uid`, `remove_uid` and
+`get_whitelisted_uids` -- reached by JSON POST with the same admin key.
 
 | Variable | Meaning |
 |---|---|
-| `TX999_API_KEY` | The reseller key. Blank leaves the `/uid` commands unregistered |
-| `TX999_API_URL` | Defaults to `https://terminalx999.live/api.php` |
-| `TX999_USER` / `TX999_PASS` | Optional, only for `/uid credits` |
+| `TX999_API_KEY` | Leave unset. Falls back to `LICENSE_API_KEY` |
+| `TX999_API_URL` | Leave unset. Falls back to `LICENSE_API_URL` |
+| `TX999_USER` / `TX999_PASS` | Dead. Nothing reads them -- see below |
 
-Use the same `TX999_API_KEY` as the panel's `.env.local` so both write to
-one list.
+The two `TX999_*` overrides exist only in case the provider splits the
+services apart again. **Clear any value left from before the move**: it
+beats the fallback and the new endpoint rejects it, in `bot/.env` and in a
+container host's dashboard alike.
 
 ### What the provider actually does
 
-Three actions exist -- `reseller_add`, `reseller_remove`, `reseller_list`.
-Everything else answers "Method not allowed" or an empty 200 body. There
-is no update call and no bulk delete, which is why there is no `/uid edit`.
+There is still no update call and no bulk delete, which is why there is
+no `/uid edit`. What changed in behaviour, not just in spelling:
 
-Four behaviours are worth knowing, because each one contradicts what the
-API looks like it does:
+- **The name is verified now.** The provider looks the UID up in the game,
+  refuses one it cannot find, and answers with the real in-game name. The
+  old service stored any name against any number. So `/uid add` reports a
+  **Player** read off the account, and your own label moved to `note`.
+- **Region is real.** The old service ignored it and reported `ALL SERVER`
+  for everything. `/uid add` now offers IND, BD, BR, SG, RU, ID, TW, US, VN
+  and PK as choices, defaulting to IND. A wrong region still spends a
+  credit, which is why it is a choice list rather than free text.
+- **Removal distinguishes absent from removed.** A UID the provider does
+  not hold answers `404`, so `/uid remove` says "was not on the whitelist"
+  or "removed from the whitelist" and means the difference. The old
+  service reported success either way, which is why the command used to
+  claim only the state now.
+- **UIDs may be as short as 6 digits**, down from 8.
+- **`message` is filled on success too.** Only `success` decides. The bot
+  reads `message` only on the failure branch for that reason.
+- **The record is read field by field.** The whitelist shares an endpoint,
+  and a credential, with the licence API now -- a reply built from a whole
+  record is one new upstream field away from printing something privileged
+  into Discord.
 
-- **The name is not verified.** `name` is stored exactly as typed. A UID
-  belonging to nobody is accepted just as readily as a real one, so the
-  field is a label for your own records, not a check.
-- **Region cannot be set.** `region`, `server` and `region_code` are all
-  ignored; every entry comes back as `ALL SERVER`.
-- **Removal always reports success**, whether or not the UID was ever on
-  the list. `/uid remove` therefore says the UID *is not* whitelisted,
-  never that it deleted something.
-- **`reseller_list` echoes the API key back** in an `api_key_ref` field on
-  every record. The bot reads records field by field for that reason -- a
-  reply built from a whole record would print a live credential into
-  Discord.
+Validity is `days`, from 1 to 30, defaulting to 30 when omitted. That cap
+is this panel's pricing, not the API's; keep it in step with
+`MAX_WHITELIST_DAYS` in `lib/packages.ts`.
 
-Validity is `days`, from 1 to 30, defaulting to 30 when omitted.
+### Why `/uid credits` reports nothing
 
-### Why `/uid credits` needs a username and password
+There is no balance call left to make. `get_my_api_key` belonged to the
+retired service, and `api_admin.php` answers an invalid-action error that
+lists its entire vocabulary -- not something to print into a channel.
+`reseller_stats`, which the endpoint does offer, counts licence keys and
+not whitelist credits, so reporting it here would put a confident wrong
+number in front of whoever is deciding how many UIDs they can still sell.
 
-The provider has no way to report a balance from the API key. Its
-`get_my_api_key` is the *login* call that hands the key out, so it wants
-an account: sent a key instead, it answers "Username and password are
-required". Leave `TX999_USER` and `TX999_PASS` blank and the command says
-so. It will not report a balance it cannot read.
+So the command says so and points at the provider's portal. `TX999_USER`
+and `TX999_PASS` are left in `.env` as a marker rather than deleted, so
+this can come back cheaply if a balance action ever appears.
 
 ## Validity: send it as `days`, and ignore `key_info`
 

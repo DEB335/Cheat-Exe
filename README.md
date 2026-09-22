@@ -31,7 +31,7 @@ Open http://localhost:3000. Sign in with the owner account from
 | `LICENSE_API_KEY` | Upstream API key — **server-side only**, never shipped to the browser |
 | `LICENSE_APP_ID` | Upstream app id |
 | `ADMIN_USER` / `ADMIN_PASSWORD` | Owner account, used only when seeding a fresh database |
-| `TX999_API_URL` / `TX999_API_KEY` | UID whitelist behind the UID Bypass section (`https://terminalx999.live/api.php`). A different service from the license API — **server-side only** |
+| `TX999_API_URL` / `TX999_API_KEY` | Optional override for the UID whitelist. It now runs on the license API above, with the same key, so leave both unset |
 
 ---
 
@@ -93,42 +93,64 @@ Every key this panel has ever issued is a lifetime key. The generator now
 says so under the field. Fixing it properly needs a change on the API
 side, or the correct parameter name from whoever runs it.
 
-### UID Bypass runs on a second, blunter API
+### UID Bypass moved onto the license API
 
-The UID Bypass section talks to `terminalx999.live/api.php`, which is not
-the license API and behaves nothing like it. Three actions exist —
-`reseller_add`, `reseller_remove`, `reseller_list` — and everything else
-answers "Method not allowed" or an empty 200 body. `lib/uid-api.ts` is the
-only thing that speaks to it.
+It used to be a service of its own — `terminalx999.live/api.php`, a GET
+with query parameters, its own reseller key, its own `reseller_*` actions.
+**That host no longer resolves.** The whitelist is now three actions on
+`api_admin.php`: `whitelist_uid`, `remove_uid` and `get_whitelisted_uids`,
+reached by JSON POST with the same admin key the license API uses.
 
-Four of its behaviours shape the UI, and each one is the opposite of what
-the API appears to offer:
+So `TX999_API_URL` and `TX999_API_KEY` fall back to `LICENSE_API_URL` and
+`LICENSE_API_KEY`. Leave them unset. A stale value beats the fallback and
+is rejected, which is the one way left to break this section from config —
+including a value still sitting in a host dashboard from before the move.
+`lib/uid-api.ts` is still the only thing that speaks to it.
 
-- **`reseller_list` echoes the API key back** in an `api_key_ref` field on
-  every record. That key is the integration's only credential, so the
-  route maps records onto `WhitelistEntry` — a type with nowhere to put
-  it — rather than forwarding what it received.
-- **Region cannot be set.** `region`, `server` and `region_code` are all
-  ignored and every entry returns `ALL SERVER`, so the form shows a fixed
-  chip instead of a dropdown that would quietly do nothing.
-- **The player name is not verified.** It is stored exactly as typed, so
-  the field is labelled as a reference, not a check.
-- **There is no update action**, and `reseller_add` refuses a UID it
-  already holds. Extending validity is therefore remove-then-add, which
+What changed in behaviour, not just in spelling:
+
+- **The player name is verified now.** The provider looks the UID up in
+  the game, refuses one it cannot find, and answers with the real in-game
+  name. The old service stored any name against any number. So `name` is
+  an output, and the operator's own label moved to `note`.
+- **Region is real.** The old service ignored `region`, `server` and
+  `region_code` alike and reported `ALL SERVER` for everything. The API
+  takes one of IND, BD, BR, SG, RU, ID, TW, US, VN or PK, so the form
+  offers a dropdown and the route refuses anything outside that list —
+  a wrong region still spends a credit. Entries predating the move still
+  read `ALL SERVER`.
+- **Removal distinguishes absent from removed.** A UID the provider does
+  not hold answers `404`, where the old service reported success either
+  way. That is not treated as an error — it is what was asked for — but
+  it is reported, so a bulk delete says how many were actually on the
+  list. `removeWhitelist` returns that as a boolean.
+- **Minimum UID length is 6 digits**, down from 8.
+- **`message` is filled on success too.** Only `success` decides. Reading
+  `message` the way the old service's `error` was read turns every good
+  reply into a failure.
+- **There is still no update action**, and `whitelist_uid` refuses a UID
+  it already holds. Extending validity is therefore remove-then-add, which
   runs server-side in `PATCH` so the unwhitelisted window is milliseconds
   rather than a browser round trip, and retries once before reporting.
+
+Records are mapped field by field onto `WhitelistEntry` rather than
+forwarded. The whitelist shares an endpoint — and a credential — with the
+license API now, so a record passed through whole is one new upstream
+field away from carrying something privileged into a browser.
 
 One key backs the whole panel, and upstream stamps every entry
 `created_by: cheatexe` whoever added it. `cheatExeWhitelistOwners` records
 the real author per UID so one reseller cannot delete another's customer.
-It is server-side only — `toPublic` builds its result from a fixed list of
-fields, so it never reaches a browser. A UID with no recorded owner (added
+It is server-side only, so it never reaches a browser. A UID with no
+recorded owner (added
 from the Discord bot, from the provider's own panel, or before this
 existed) belongs to the owner rather than to whoever asks first.
 
-The credit balance is not readable: `get_my_api_key` is the login call
-that issues the key, so it wants a username and password, not a key. That
-is why no credits tile is shown.
+The credit balance is still not readable. `get_my_api_key` belonged to the
+retired service and `api_admin.php` does not offer it; `reseller_stats`,
+which it does offer, counts license keys rather than whitelist credits.
+That is why no credits tile is shown and why `/uid credits` says so
+instead of reporting a number that would mean something else.
 
 ### Writes are serialised
 
@@ -280,8 +302,8 @@ environments), and locally in `.env.local`:
 | `LICENSE_API_URL` | `https://auth.terminalx999.online/api_admin.php` |
 | `LICENSE_API_KEY` | server-side only |
 | `LICENSE_APP_ID` | |
-| `TX999_API_URL` | `https://terminalx999.live/api.php` |
-| `TX999_API_KEY` | server-side only. Omit it and the UID Bypass pages report the section as unconfigured rather than failing oddly |
+| `TX999_API_URL` | leave unset — falls back to `LICENSE_API_URL` |
+| `TX999_API_KEY` | leave unset — falls back to `LICENSE_API_KEY`. **Remove any value left over from the old `terminalx999.live` service**: it overrides the fallback and is rejected |
 
 ### Use the transaction pooler, not the direct connection
 

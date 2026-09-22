@@ -43,14 +43,17 @@ export default function UidBypassOverviewPage() {
       ? (db.cheatExeUsers[user.username]?.expiresAt ?? "Never")
       : "Never";
 
-  const bySync = useMemo(() => {
-    let api = 0;
-    let bot = 0;
+  // Region, not sync platform. The whitelist's move onto the admin API
+  // took `sync_target` with it, so a tile reading that field would say
+  // "Bot: everything" forever. Region is what became real in the same
+  // move, and it is the figure worth watching: a customer whitelisted on
+  // the wrong server is a spent credit.
+  const byRegion = useMemo(() => {
+    const counts = new Map<string, number>();
     for (const entry of entries) {
-      if (entry.sync === "external") api += 1;
-      else bot += 1;
+      counts.set(entry.region, (counts.get(entry.region) ?? 0) + 1);
     }
-    return { api, bot };
+    return [...counts].sort((a, b) => b[1] - a[1]);
   }, [entries]);
 
   return (
@@ -130,12 +133,20 @@ export default function UidBypassOverviewPage() {
             <MiniTile label="Active" value={loading ? "—" : active} dot="#22d3ee" />
             <MiniTile label="Expired" value={loading ? "—" : expired} dot="#a855f7" />
             <MiniTile
-              label="Sync Platform"
+              label="Regions"
               value={
-                <span className="text-[13px]">
-                  <span className="text-[#60a5fa]">API: {bySync.api}</span>{" "}
-                  <span className="text-muted">Bot: {bySync.bot}</span>
-                </span>
+                byRegion.length === 0 ? (
+                  "—"
+                ) : (
+                  <span className="text-[13px]">
+                    <span className="text-[#60a5fa]">
+                      {byRegion[0][0]}: {byRegion[0][1]}
+                    </span>
+                    {byRegion.length > 1 && (
+                      <span className="text-muted"> +{byRegion.length - 1} more</span>
+                    )}
+                  </span>
+                )
               }
             />
             <MiniTile
