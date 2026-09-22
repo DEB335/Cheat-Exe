@@ -101,6 +101,13 @@ export default function WhitelistPage() {
   // makes: an active UID is refused by a plain add and has to be
   // re-issued instead.
   const [onList, setOnList] = useState(false);
+  // A UID the search had to whitelist to read its name. It is really
+  // up there for a day, but it is not something the operator has sold
+  // yet, so it is kept out of the table until they press ADD. That
+  // keeps the list meaning "what I have issued" rather than "what I
+  // have looked at" -- which is the only reading that makes the
+  // expiry column and the counts worth anything.
+  const [pending, setPending] = useState<string | null>(null);
   const [region, setRegion] = useState<string>(DEFAULT_WHITELIST_REGION);
   const [days, setDays] = useState("");
   const [adding, setAdding] = useState(false);
@@ -110,23 +117,32 @@ export default function WhitelistPage() {
 
   const [editing, setEditing] = useState<WhitelistEntry | null>(null);
 
+  // Everything below counts, searches and deletes against this rather
+  // than `entries`, so a held-back UID cannot be counted in a total,
+  // swept up by Delete All, or found by a search that does not show it.
+  const listed = useMemo(
+    () => (pending ? entries.filter((entry) => entry.uid !== pending) : entries),
+    [entries, pending],
+  );
+
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    if (!needle) return entries;
-    return entries.filter(
+    if (!needle) return listed;
+    return listed.filter(
       (entry) =>
         entry.uid.toLowerCase().includes(needle) ||
         entry.name.toLowerCase().includes(needle) ||
         entry.note.toLowerCase().includes(needle),
     );
-  }, [entries, query]);
+  }, [listed, query]);
 
-  const expiredCount = useMemo(() => entries.filter(isExpired).length, [entries]);
+  const expiredCount = useMemo(() => listed.filter(isExpired).length, [listed]);
 
   const changeUid = (value: string) => {
     setUid(value.replace(/\D/g, ""));
     setPlayer("");
     setOnList(false);
+    setPending(null);
   };
 
   /**
@@ -167,6 +183,7 @@ export default function WhitelistPage() {
       });
       setPlayer(found.name ?? "");
       setOnList(true);
+      setPending(target);
       void reload();
       toast(
         found.name
@@ -205,6 +222,7 @@ export default function WhitelistPage() {
       setPlayer("");
       setDays("");
       setOnList(false);
+      setPending(null);
       // The reply carries everything a card shows except who added it,
       // so the row can be drawn now and corrected by the reload behind
       // it rather than waited for.
@@ -419,7 +437,7 @@ export default function WhitelistPage() {
       <Card flat>
         <CardHeader
           title={`Whitelist Entries (${visible.length})`}
-          subtitle={`${entries.length} total · ${expiredCount} expired`}
+          subtitle={`${listed.length} total · ${expiredCount} expired`}
           className="flex-wrap"
           actions={
             <div className="flex flex-wrap items-center justify-end gap-2">
@@ -437,7 +455,7 @@ export default function WhitelistPage() {
               <TintButton
                 tone="red"
                 disabled={busy !== null || expiredCount === 0}
-                onClick={() => void removeMany(entries.filter(isExpired))}
+                onClick={() => void removeMany(listed.filter(isExpired))}
               >
                 <TrashIcon className="size-[13px]" strokeWidth={2.5} />
                 Delete Expired
@@ -445,8 +463,8 @@ export default function WhitelistPage() {
 
               <TintButton
                 tone="red"
-                disabled={busy !== null || entries.length === 0}
-                onClick={() => void removeMany(entries)}
+                disabled={busy !== null || listed.length === 0}
+                onClick={() => void removeMany(listed)}
               >
                 <TrashIcon className="size-[13px]" strokeWidth={2.5} />
                 Delete All
@@ -485,7 +503,7 @@ export default function WhitelistPage() {
           <p className="py-10 text-center text-[13px] text-muted">Loading whitelist…</p>
         ) : visible.length === 0 ? (
           <p className="py-10 text-center text-[13px] text-muted">
-            {entries.length === 0 ? "No UIDs whitelisted yet." : "No UID matches that search."}
+            {listed.length === 0 ? "No UIDs whitelisted yet." : "No UID matches that search."}
           </p>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4">
