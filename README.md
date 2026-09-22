@@ -143,8 +143,7 @@ One key backs the whole panel, and upstream stamps every entry
 `created_by: cheatexe` whoever added it. `cheatExeWhitelistOwners` records
 the real author per UID so one reseller cannot delete another's customer.
 It is server-side only, so it never reaches a browser. A UID with no
-recorded owner (added
-from the Discord bot, from the provider's own panel, or before this
+recorded owner (added from the provider's own panel, or before this
 existed) belongs to the owner rather than to whoever asks first.
 
 The credit balance is still not readable. `get_my_api_key` belonged to the
@@ -177,9 +176,6 @@ stale tab or a direct call cannot spend a credit behind the notice. The
 automatic case needs no such guard: a write goes to the same provider the
 read could not reach, and fails on its own.
 
-**The Discord bot is not covered.** Its `/uid` commands call the provider
-directly rather than through this app, so they keep working while the
-panel shows the notice. Pausing both means pausing the bot as well.
 
 ### Writes are serialised
 

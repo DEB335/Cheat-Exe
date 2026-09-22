@@ -35,7 +35,7 @@ function assertAvailable(): void {
  * Narrows a list to what this user may act on.
  *
  * A UID with no recorded owner is the owner's: entries predating this
- * map, or added straight from the Discord bot or the TX999 panel, have
+ * map, or added straight from the TX999 panel, have
  * nobody to attribute them to and must not fall to whoever asks first.
  */
 function visibleTo(

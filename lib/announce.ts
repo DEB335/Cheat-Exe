@@ -10,14 +10,9 @@ import { formatTimestamp } from "./utils";
 /**
  * Records a broadcast and wakes every dashboard.
  *
- * The panel is the only way one starts now. A post in a Discord channel
- * used to become one too, through /api/messages/ingest and a bot that
- * watched for it; that bridge is gone, because it only worked while a
- * process somewhere stayed running and there was nowhere to run it.
- *
- * `source` outlives it. Announcements forwarded before the removal still
- * carry "discord" and still show their badge, which is the honest
- * record of where they came from.
+ * The panel is the only way one starts. Another existed once, forwarding
+ * posts from a chat channel through a bot; it is gone, along with the
+ * rest of that integration.
  *
  * Call inside `updateDb`, and pass its transaction: the ping rides along
  * on it rather than paying for a round trip of its own.

@@ -154,19 +154,15 @@ export interface Announcement {
    */
   clearedBy?: string[];
   /**
-   * Where it was posted from. Absent on records written before the
-   * Discord bridge existed, which were all panel sends.
+   * Where it was posted from.
+   *
+   * Every record is a panel send. The other value survives only on rows
+   * written while a chat bridge forwarded them, and nothing reads it --
+   * the union keeps those rows describable rather than inviting a new
+   * integration.
    */
   source?: "panel" | "discord";
-  /**
-   * Id of the Discord message this mirrored, on records written while
-   * the bridge existed. Nothing sets it now; it is kept so those rows
-   * still describe themselves.
-   *
-   * The bridge's idempotency key: the ingest route refuses a second copy
-   * of an id it already holds, so a retry after a timeout, or the
-   * catch-up sweep re-reading channel history, cannot broadcast twice.
-   */
+  /** Left on those same old rows. Nothing sets or reads it. */
   discordId?: string;
 }
 
@@ -186,7 +182,7 @@ export interface PublicAnnouncement {
   reactions?: Record<string, string>;
   /** Owner only. */
   readCount?: number;
-  /** Shown as a badge, so a Discord post is recognisable as one. */
+  /** Always "panel" now. Stored rows may still carry the old value. */
   source?: "panel" | "discord";
 }
 
