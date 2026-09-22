@@ -87,6 +87,7 @@ export default function WhitelistPage() {
 
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [armed, setArmed] = useState<"expired" | "all" | null>(null);
   const [editing, setEditing] = useState<WhitelistEntry | null>(null);
 
   const visible = useMemo(() => {
@@ -194,10 +195,6 @@ export default function WhitelistPage() {
   };
 
   const removeOne = async (entry: WhitelistEntry) => {
-    const who = entry.name || entry.note;
-    if (!confirm(`Remove UID ${entry.uid}${who ? ` (${who})` : ""} from the whitelist?`)) {
-      return;
-    }
     setBusy(entry.uid);
     try {
       const result = await del<{ existed?: boolean }>(
@@ -218,6 +215,29 @@ export default function WhitelistPage() {
   };
 
   /**
+   * Arms a bulk delete, or runs it if it is already armed.
+   *
+   * No dialog -- the operator asked for none -- but not on one click
+   * either. Delete All takes every customer off the list at once, and
+   * putting them back costs a credit each, so the second click stands
+   * in for the question rather than removing it. It disarms itself
+   * after a few seconds so a stray first click does not stay loaded.
+   */
+  const armBulk = (key: "expired" | "all", targets: WhitelistEntry[]) => {
+    if (targets.length === 0) return;
+    if (armed !== key) {
+      setArmed(key);
+      window.setTimeout(
+        () => setArmed((current) => (current === key ? null : current)),
+        4000,
+      );
+      return;
+    }
+    setArmed(null);
+    void removeMany(targets);
+  };
+
+  /**
    * Bulk delete.
    *
    * Upstream has no bulk endpoint, so this is a loop -- and a loop can
@@ -226,11 +246,8 @@ export default function WhitelistPage() {
    * went through. UIDs the provider did not hold are counted apart from
    * the ones genuinely taken off it: both leave, but only one was there.
    */
-  const removeMany = async (targets: WhitelistEntry[], label: string) => {
+  const removeMany = async (targets: WhitelistEntry[]) => {
     if (targets.length === 0) return;
-    if (!confirm(`${label} — ${targets.length} UID${targets.length === 1 ? "" : "s"}. This cannot be undone.`)) {
-      return;
-    }
 
     setBusy("bulk");
     let removed = 0;
@@ -402,19 +419,19 @@ export default function WhitelistPage() {
               <TintButton
                 tone="red"
                 disabled={busy !== null || expiredCount === 0}
-                onClick={() => removeMany(entries.filter(isExpired), "Delete every expired UID")}
+                onClick={() => armBulk("expired", entries.filter(isExpired))}
               >
                 <TrashIcon className="size-[13px]" strokeWidth={2.5} />
-                Delete Expired
+                {armed === "expired" ? `Delete ${expiredCount}? Click again` : "Delete Expired"}
               </TintButton>
 
               <TintButton
                 tone="red"
                 disabled={busy !== null || entries.length === 0}
-                onClick={() => removeMany(entries, "Delete the entire whitelist")}
+                onClick={() => armBulk("all", entries)}
               >
                 <TrashIcon className="size-[13px]" strokeWidth={2.5} />
-                Delete All
+                {armed === "all" ? `Delete all ${entries.length}? Click again` : "Delete All"}
               </TintButton>
 
               <button
