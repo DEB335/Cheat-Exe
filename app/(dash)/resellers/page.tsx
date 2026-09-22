@@ -40,9 +40,26 @@ export default function ResellersPage() {
   const users = useDashboard((s) => s.db.cheatExeUsers);
   const history = useDashboard((s) => s.db.cheatExeKeyHistory);
 
+  // The packages the provider currently offers, not the ones compiled
+  // in. The store refreshes this from get_admin_packages, which is how
+  // the generator already knew about a package this page did not: a
+  // grant list that cannot name a package cannot give it away.
+  const offered = useDashboard((s) => s.packages);
+  const packageNames = useMemo(
+    () => (offered.length > 0 ? offered.map((p) => p.name) : PACKAGE_NAMES),
+    [offered],
+  );
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [packages, setPackages] = useState<string[]>(PACKAGE_NAMES);
+  // null means nobody has picked yet, which reads as everything on
+  // offer. Derived rather than copied into state on mount: the live
+  // list can arrive later, and a default frozen before it landed would
+  // leave a new package out of every reseller created since.
+  const [chosen, setChosen] = useState<string[] | null>(null);
+  const packages = chosen ?? packageNames;
+  const setPackages = (updater: (current: string[]) => string[]) =>
+    setChosen((current) => updater(current ?? packageNames));
   const [validityDays, setValidityDays] = useState("30");
   const [keyLimit, setKeyLimit] = useState("");
   const [deviceLocked, setDeviceLocked] = useState(true);
@@ -57,8 +74,11 @@ export default function ResellersPage() {
   const [renewDays, setRenewDays] = useState("30");
   const [renewLimit, setRenewLimit] = useState("");
 
-  const togglePackage = (name: string, on: boolean, setter: typeof setPackages) =>
-    setter((current) => (on ? [...current, name] : current.filter((p) => p !== name)));
+  const togglePackage = (
+    name: string,
+    on: boolean,
+    setter: (updater: (current: string[]) => string[]) => void,
+  ) => setter((current) => (on ? [...current, name] : current.filter((p) => p !== name)));
 
   const create = async () => {
     setBusy(true);
@@ -209,7 +229,7 @@ export default function ResellersPage() {
 
         <FormLabel>Allowed Packages</FormLabel>
         <div className="mt-2.5 mb-5 flex flex-wrap gap-2.5">
-          {PACKAGE_NAMES.map((name) => (
+          {packageNames.map((name) => (
             <PackageToggle
               key={name}
               label={name}
@@ -485,7 +505,7 @@ export default function ResellersPage() {
         }
       >
         <div className="mb-5 flex flex-wrap gap-2.5">
-          {PACKAGE_NAMES.map((name) => (
+          {packageNames.map((name) => (
             <PackageToggle
               key={name}
               label={name}

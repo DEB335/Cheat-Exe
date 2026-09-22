@@ -158,6 +158,7 @@ PACKAGES = [
     ("PVT AIMKILL", "d4f0ce93349f236711344cb5"),
     ("VAULT PANEL", "154d1edaddd7203fbfd847f4"),
     ("LIB BYPASS", "db3b90e8134ec738b94a9b05"),
+    ("FPS BOOSTER", "2411bc9db9f9a66c6e876ad2"),
 ]
 
 BRAND = 0xE8A020

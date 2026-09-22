@@ -1,6 +1,7 @@
 import "server-only";
 
 import { HttpError } from "./auth";
+import { PACKAGE_NAMES } from "./packages";
 
 const API_URL = process.env.LICENSE_API_URL;
 const API_KEY = process.env.LICENSE_API_KEY;
@@ -117,3 +118,30 @@ export async function livePackage(
 export const getStats = () => callLicenseApi<StatsResponse>("reseller_stats");
 
 export const getKeyInfo = (key: string) => callLicenseApi<KeyInfoResponse>("key_info", { key });
+
+/**
+ * The package names a reseller grant is allowed to contain.
+ *
+ * The live list, because the generator sells from the live list. A
+ * package the provider offers but this check refuses is one that can
+ * be sold and not granted -- which is precisely how FPS BOOSTER came
+ * to be generatable and ungrantable at once, the grant routes having
+ * filtered against the compiled-in names while the generator read the
+ * API.
+ *
+ * Falls back to the bundled names when the provider is unreachable, so
+ * an outage narrows what can be granted rather than silently emptying
+ * every grant that passes through it.
+ */
+export async function grantablePackageNames(): Promise<string[]> {
+  try {
+    const data = await getPackages();
+    const names = (data.packages ?? [])
+      .map((p) => p.package_name)
+      .filter((name): name is string => Boolean(name));
+    if (names.length > 0) return names;
+  } catch {
+    /* fall through to the bundled list */
+  }
+  return PACKAGE_NAMES;
+}

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { HttpError, clientIp, requireOwner } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { findReseller, hashPassword, updateDb } from "@/lib/db";
-import { PACKAGE_NAMES } from "@/lib/packages";
+import { grantablePackageNames } from "@/lib/license-api";
 import { ping } from "@/lib/realtime";
 import { expiryFromDays } from "@/lib/reseller";
 import { formatDateOnly } from "@/lib/utils";
@@ -30,7 +30,11 @@ export const POST = route(async (request: Request) => {
   if (!username || !password) throw new HttpError(400, "Enter username and password!");
   if (password.length < 4) throw new HttpError(400, "Password must be at least 4 characters.");
 
-  const packages = (body.packages ?? []).filter((p) => PACKAGE_NAMES.includes(p));
+  // Checked against what the provider currently sells, not against the
+  // bundled list -- a grant silently dropped here is a package the
+  // owner ticked and the reseller never got.
+  const grantable = await grantablePackageNames();
+  const packages = (body.packages ?? []).filter((p) => grantable.includes(p));
 
   const validityDays = numeric(body.validityDays, "Validity");
   const keyLimit = numeric(body.keyLimit, "Key limit");

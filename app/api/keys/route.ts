@@ -24,10 +24,15 @@ export const POST = route(async (request: Request) => {
   const user = await requireUser();
   const body = await readJson<GenerateBody>(request);
   const requested = body.packageId ?? "";
-  // Fall back to the live list: a package added upstream is selectable in
-  // the generator before it reaches lib/packages.ts, and refusing it here
-  // made it look broken rather than new.
-  const pkg = packageById(requested) ?? (await livePackage(requested));
+  // The live list decides the name, the bundled one is the outage
+  // fallback -- this order matters and used to be the other way round.
+  // Grants are stored under the provider name, so resolving an id from
+  // the bundled row first meant an upstream rename left a reseller
+  // holding the new name and being refused under the old one, with the
+  // generator showing the card as available. Reading live first keeps
+  // the name the grant was written with and the name checked here the
+  // same string.
+  const pkg = (await livePackage(requested)) ?? packageById(requested);
   if (!pkg) throw new HttpError(400, "Unknown package.");
 
   const duration = String(body.duration ?? "30");

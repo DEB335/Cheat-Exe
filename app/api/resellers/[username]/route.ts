@@ -5,7 +5,7 @@ import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { findReseller, hashPassword, updateDb } from "@/lib/db";
 import { clearLock } from "@/lib/device-lock";
 import { expiryFromDays } from "@/lib/reseller";
-import { PACKAGE_NAMES } from "@/lib/packages";
+import { grantablePackageNames } from "@/lib/license-api";
 import { ping } from "@/lib/realtime";
 import type { ResellerStatus } from "@/lib/types";
 
@@ -45,6 +45,11 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
     throw new HttpError(400, `Status must be one of: ${SETTABLE_STATUS.join(", ")}.`);
   }
 
+  // Read before the transaction opens: this calls the provider, and a
+  // write lock has no business being held across a network round trip.
+  // Only when the request actually changes grants.
+  const grantable = body.packages ? await grantablePackageNames() : [];
+
   await updateDb(async (db, tx) => {
     const match = findReseller(db, decodeURIComponent(username));
     if (!match) throw new HttpError(404, "Reseller not found.");
@@ -77,7 +82,7 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
 
     if (body.packages) {
       changed = true;
-      match.user.packages = body.packages.filter((p) => PACKAGE_NAMES.includes(p));
+      match.user.packages = body.packages.filter((p) => grantable.includes(p));
       pushAudit(db, {
         user: "Owner (OWNER)",
         action: `Updated permissions for ${match.key}`,
