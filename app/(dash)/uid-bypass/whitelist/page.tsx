@@ -47,6 +47,26 @@ function addedMessage(result: AddResult, uid: string, days: number): string {
   return `${who} whitelisted ${until}.`;
 }
 
+/**
+ * Runs `task` over `items`, `limit` at a time.
+ *
+ * The provider has no bulk endpoint, so a mass delete is a loop -- but
+ * it need not be a queue. At ~400ms a call, fifty UIDs one after
+ * another is half a minute; six at a time is a few seconds, and stays
+ * polite enough not to look like an attack.
+ */
+async function inBatches<T, R>(
+  items: T[],
+  limit: number,
+  task: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < items.length; i += limit) {
+    out.push(...(await Promise.all(items.slice(i, i + limit).map(task))));
+  }
+  return out;
+}
+
 /** Entries predating the move read "ALL SERVER", which is not selectable. */
 function startingRegion(region: string): string {
   return isWhitelistRegion(region) ? region : DEFAULT_WHITELIST_REGION;
@@ -67,7 +87,7 @@ function RegionOptions() {
 export default function WhitelistPage() {
   const toast = useToast();
   const [auto, setAuto] = useStoredFlag(AUTO_KEY);
-  const { entries, loading, maintenance, reason, reload } = useWhitelist(auto);
+  const { entries, loading, maintenance, reason, reload, mutate } = useWhitelist(auto);
 
   const [uid, setUid] = useState("");
   // The name the provider reads off the account. Never typed: the field
@@ -87,7 +107,7 @@ export default function WhitelistPage() {
 
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
-  const [armed, setArmed] = useState<"expired" | "all" | null>(null);
+
   const [editing, setEditing] = useState<WhitelistEntry | null>(null);
 
   const visible = useMemo(() => {
@@ -147,7 +167,7 @@ export default function WhitelistPage() {
       });
       setPlayer(found.name ?? "");
       setOnList(true);
-      await reload();
+      void reload();
       toast(
         found.name
           ? `${found.name} — now choose the validity and press ADD UID.`
@@ -185,7 +205,21 @@ export default function WhitelistPage() {
       setPlayer("");
       setDays("");
       setOnList(false);
-      await reload();
+      // The reply carries everything a card shows except who added it,
+      // so the row can be drawn now and corrected by the reload behind
+      // it rather than waited for.
+      mutate((prev) => [
+        {
+          uid: target,
+          name: result.name ?? body.note,
+          region,
+          note: body.note,
+          expireDate: result.expireDate ?? "",
+          createdBy: "",
+        },
+        ...prev.filter((row) => row.uid !== target),
+      ]);
+      void reload();
       toast(addedMessage(result, target, wanted), "success");
     } catch (err) {
       toast((err as Error).message, "error");
@@ -195,12 +229,14 @@ export default function WhitelistPage() {
   };
 
   const removeOne = async (entry: WhitelistEntry) => {
-    setBusy(entry.uid);
+    // Gone from the screen at once. The call still runs and a failure
+    // puts the row back, but the happy path no longer waits on a write
+    // and a re-read to show what the click obviously meant.
+    mutate((prev) => prev.filter((row) => row.uid !== entry.uid));
     try {
       const result = await del<{ existed?: boolean }>(
         `/api/uid-bypass?uid=${encodeURIComponent(entry.uid)}`,
       );
-      await reload();
       toast(
         result.existed === false
           ? `UID ${entry.uid} was not on the provider's list. Cleared it here.`
@@ -208,66 +244,48 @@ export default function WhitelistPage() {
         "success",
       );
     } catch (err) {
+      mutate((prev) => (prev.some((row) => row.uid === entry.uid) ? prev : [entry, ...prev]));
       toast((err as Error).message, "error");
-    } finally {
-      setBusy(null);
     }
-  };
-
-  /**
-   * Arms a bulk delete, or runs it if it is already armed.
-   *
-   * No dialog -- the operator asked for none -- but not on one click
-   * either. Delete All takes every customer off the list at once, and
-   * putting them back costs a credit each, so the second click stands
-   * in for the question rather than removing it. It disarms itself
-   * after a few seconds so a stray first click does not stay loaded.
-   */
-  const armBulk = (key: "expired" | "all", targets: WhitelistEntry[]) => {
-    if (targets.length === 0) return;
-    if (armed !== key) {
-      setArmed(key);
-      window.setTimeout(
-        () => setArmed((current) => (current === key ? null : current)),
-        4000,
-      );
-      return;
-    }
-    setArmed(null);
-    void removeMany(targets);
   };
 
   /**
    * Bulk delete.
    *
-   * Upstream has no bulk endpoint, so this is a loop -- and a loop can
-   * fail halfway. Every removal is counted separately and the summary
-   * reports what actually happened rather than assuming the whole set
-   * went through. UIDs the provider did not hold are counted apart from
-   * the ones genuinely taken off it: both leave, but only one was there.
+   * Upstream has no bulk endpoint, so this is still a loop -- but the
+   * calls overlap, and the rows leave the screen before any of them
+   * land. Each removal is counted separately, because a batch can fail
+   * halfway and the summary should say what happened rather than what
+   * was asked for. UIDs the provider did not hold are counted apart
+   * from the ones genuinely taken off it: both leave, but only one was
+   * there. The reload at the end puts back anything that failed.
    */
   const removeMany = async (targets: WhitelistEntry[]) => {
     if (targets.length === 0) return;
 
+    const going = new Set(targets.map((entry) => entry.uid));
+    mutate((prev) => prev.filter((row) => !going.has(row.uid)));
     setBusy("bulk");
-    let removed = 0;
-    let stale = 0;
-    const failed: string[] = [];
 
-    for (const entry of targets) {
+    const outcomes = await inBatches(targets, 6, async (entry) => {
       try {
         const result = await del<{ existed?: boolean }>(
           `/api/uid-bypass?uid=${encodeURIComponent(entry.uid)}`,
         );
-        if (result.existed === false) stale += 1;
-        else removed += 1;
+        return result.existed === false ? "stale" : "removed";
       } catch {
-        failed.push(entry.uid);
+        return `failed:${entry.uid}`;
       }
-    }
+    });
+
+    const removed = outcomes.filter((o) => o === "removed").length;
+    const stale = outcomes.filter((o) => o === "stale").length;
+    const failed = outcomes
+      .filter((o) => o.startsWith("failed:"))
+      .map((o) => o.slice("failed:".length));
 
     setBusy(null);
-    await reload();
+    void reload();
 
     const staleNote = stale === 0 ? "" : ` (${stale} not on the provider's list)`;
     if (failed.length === 0) {
@@ -419,19 +437,19 @@ export default function WhitelistPage() {
               <TintButton
                 tone="red"
                 disabled={busy !== null || expiredCount === 0}
-                onClick={() => armBulk("expired", entries.filter(isExpired))}
+                onClick={() => void removeMany(entries.filter(isExpired))}
               >
                 <TrashIcon className="size-[13px]" strokeWidth={2.5} />
-                {armed === "expired" ? `Delete ${expiredCount}? Click again` : "Delete Expired"}
+                Delete Expired
               </TintButton>
 
               <TintButton
                 tone="red"
                 disabled={busy !== null || entries.length === 0}
-                onClick={() => armBulk("all", entries)}
+                onClick={() => void removeMany(entries)}
               >
                 <TrashIcon className="size-[13px]" strokeWidth={2.5} />
-                {armed === "all" ? `Delete all ${entries.length}? Click again` : "Delete All"}
+                Delete All
               </TintButton>
 
               <button
@@ -494,7 +512,7 @@ export default function WhitelistPage() {
           onClose={() => setEditing(null)}
           onDone={async (message) => {
             setEditing(null);
-            await reload();
+            void reload();
             toast(message, "success");
           }}
           onError={(message) => toast(message, "error")}

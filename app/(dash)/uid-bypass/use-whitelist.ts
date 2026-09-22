@@ -63,6 +63,15 @@ interface WhitelistState extends Snapshot {
   loading: boolean;
   error: string | null;
   reload: () => Promise<void>;
+  /**
+   * Paints a change locally, before the server has agreed to it.
+   *
+   * The provider answers in about 400ms and the write is followed by a
+   * re-read, so a delete that waits for both leaves the row on screen
+   * for over a second -- long enough to look broken and be clicked
+   * again. Callers paint the expected result, then reconcile.
+   */
+  mutate: (updater: (prev: WhitelistEntry[]) => WhitelistEntry[]) => void;
 }
 
 /**
@@ -121,6 +130,11 @@ export function useWhitelist(auto: boolean): WhitelistState {
     };
   }, [apply, fail]);
 
+  const mutate = useCallback(
+    (updater: (prev: WhitelistEntry[]) => WhitelistEntry[]) => setEntries(updater),
+    [],
+  );
+
   const reload = useCallback(async () => {
     try {
       apply(await fetchState());
@@ -137,5 +151,5 @@ export function useWhitelist(auto: boolean): WhitelistState {
     return () => clearInterval(timer);
   }, [auto, reload]);
 
-  return { entries, loading, error, maintenance, reason, reload };
+  return { entries, loading, error, maintenance, reason, reload, mutate };
 }
