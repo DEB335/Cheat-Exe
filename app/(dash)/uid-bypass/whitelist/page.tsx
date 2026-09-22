@@ -34,6 +34,7 @@ type AddResult = {
 type LookupResult = AddResult & {
   alreadyWhitelisted?: boolean;
   strayEntry?: boolean;
+  resetExisting?: boolean;
 };
 
 /**
@@ -105,11 +106,7 @@ export default function WhitelistPage() {
   // or was already on the list. It decides which call the ADD button
   // makes: an active UID is refused by a plain add and has to be
   // re-issued instead.
-  // Whether the provider already holds this UID. Decides whether ADD
-  // creates or re-issues, and nothing else: a UID the search had to
-  // whitelist to read its name is removed again before the reply comes
-  // back, so there is no longer anything to hide from the table.
-  const [onList, setOnList] = useState(false);
+
   const [region, setRegion] = useState<string>(DEFAULT_WHITELIST_REGION);
   const [days, setDays] = useState("");
   const [adding, setAdding] = useState(false);
@@ -132,10 +129,19 @@ export default function WhitelistPage() {
 
   const expiredCount = useMemo(() => entries.filter(isExpired).length, [entries]);
 
+  // Whether the provider already holds the UID being typed. Read from
+  // the list rather than remembered from the last search: a flag set
+  // by a search does not survive navigating away, and coming back to
+  // press ADD with a stale `false` is how a plain add gets aimed at a
+  // UID somebody already holds. The list is refetched; a memory is not.
+  const onList = useMemo(
+    () => entries.some((entry) => entry.uid === uid.trim()),
+    [entries, uid],
+  );
+
   const changeUid = (value: string) => {
     setUid(value.replace(/\D/g, ""));
     setPlayer("");
-    setOnList(false);
   };
 
   /**
@@ -159,7 +165,6 @@ export default function WhitelistPage() {
     const known = entries.find((entry) => entry.uid === target);
     if (known) {
       setPlayer(known.name);
-      setOnList(true);
       toast(
         `${known.name || target} is already whitelisted${known.expireDate ? ` until ${known.expireDate}` : ""}. No credit spent.`,
         "success",
@@ -175,15 +180,24 @@ export default function WhitelistPage() {
         region,
       });
       setPlayer(found.name ?? "");
-      setOnList(found.alreadyWhitelisted === true);
-      if (found.alreadyWhitelisted || found.strayEntry) void reload();
+      // Anything that left a row behind has to be reflected, because
+      // `onList` is read from the list and decides what ADD does next.
+      if (found.alreadyWhitelisted || found.strayEntry || found.resetExisting) {
+        await reload();
+      }
 
       if (!found.name) {
         toast("The provider returned no name for that UID.", "error");
+      } else if (found.resetExisting) {
+        // The add landed on an entry that already existed, so its
+        // validity is now a day. Removing it was refused -- deleting
+        // somebody's customer to tidy up a search is the worse of the
+        // two -- which leaves re-issuing it as the fix, and saying so.
+        toast(
+          `${found.name} was already whitelisted; its validity is now 1 day. Extend it to restore.`,
+          "error",
+        );
       } else if (found.strayEntry) {
-        // Rare, and worth saying: the check entry could not be taken
-        // back, so it is on the list for a day and the table will show
-        // it. Better said than quietly left.
         toast(
           `${found.name} — but the 1-day check entry could not be removed. Delete it from the list.`,
           "error",
@@ -221,7 +235,6 @@ export default function WhitelistPage() {
       setUid("");
       setPlayer("");
       setDays("");
-      setOnList(false);
       // The reply carries everything a card shows except who added it,
       // so the row can be drawn now and corrected by the reload behind
       // it rather than waited for.

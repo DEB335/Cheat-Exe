@@ -194,11 +194,25 @@ async function call(
   return payload;
 }
 
-export async function listWhitelist(): Promise<WhitelistEntry[]> {
+export interface WhitelistSnapshot {
+  entries: WhitelistEntry[];
+  /**
+   * Whether this list may be acted on destructively.
+   *
+   * Upstream states a `count` alongside the rows. When the two
+   * disagree the list is short of something -- drift, paging, a
+   * half-answer -- and a missing row reads exactly like a UID that is
+   * not whitelisted. Anything that would delete on the strength of an
+   * absence has to know the difference.
+   */
+  trustworthy: boolean;
+}
+
+export async function listWhitelistSnapshot(): Promise<WhitelistSnapshot> {
   const payload = await call("get_whitelisted_uids");
   const rows = Array.isArray(payload.data) ? payload.data : [];
 
-  return rows.map((raw) => ({
+  const entries = rows.map((raw) => ({
     uid: text(raw.uid),
     name: text(raw.name),
     // Entries added before the move have no region of their own.
@@ -207,6 +221,13 @@ export async function listWhitelist(): Promise<WhitelistEntry[]> {
     expireDate: pickDate(raw),
     createdBy: text(raw.created_by),
   }));
+
+  const stated = typeof payload.count === "number" ? payload.count : null;
+  return { entries, trustworthy: stated === null || stated === entries.length };
+}
+
+export async function listWhitelist(): Promise<WhitelistEntry[]> {
+  return (await listWhitelistSnapshot()).entries;
 }
 
 /**
@@ -266,4 +287,20 @@ export async function removeWhitelist(uid: string): Promise<boolean> {
     if (err instanceof HttpError && err.status === 404) return false;
     throw err;
   }
+}
+
+/**
+ * How many days a "YYYY-MM-DD" expiry is from today, or null.
+ *
+ * Used to tell an entry this code just created from one that was
+ * already there, which is the difference between tidying up after a
+ * search and deleting something a customer paid for.
+ */
+export function daysUntil(expireDate: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(expireDate.trim());
+  if (!match) return null;
+  const expiry = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((expiry - today) / 86_400_000);
 }

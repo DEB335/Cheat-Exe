@@ -103,17 +103,34 @@ export const POST = route(async (request: Request) => {
   // the refusal, and a failure here must not leave an ownership row
   // behind for a UID that was never whitelisted.
   //
-  // The provider can go on calling a UID active after it was removed --
-  // its own external sync lags, by seconds. That is reachable from
-  // ordinary use now that a search removes what it adds, so the refusal
-  // is answered by clearing again and retrying once, rather than by
-  // telling the operator to wait and guess how long.
+  // The provider can go on calling a UID active for a moment after it
+  // was removed, which a search now makes reachable from ordinary use.
+  // Clearing and retrying answers that -- but only for a UID this
+  // account may act on.
+  //
+  // "Already active" is also the ordinary signal that somebody else
+  // holds the UID legitimately. Retrying past it unconditionally would
+  // make this endpoint a way to delete another reseller's customer and
+  // put them under your own name, so the owner row is checked first
+  // and the provider's refusal is allowed to stand when it is theirs.
+  const existingOwner = (await loadDb()).cheatExeWhitelistOwners[uid];
+  const mayReclaim =
+    !existingOwner || user.role === "OWNER" || existingOwner === user.username.toLowerCase();
+
   let added;
   try {
     added = await addWhitelist({ uid, region, days, note });
   } catch (err) {
-    if (!(err instanceof HttpError) || !/already active/i.test(err.message)) throw err;
-    await removeWhitelist(uid);
+    const stale =
+      err instanceof HttpError && /this account id is already active/i.test(err.message);
+    if (!stale) throw err;
+    if (!mayReclaim) {
+      throw new HttpError(409, `UID ${uid} is already whitelisted by someone else.`);
+    }
+    // Only retry once the provider confirms it actually held it: a
+    // 404 here means the staleness is somewhere the remove cannot
+    // reach, and a second add would fail the same way.
+    if (!(await removeWhitelist(uid))) throw err;
     added = await addWhitelist({ uid, region, days, note });
   }
 
