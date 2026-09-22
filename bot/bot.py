@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import re
+import time
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -624,10 +625,60 @@ async def on_interaction(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ {data.get('message', 'Action failed.')}", ephemeral=True)
 
 
+# Packages the provider currently sells, cached briefly.
+#
+# Autocomplete fires on every keystroke and Discord allows three
+# seconds to answer, so the list is held for a few minutes rather than
+# fetched per character -- a cold call is ~400ms and the catalogue
+# changes a few times a year. On a failure the last good answer is
+# reused, and the bundled PACKAGES only if there has never been one:
+# an outage should narrow the dropdown, not empty it.
+_PACKAGE_TTL = 300
+_package_cache = {"at": 0.0, "pairs": []}
+
+
+def live_packages():
+    """(name, id) pairs from get_admin_packages, or the last known set."""
+    now = time.monotonic()
+    if _package_cache["pairs"] and now - _package_cache["at"] < _PACKAGE_TTL:
+        return _package_cache["pairs"]
+
+    data = call_api("get_admin_packages")
+    pairs = [
+        (str(p.get("package_name")), str(p.get("package_id")))
+        for p in (data.get("packages") or [])
+        if p.get("package_id") and p.get("package_name")
+    ]
+    if pairs:
+        _package_cache["at"] = now
+        _package_cache["pairs"] = pairs
+        return pairs
+    return _package_cache["pairs"] or PACKAGES
+
+
+async def package_autocomplete(interaction: discord.Interaction, current: str):
+    """
+    Suggestions read from the provider instead of compiled in.
+
+    The choices decorator this replaced was evaluated once at import, so
+    a package added upstream could not be generated from Discord until
+    somebody redeployed the bot -- which is how FPS BOOSTER came to be
+    sellable everywhere except here. Discord caps a reply at 25.
+    """
+    needle = current.strip().lower()
+    try:
+        pairs = await asyncio.to_thread(live_packages)
+    except Exception:  # noqa: BLE001 - an empty dropdown beats a crash
+        pairs = PACKAGES
+    matches = [pair for pair in pairs if needle in pair[0].lower()]
+    return [
+        discord.app_commands.Choice(name=name, value=pid)
+        for name, pid in matches[:25]
+    ]
+
+
 @bot.tree.command(name="genkey", description="Generate a licence key.")
-@discord.app_commands.choices(
-    package=[discord.app_commands.Choice(name=name, value=pid) for name, pid in PACKAGES]
-)
+@discord.app_commands.autocomplete(package=package_autocomplete)
 @discord.app_commands.describe(
     package="Which package the key unlocks",
     days="Validity in days (0 for lifetime)",
@@ -640,6 +691,20 @@ async def genkey(interaction: discord.Interaction, package: str, days: int = 30,
 
     if not 1 <= count <= 100:
         await interaction.response.send_message("Count must be between 1 and 100.", ephemeral=True)
+        return
+
+    # Autocomplete suggests, it does not constrain: Discord sends
+    # whatever was typed if the user ignores the list. Checked before
+    # the defer so the complaint stays private, unlike the result.
+    try:
+        known = dict((pid, name) for name, pid in await asyncio.to_thread(live_packages))
+    except Exception:  # noqa: BLE001 - surfaced to the user, never raised
+        known = dict((pid, name) for name, pid in PACKAGES)
+    if package not in known:
+        await interaction.response.send_message(
+            "Pick a package from the suggestions -- that one is not on offer.",
+            ephemeral=True,
+        )
         return
 
     # Public on purpose: the channel is the record of what was issued.
@@ -662,7 +727,7 @@ async def genkey(interaction: discord.Interaction, package: str, days: int = 30,
         await interaction.followup.send("❌ The API reported success but returned no keys.")
         return
 
-    package_name = data.get("package_name") or next((n for n, p in PACKAGES if p == package), package)
+    package_name = data.get("package_name") or known.get(package, package)
     listing = "\n".join(f"`{k}`" for k in keys)
 
     embed = discord.Embed(
