@@ -10,11 +10,14 @@ import { formatTimestamp } from "./utils";
 /**
  * Records a broadcast and wakes every dashboard.
  *
- * Shared by the two ways one can start: the owner typing into the panel,
- * and a post in the Discord announcements channel arriving through
- * /api/messages/ingest. Both produce the same record, so reactions, read
- * receipts and clearing behave identically whichever door it came in by
- * -- the only difference a recipient sees is the Discord badge.
+ * The panel is the only way one starts now. A post in a Discord channel
+ * used to become one too, through /api/messages/ingest and a bot that
+ * watched for it; that bridge is gone, because it only worked while a
+ * process somewhere stayed running and there was nowhere to run it.
+ *
+ * `source` outlives it. Announcements forwarded before the removal still
+ * carry "discord" and still show their badge, which is the honest
+ * record of where they came from.
  *
  * Call inside `updateDb`, and pass its transaction: the ping rides along
  * on it rather than paying for a round trip of its own.
@@ -30,8 +33,6 @@ export async function addAnnouncement(
     /** Lowercased username to pre-mark as read -- whoever sent it. */
     seenBy: string;
     source: NonNullable<Announcement["source"]>;
-    /** Set for Discord posts, and what makes re-delivery harmless. */
-    discordId?: string;
     audit: Omit<AuditLog, "timestamp">;
   },
 ): Promise<Announcement> {
@@ -44,7 +45,6 @@ export async function addAnnouncement(
     readBy: [input.seenBy],
     reactions: {},
     source: input.source,
-    ...(input.discordId ? { discordId: input.discordId } : {}),
   };
 
   db.cheatExeMessages.unshift(entry);

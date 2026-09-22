@@ -159,7 +159,9 @@ export interface Announcement {
    */
   source?: "panel" | "discord";
   /**
-   * Id of the Discord message this mirrors.
+   * Id of the Discord message this mirrored, on records written while
+   * the bridge existed. Nothing sets it now; it is kept so those rows
+   * still describe themselves.
    *
    * The bridge's idempotency key: the ingest route refuses a second copy
    * of an id it already holds, so a retry after a timeout, or the
