@@ -51,16 +51,34 @@ export interface WhitelistAddResult {
   expireDate: string;
 }
 
+/**
+ * One record as the endpoint actually sends it, confirmed against a
+ * live row rather than assumed:
+ *
+ *   id "uid_58f6f80ba2f7"   uid "1278430378"   name "<in-game name>"
+ *   region "IND"   created_at 1790098182   expires_at 1792690182
+ *   days 30   note ""   created_by "CHEAT EXE"   status "active"
+ *   synced true   last_login ""   last_ip ""
+ *
+ * The dates are the trap. `expires_at` is a unix timestamp in seconds,
+ * where the retired service sent `expire_date` as a "YYYY-MM-DD"
+ * string -- and nothing downstream survives being handed a number where
+ * it expects a date string. The older spellings are still read so a
+ * record written before the move still lands.
+ */
 interface RawEntry {
+  id?: string;
   uid?: string | number;
   name?: string;
   region?: string;
   note?: string;
-  expire_date?: string;
-  expiry_date?: string;
-  expires_at?: string;
+  days?: number;
+  status?: string;
+  created_at?: number | string;
   created_by?: string;
-  sync_target?: string;
+  expires_at?: number | string;
+  expire_date?: number | string;
+  expiry_date?: number | string;
 }
 
 interface Envelope {
@@ -70,13 +88,43 @@ interface Envelope {
   error?: string;
   count?: number;
   data?: RawEntry | RawEntry[];
-  /** The retired service answered the expiry at the top level. */
-  expire_date?: string;
+  /** Some actions answer the expiry at the top level instead. */
+  expires_at?: number | string;
+  expire_date?: number | string;
 }
 
-/** Upstream has settled on `expire_date`; the others are cheap insurance. */
+/** Nothing upstream is trusted to be a string, so nothing is assumed to be. */
+function text(value: unknown): string {
+  return value == null ? "" : String(value);
+}
+
+/**
+ * Normalises whatever the provider called a date into "YYYY-MM-DD".
+ *
+ * It sends unix seconds. Milliseconds are accepted too rather than
+ * silently rendering a date in the year 58000, and a date string is
+ * passed through so a pre-move record still reads. Anything else is
+ * "" -- an empty expiry displays as a dash, where a bad one throws.
+ */
+function toDay(value: unknown): string {
+  const raw = text(value).trim();
+  if (raw === "") return "";
+
+  if (/^\d+$/.test(raw)) {
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return "";
+    // Seconds unless it is plainly milliseconds: a seconds value this
+    // side of the year 5138 never reaches 1e11.
+    const at = new Date(n > 1e11 ? n : n * 1000);
+    return Number.isNaN(at.getTime()) ? "" : at.toISOString().slice(0, 10);
+  }
+
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(raw);
+  return match ? match[1] : "";
+}
+
 function pickDate(raw: RawEntry | undefined): string {
-  return raw?.expire_date ?? raw?.expiry_date ?? raw?.expires_at ?? "";
+  return toDay(raw?.expires_at ?? raw?.expire_date ?? raw?.expiry_date);
 }
 
 /**
@@ -145,14 +193,13 @@ export async function listWhitelist(): Promise<WhitelistEntry[]> {
   const rows = Array.isArray(payload.data) ? payload.data : [];
 
   return rows.map((raw) => ({
-    uid: String(raw.uid ?? ""),
-    name: raw.name ?? "",
+    uid: text(raw.uid),
+    name: text(raw.name),
     // Entries added before the move have no region of their own.
-    region: raw.region ?? "ALL SERVER",
-    note: raw.note ?? "",
+    region: text(raw.region) || "ALL SERVER",
+    note: text(raw.note),
     expireDate: pickDate(raw),
-    createdBy: raw.created_by ?? "",
-    sync: raw.sync_target ?? "",
+    createdBy: text(raw.created_by),
   }));
 }
 
@@ -181,10 +228,10 @@ export async function addWhitelist(input: {
   const data = Array.isArray(payload.data) ? payload.data[0] : payload.data;
 
   return {
-    name: data?.name ?? "",
+    name: text(data?.name),
     // Not documented on this action, so it is reported when offered and
     // left empty otherwise. Callers must not invent one.
-    expireDate: pickDate(data) || payload.expire_date || "",
+    expireDate: pickDate(data) || toDay(payload.expires_at ?? payload.expire_date),
   };
 }
 

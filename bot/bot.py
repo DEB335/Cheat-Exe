@@ -17,7 +17,7 @@ import json
 import logging
 import os
 import re
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import discord
@@ -768,6 +768,39 @@ async def key_info(interaction: discord.Interaction, key: str):
 uid_group = discord.app_commands.Group(name="uid", description="TERMINALX999 UID whitelist.")
 
 
+def expiry_day(entry: dict) -> str:
+    """
+    The expiry as "YYYY-MM-DD", whatever shape the provider sent it in.
+
+    It sends `expires_at` as a unix timestamp in seconds. The retired
+    service sent `expire_date` as a date string, and days_left below
+    still parses that, so the timestamp is converted once here rather
+    than taught to every caller. Anything unreadable becomes "", which
+    displays as a dash instead of throwing.
+    """
+    value = entry.get("expires_at")
+    if value in (None, ""):
+        value = entry.get("expire_date") or entry.get("expiry_date")
+    if value in (None, ""):
+        return ""
+
+    if isinstance(value, bool):
+        return ""
+    if isinstance(value, (int, float)) or (isinstance(value, str) and value.isdigit()):
+        seconds = float(value)
+        if seconds <= 0:
+            return ""
+        # Seconds unless it is plainly milliseconds.
+        if seconds > 1e11:
+            seconds /= 1000
+        try:
+            return datetime.fromtimestamp(seconds, tz=timezone.utc).strftime("%Y-%m-%d")
+        except (OverflowError, OSError, ValueError):
+            return ""
+
+    return str(value)[:10]
+
+
 def days_left(expire_date: str):
     """
     Whole days until an entry lapses, or None if the date is unreadable.
@@ -857,7 +890,7 @@ async def uid_add(
     if not isinstance(record, dict):
         record = {}
     player = record.get("name") or ""
-    expiry = record.get("expire_date") or data.get("expire_date") or ""
+    expiry = expiry_day(record) or expiry_day(data)
 
     embed.add_field(name="Player", value=player or "\u2014", inline=True)
     embed.add_field(name="Region", value=region, inline=True)
@@ -943,7 +976,7 @@ async def uid_list(interaction: discord.Interaction):
         entry_uid = str(entry.get("uid", "?"))
         entry_name = entry.get("name") or "\u2014"
         entry_region = entry.get("region") or "\u2014"
-        expiry = entry.get("expire_date") or "\u2014"
+        expiry = expiry_day(entry)
 
         left = days_left(expiry)
         if left is None:
@@ -956,7 +989,8 @@ async def uid_list(interaction: discord.Interaction):
         else:
             state = f" - {left}d left"
 
-        lines.append(f"`{entry_uid}` {entry_name} [{entry_region}] \u2014 {expiry}{state}")
+        shown = expiry or "\u2014"
+        lines.append(f"`{entry_uid}` {entry_name} [{entry_region}] \u2014 {shown}{state}")
 
     listing = "\n".join(lines)
     if len(listing) > 3900:

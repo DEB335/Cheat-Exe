@@ -18,7 +18,9 @@ export const AUTO_REFRESH_MS = 10_000;
  * UTC in the middle of a customer's last day.
  */
 export function daysLeft(expireDate: string): number | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(expireDate.trim());
+  // Coerced rather than trusted: this runs during render, so a value
+  // that is not a string takes the whole page down with it.
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(expireDate ?? "").trim());
   if (!match) return null;
 
   const expiry = Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]));

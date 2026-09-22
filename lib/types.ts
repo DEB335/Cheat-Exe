@@ -274,11 +274,16 @@ export interface WhitelistEntry {
   region: string;
   /** Whatever the buyer reference was set to. The provider stores it verbatim. */
   note: string;
-  /** "YYYY-MM-DD", or "" when the provider reports no date. */
+  /**
+   * "YYYY-MM-DD", or "" when the provider reports no date.
+   *
+   * Normalised in `lib/uid-api`: upstream sends `expires_at` as a unix
+   * timestamp. Everything here reads it as a date string, so the
+   * conversion happens once, at the edge.
+   */
   expireDate: string;
   /** The TX999 account, not the panel user. Always the key's owner. */
   createdBy: string;
-  sync: string;
 }
 
 export type KeyAction = "reset_hwid" | "ban_key" | "unban_key" | "delete_key";
