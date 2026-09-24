@@ -12,10 +12,15 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { del, patchJson, postJson } from "@/lib/client-api";
 import {
+  DEFAULT_WHITELIST_DAYS,
   DEFAULT_WHITELIST_REGION,
+  LIFETIME_WHITELIST_DAYS,
   MAX_WHITELIST_DAYS,
+  WHITELIST_DAY_PRESETS,
   WHITELIST_REGIONS,
+  isWhitelistDays,
   isWhitelistRegion,
+  whitelistDaysLabel,
 } from "@/lib/packages";
 import type { WhitelistEntry } from "@/lib/types";
 import { useStoredFlag } from "@/lib/use-external";
@@ -49,7 +54,9 @@ function addedMessage(result: AddResult, uid: string, days: number): string {
   const who = result.name ? `${result.name} (${uid})` : `UID ${uid}`;
   const until = result.expireDate
     ? `until ${result.expireDate}`
-    : `for ${days} day${days === 1 ? "" : "s"}`;
+    : days === LIFETIME_WHITELIST_DAYS
+      ? "for lifetime"
+      : `for ${days} day${days === 1 ? "" : "s"}`;
   return `${who} whitelisted ${until}.`;
 }
 
@@ -71,6 +78,11 @@ async function inBatches<T, R>(
     out.push(...(await Promise.all(items.slice(i, i + limit).map(task))));
   }
   return out;
+}
+
+/** What the days field asks for. Empty is the default, not zero. */
+function wantedDays(days: string): number {
+  return days.trim() === "" ? DEFAULT_WHITELIST_DAYS : Number(days);
 }
 
 /** Entries predating the move read "ALL SERVER", which is not selectable. */
@@ -108,7 +120,7 @@ export default function WhitelistPage() {
   // re-issued instead.
 
   const [region, setRegion] = useState<string>(DEFAULT_WHITELIST_REGION);
-  const [days, setDays] = useState("");
+  const [days, setDays] = useState(String(DEFAULT_WHITELIST_DAYS));
   const [adding, setAdding] = useState(false);
 
   const [query, setQuery] = useState("");
@@ -215,7 +227,7 @@ export default function WhitelistPage() {
   const add = async (event: React.FormEvent) => {
     event.preventDefault();
     setAdding(true);
-    const wanted = days.trim() === "" ? MAX_WHITELIST_DAYS : Number(days);
+    const wanted = wantedDays(days);
     const target = uid.trim();
     try {
       const body = {
@@ -234,7 +246,7 @@ export default function WhitelistPage() {
         : await postJson<AddResult>("/api/uid-bypass", body);
       setUid("");
       setPlayer("");
-      setDays("");
+      setDays(String(DEFAULT_WHITELIST_DAYS));
       // The reply carries everything a card shows except who added it,
       // so the row can be drawn now and corrected by the reload behind
       // it rather than waited for.
@@ -424,21 +436,10 @@ export default function WhitelistPage() {
             </HelpText>
           </div>
 
-          <div>
-            <FormLabel htmlFor="wl-days">Validity (Days)</FormLabel>
-            <Input
-              id="wl-days"
-              value={days}
-              onChange={(e) => setDays(e.target.value.replace(/\D/g, ""))}
-              placeholder={`Days (Max ${MAX_WHITELIST_DAYS})`}
-              inputMode="numeric"
-              autoComplete="off"
-            />
-            <HelpText>Leave empty for the {MAX_WHITELIST_DAYS}-day default.</HelpText>
-          </div>
+          <DurationField id="wl-days" label="Whitelist Duration" value={days} onChange={setDays} />
 
           <div className="md:col-span-2">
-            <PrimaryButton type="submit" disabled={adding}>
+            <PrimaryButton type="submit" disabled={adding || !isWhitelistDays(wantedDays(days))}>
               <CheckCircleIcon className="size-4" />
               {adding ? "ADDING…" : "ADD UID"}
             </PrimaryButton>
@@ -671,7 +672,7 @@ function ExtendModal({
     days: number;
   }) => Promise<AddResult>;
 }) {
-  const [days, setDays] = useState("");
+  const [days, setDays] = useState(String(DEFAULT_WHITELIST_DAYS));
   const [note, setNote] = useState(entry.note);
   const [region, setRegion] = useState<string>(startingRegion(entry.region));
   const [saving, setSaving] = useState(false);
@@ -679,7 +680,7 @@ function ExtendModal({
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setSaving(true);
-    const wanted = days.trim() === "" ? MAX_WHITELIST_DAYS : Number(days);
+    const wanted = wantedDays(days);
     try {
       const result = await extend({
         uid: entry.uid,
@@ -733,27 +734,128 @@ function ExtendModal({
           <HelpText>Your own reference. The player name comes back from the game.</HelpText>
         </div>
 
-        <div className="mb-6">
-          <FormLabel htmlFor="ext-days">New Validity (Days)</FormLabel>
-          <Input
-            id="ext-days"
-            value={days}
-            onChange={(e) => setDays(e.target.value.replace(/\D/g, ""))}
-            placeholder={`Days (Max ${MAX_WHITELIST_DAYS})`}
-            inputMode="numeric"
-          />
-          <HelpText>Counted from today, not added to the current expiry.</HelpText>
-        </div>
+        <DurationField
+          id="ext-days"
+          label="New Duration"
+          value={days}
+          onChange={setDays}
+          note="Counted from today, not added to the current expiry. 0 = Lifetime."
+          className="mb-6"
+        />
 
         <div className="flex justify-end gap-2">
           <TintButton type="button" tone="red" onClick={onClose} disabled={saving}>
             Cancel
           </TintButton>
-          <TintButton type="submit" tone="green" disabled={saving}>
+          <TintButton
+            type="submit"
+            tone="green"
+            disabled={saving || !isWhitelistDays(wantedDays(days))}
+          >
             {saving ? "Re-issuing…" : "Re-issue UID"}
           </TintButton>
         </div>
       </form>
     </Modal>
+  );
+}
+
+/**
+ * The validity picker: a free days field with one-tap presets under it.
+ *
+ * The field stays the source of truth -- a preset only writes into it --
+ * so a custom count like 12 is as easy as a listed one, and what is
+ * sent is always what is on screen. 0 is lifetime, and typing it is the
+ * same as pressing the Lifetime chip.
+ */
+function DurationField({
+  id,
+  label,
+  value,
+  onChange,
+  note,
+  className,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  note?: string;
+  className?: string;
+}) {
+  const wanted = wantedDays(value);
+  const valid = isWhitelistDays(wanted);
+
+  return (
+    <div className={className}>
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <FormLabel htmlFor={id} className="mb-0">
+          {label} (Custom Days)
+        </FormLabel>
+        <span
+          aria-live="polite"
+          className={cn(
+            "shrink-0 text-[12px] font-bold whitespace-nowrap",
+            !valid
+              ? "text-[#f87171]"
+              : wanted === LIFETIME_WHITELIST_DAYS
+                ? "text-purple"
+                : "text-[#60a5fa] lt:text-blue-600",
+          )}
+        >
+          {valid
+            ? `${wanted === LIFETIME_WHITELIST_DAYS ? "\u{1F451}" : "\u{1F4C5}"} ${whitelistDaysLabel(wanted)}`
+            : "Invalid"}
+        </span>
+      </div>
+
+      <Input
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
+        placeholder={`Days (1-${MAX_WHITELIST_DAYS}, 0 = Lifetime)`}
+        inputMode="numeric"
+        autoComplete="off"
+        aria-invalid={!valid}
+      />
+
+      <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Duration presets">
+        {WHITELIST_DAY_PRESETS.map((preset) => {
+          const lifetime = preset === LIFETIME_WHITELIST_DAYS;
+          const active = valid && wanted === preset;
+          return (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => onChange(String(preset))}
+              aria-pressed={active}
+              className={cn(
+                "cursor-pointer rounded-md border px-2.5 py-1 text-[12px] font-semibold",
+                "transition-all duration-200 ease-smooth hover:-translate-y-px",
+                lifetime
+                  ? active
+                    ? "border-purple bg-purple-glow text-purple shadow-[0_0_10px_rgba(168,85,247,0.35)]"
+                    : "border-[rgba(168,85,247,0.45)] bg-white/2 text-purple hover:bg-purple-glow"
+                  : active
+                    ? "border-[rgba(96,165,250,0.6)] bg-[rgba(96,165,250,0.14)] text-[#60a5fa] lt:text-blue-600"
+                    : "border-line bg-white/2 text-fg/85 hover:border-line-hover hover:text-fg",
+              )}
+            >
+              {lifetime ? "\u{1F451} Lifetime (0)" : whitelistDaysLabel(preset)}
+            </button>
+          );
+        })}
+      </div>
+
+      <HelpText>
+        {valid ? (
+          (note ?? "Type any custom days (e.g. 5, 12, 45) or pick a button. 0 = Lifetime.")
+        ) : (
+          <span className="font-semibold text-[#f87171]">
+            Enter 1 to {MAX_WHITELIST_DAYS} days, or 0 for lifetime.
+          </span>
+        )}
+      </HelpText>
+    </div>
   );
 }

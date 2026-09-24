@@ -1,5 +1,11 @@
 import { HttpError } from "./auth";
-import { DEFAULT_WHITELIST_REGION, MAX_WHITELIST_DAYS, isWhitelistRegion } from "./packages";
+import {
+  DEFAULT_WHITELIST_DAYS,
+  DEFAULT_WHITELIST_REGION,
+  MAX_WHITELIST_DAYS,
+  isWhitelistDays,
+  isWhitelistRegion,
+} from "./packages";
 
 /**
  * Validation shared by the whitelist routes.
@@ -19,10 +25,20 @@ export function cleanUid(value: unknown): string {
   return uid;
 }
 
+/** 1 to the cap, or 0 for lifetime -- the provider's own spelling of it. */
 export function cleanDays(value: unknown): number {
-  const days = Number(value ?? MAX_WHITELIST_DAYS);
-  if (!Number.isInteger(days) || days < 1 || days > MAX_WHITELIST_DAYS) {
-    throw new HttpError(400, `Validity must be a whole number of days from 1 to ${MAX_WHITELIST_DAYS}.`);
+  // Only a number, or digits, gets as far as `Number()`. It reads "",
+  // " " and false as 0, and 0 is lifetime -- the dearest thing sold.
+  const raw = value ?? DEFAULT_WHITELIST_DAYS;
+  const days =
+    typeof raw === "number" || (typeof raw === "string" && /^\d+$/.test(raw.trim()))
+      ? Number(raw)
+      : NaN;
+  if (!isWhitelistDays(days)) {
+    throw new HttpError(
+      400,
+      `Validity must be a whole number of days from 1 to ${MAX_WHITELIST_DAYS}, or 0 for lifetime.`,
+    );
   }
   return days;
 }

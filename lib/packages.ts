@@ -59,7 +59,30 @@ export const UID_BYPASS_PACKAGE = "UID BYPASS";
  * Lives here rather than in `lib/uid-api` so the form can enforce it
  * before spending a credit -- that module is server-only.
  */
-export const MAX_WHITELIST_DAYS = 30;
+export const MAX_WHITELIST_DAYS = 365;
+
+/** What the provider takes as "never expires". Sold alongside the day counts. */
+export const LIFETIME_WHITELIST_DAYS = 0;
+
+/** Sent when no validity is given. The form shows it rather than hiding it. */
+export const DEFAULT_WHITELIST_DAYS = 30;
+
+/** The one-tap validities offered under the days field, in order. */
+export const WHITELIST_DAY_PRESETS = [1, 3, 7, 30, 60, 90, 180, 365, LIFETIME_WHITELIST_DAYS] as const;
+
+/** Whether `days` is something the panel sells: lifetime, or 1 to the cap. */
+export function isWhitelistDays(days: number): boolean {
+  return (
+    Number.isInteger(days) &&
+    (days === LIFETIME_WHITELIST_DAYS || (days >= 1 && days <= MAX_WHITELIST_DAYS))
+  );
+}
+
+/** "1 Day", "30 Days", "Lifetime". */
+export function whitelistDaysLabel(days: number): string {
+  if (days === LIFETIME_WHITELIST_DAYS) return "Lifetime";
+  return `${days} Day${days === 1 ? "" : "s"}`;
+}
 
 /**
  * The server regions the whitelist accepts, in the provider's own order.

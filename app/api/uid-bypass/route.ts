@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { HttpError, clientIp, loadDb, requireUser } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
-import { canManageWhitelist } from "@/lib/packages";
+import { canManageWhitelist, whitelistDaysLabel } from "@/lib/packages";
 import { ping } from "@/lib/realtime";
 import type { SessionUser, WhitelistEntry } from "@/lib/types";
 import { MAINTENANCE, addWhitelist, listWhitelist, removeWhitelist } from "@/lib/uid-api";
@@ -138,7 +138,7 @@ export const POST = route(async (request: Request) => {
     db.cheatExeWhitelistOwners[uid] = user.username.toLowerCase();
     pushAudit(db, {
       user: displayUser(user.username, user.role),
-      action: `Whitelisted UID ${uid}${added.name ? ` (${added.name})` : ""} on ${region} for ${days} day${days === 1 ? "" : "s"}`,
+      action: `Whitelisted UID ${uid}${added.name ? ` (${added.name})` : ""} on ${region} for ${whitelistDaysLabel(days).toLowerCase()}`,
       ip,
     });
     await ping("audit", tx);
@@ -216,7 +216,7 @@ export const PATCH = route(async (request: Request) => {
     current.cheatExeWhitelistOwners[uid] = owner ?? user.username.toLowerCase();
     pushAudit(current, {
       user: displayUser(user.username, user.role),
-      action: `Re-issued UID ${uid}${added.name ? ` (${added.name})` : ""} on ${region} for ${days} day${days === 1 ? "" : "s"}`,
+      action: `Re-issued UID ${uid}${added.name ? ` (${added.name})` : ""} on ${region} for ${whitelistDaysLabel(days).toLowerCase()}`,
       ip,
     });
     await ping("audit", tx);
