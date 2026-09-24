@@ -96,9 +96,11 @@ export const POST = route(async (request: Request) => {
       // The provider names these `days` and `count`. This panel inherited
       // `duration` and `amount` from the one it replaced, and neither is
       // read: `count` is what actually sets the quantity, so asking for
-      // ten keys minted exactly one, every time, without complaint.
-      days: duration,
-      count: String(amount),
+      // ten keys minted exactly one, every time, without complaint. Both
+      // go as integers, as the provider's client sends them: the body is
+      // JSON now, where "30" and 30 are no longer the same thing.
+      days: Number(duration),
+      count: amount,
     });
   } catch (err) {
     // The mint never happened, so hand the reservation back before

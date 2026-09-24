@@ -82,10 +82,23 @@ export interface GenerateResponse extends LicenseEnvelope {
 /**
  * Single entry point to the upstream license API. The credentials live
  * in env vars and are attached here, so they never reach the browser.
+ *
+ * The body is JSON, shaped the way the provider's reference client sends
+ * it -- not the form encoding the retired host took. Numbers stay
+ * numbers: `generate_key` wants `days` and `count` as integers, and a
+ * JSON string is a different value where a form field was not.
+ *
+ * `app_id` goes only on `generate_key`, the one action that names an
+ * app. The key actions are `{api_key, action, key}` and nothing else in
+ * the reference client, and the listings (`get_admin_packages`,
+ * `reseller_stats`) answer identically without it -- each package row
+ * carries its own `app_id`. Attaching it everywhere was a leftover of
+ * the old host, and an unasked-for field is one more thing the provider
+ * can one day start rejecting.
  */
 export async function callLicenseApi<T extends LicenseEnvelope>(
   action: string,
-  params: Record<string, string> = {},
+  params: Record<string, string | number> = {},
 ): Promise<T> {
   if (!API_KEY || !APP_ID) {
     throw new HttpError(
@@ -94,13 +107,21 @@ export async function callLicenseApi<T extends LicenseEnvelope>(
     );
   }
 
-  const form = new URLSearchParams({ api_key: API_KEY, app_id: APP_ID, action, ...params });
+  const payload = {
+    api_key: API_KEY,
+    action,
+    ...(action === "generate_key" ? { app_id: APP_ID } : {}),
+    ...params,
+  };
 
   try {
+    // The status is not checked: a missing key comes back as a 404 that
+    // still carries the usual `{success: false, message}` envelope, and
+    // that message is the one worth showing.
     const response = await fetch(API_URL, {
       method: "POST",
-      body: form,
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
       signal: AbortSignal.timeout(20_000),
       cache: "no-store",
     });
