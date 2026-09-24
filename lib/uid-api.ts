@@ -1,6 +1,7 @@
 import "server-only";
 
 import { HttpError } from "./auth";
+import { resolveApiUrl } from "./license-api";
 import { DEFAULT_WHITELIST_REGION } from "./packages";
 import type { WhitelistEntry } from "./types";
 
@@ -20,10 +21,7 @@ import type { WhitelistEntry } from "./types";
  * failure this cannot paper over -- it wins over the fallback and is
  * rejected, which `call` says out loud.
  */
-const API_URL =
-  process.env.TX999_API_URL ??
-  process.env.LICENSE_API_URL ??
-  "https://auth.terminalx999.online/api_admin.php";
+const API_URL = resolveApiUrl(process.env.TX999_API_URL || process.env.LICENSE_API_URL);
 const API_KEY = process.env.TX999_API_KEY ?? process.env.LICENSE_API_KEY;
 
 /**

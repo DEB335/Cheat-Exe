@@ -35,7 +35,13 @@ export const POST = route(async (request: Request) => {
   const pkg = (await livePackage(requested)) ?? packageById(requested);
   if (!pkg) throw new HttpError(400, "Unknown package.");
 
-  const duration = String(body.duration ?? "30");
+  // A whole number of days, 0 for lifetime. Checked here because the
+  // provider mints first and the reseller's allowance pays for whatever
+  // it made of a stray "-3" or "7.5".
+  const duration = String(body.duration ?? "30").trim() || "30";
+  if (!/^\d{1,5}$/.test(duration)) {
+    throw new HttpError(400, "Days must be a whole number (0 for lifetime).");
+  }
   const amount = Number(body.amount ?? 1);
   if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
     throw new HttpError(400, "Count must be a whole number between 1 and 100.");
@@ -106,7 +112,17 @@ export const POST = route(async (request: Request) => {
     return NextResponse.json({ success: false, raw: data, message: data.message ?? "Generation failed" });
   }
 
-  const generated = data.keys?.length ? data.keys : data.key ? [data.key] : [];
+  // The provider's own client reads `data.keys`; the top-level spelling
+  // is kept for the host this panel was built against. Missing both is
+  // not "no keys" -- the mint succeeded -- so it must not go unnoticed.
+  const nested = data.data?.keys?.length ? data.data.keys : data.data?.key ? [data.data.key] : [];
+  const generated = nested.length
+    ? nested
+    : data.keys?.length
+      ? data.keys
+      : data.key
+        ? [data.key]
+        : [];
   if (generated.length === 0) {
     if (isReseller) await releaseReservation(user.username, amount);
     return NextResponse.json({ success: true, keys: [], raw: data });

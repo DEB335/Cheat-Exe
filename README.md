@@ -27,7 +27,7 @@ Open http://localhost:3000. Sign in with the owner account from
 | Variable | Purpose |
 | --- | --- |
 | `SESSION_SECRET` | Signs the session cookie. 32+ chars. `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
-| `LICENSE_API_URL` | Upstream license API (`https://auth.terminalx999.online/api_admin.php`) |
+| `LICENSE_API_URL` | Upstream license API (`https://prtvshow.online/api_admin.php`) |
 | `LICENSE_API_KEY` | Upstream API key — **server-side only**, never shipped to the browser |
 | `LICENSE_APP_ID` | Upstream app id |
 | `ADMIN_USER` / `ADMIN_PASSWORD` | Owner account, used only when seeding a fresh database |
@@ -324,7 +324,7 @@ environments), and locally in `.env.local`:
 | --- | --- |
 | `DATABASE_URL` | Supabase **transaction pooler**, port 6543 |
 | `SESSION_SECRET` | 32+ random chars |
-| `LICENSE_API_URL` | `https://auth.terminalx999.online/api_admin.php` |
+| `LICENSE_API_URL` | `https://prtvshow.online/api_admin.php` |
 | `LICENSE_API_KEY` | server-side only |
 | `LICENSE_APP_ID` | |
 | `TX999_API_URL` | leave unset — falls back to `LICENSE_API_URL` |

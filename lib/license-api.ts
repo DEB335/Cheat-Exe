@@ -3,7 +3,22 @@ import "server-only";
 import { HttpError } from "./auth";
 import { PACKAGE_NAMES } from "./packages";
 
-const API_URL = process.env.LICENSE_API_URL;
+/**
+ * The provider's admin endpoint, moved off `auth.terminalx999.online`.
+ *
+ * That host now answers 404, so a deployment still configured with it
+ * gets the new one rather than a panel where every call fails. Any
+ * other value set in the environment wins.
+ */
+export const DEFAULT_API_URL = "https://prtvshow.online/api_admin.php";
+const RETIRED_API_HOST = "auth.terminalx999.online";
+
+export function resolveApiUrl(configured: string | undefined): string {
+  const url = configured?.trim();
+  return !url || url.includes(RETIRED_API_HOST) ? DEFAULT_API_URL : url;
+}
+
+const API_URL = resolveApiUrl(process.env.LICENSE_API_URL);
 const API_KEY = process.env.LICENSE_API_KEY;
 const APP_ID = process.env.LICENSE_APP_ID;
 
@@ -58,6 +73,8 @@ export interface GenerateResponse extends LicenseEnvelope {
   package_name?: string;
   count?: number;
   keys?: string[];
+  /** Where the relocated endpoint nests them, per the provider's own client. */
+  data?: { keys?: string[]; key?: string };
   /** Older shape: a single key rather than an array. */
   key?: string;
 }
@@ -70,10 +87,10 @@ export async function callLicenseApi<T extends LicenseEnvelope>(
   action: string,
   params: Record<string, string> = {},
 ): Promise<T> {
-  if (!API_URL || !API_KEY || !APP_ID) {
+  if (!API_KEY || !APP_ID) {
     throw new HttpError(
       500,
-      "License API is not configured. Set LICENSE_API_URL, LICENSE_API_KEY and LICENSE_APP_ID.",
+      "License API is not configured. Set LICENSE_API_KEY and LICENSE_APP_ID.",
     );
   }
 

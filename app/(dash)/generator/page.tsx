@@ -154,6 +154,8 @@ export default function GeneratorPage() {
             <Input
               id="genDays"
               type="number"
+              min={0}
+              step={1}
               value={days}
               onChange={(event) => setDays(event.target.value)}
             />
@@ -171,6 +173,9 @@ export default function GeneratorPage() {
             <Input
               id="genCount"
               type="number"
+              min={1}
+              max={100}
+              step={1}
               value={count}
               onChange={(event) => setCount(event.target.value)}
             />
