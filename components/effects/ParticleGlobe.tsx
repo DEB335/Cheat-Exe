@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
+import { pageZoom } from "@/lib/zoom";
 
 type Vec3 = readonly [number, number, number];
 type RGB = readonly [number, number, number];
@@ -245,14 +246,18 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
       return dx * dx + dy * dy < 1;
     };
 
+    // Drawn in the page's zoomed px, so the chips and hairlines shrink with
+    // the rest of the page; the backing store is the real screen size
+    // (the rect) times the device ratio, so it stays sharp.
     const measure = () => {
       const rect = canvas.getBoundingClientRect();
-      width = Math.max(1, rect.width);
-      height = Math.max(1, rect.height);
+      const zoom = pageZoom();
+      width = Math.max(1, rect.width / zoom);
+      height = Math.max(1, rect.height / zoom);
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.width = Math.max(1, Math.round(rect.width * dpr));
+      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
       R = height * radius;
       ox = width * cx;
       oy = height * cy;
@@ -449,9 +454,13 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
     };
 
     const onMove = (event: PointerEvent) => {
+      // The rect and pointer are real screen px, the drawing is not, so
+      // map through the rect as a fraction of the canvas.
       const rect = canvas.getBoundingClientRect();
-      const nx = clamp((event.clientX - (rect.left + ox)) / (rect.width / 2), -1, 1);
-      const ny = clamp((event.clientY - (rect.top + oy)) / (rect.height), -1, 1);
+      const px = ((event.clientX - rect.left) / rect.width) * width;
+      const py = ((event.clientY - rect.top) / rect.height) * height;
+      const nx = clamp((px - ox) / (width / 2), -1, 1);
+      const ny = clamp((py - oy) / height, -1, 1);
       hovered = true;
       targetX = nx * LEAN;
       targetY = ny * LEAN * 0.6;
@@ -472,9 +481,17 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
       sync();
     });
 
+    // Crossing the zoom breakpoint changes the real size without always
+    // changing the CSS size the observer watches.
+    const onWindowResize = () => {
+      measure();
+      draw();
+    };
+
     measure();
     draw();
     resize.observe(canvas);
+    window.addEventListener("resize", onWindowResize);
     visible.observe(canvas);
     document.addEventListener("visibilitychange", sync);
     reduced.addEventListener("change", sync);
@@ -485,6 +502,7 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
       stop();
       resize.disconnect();
       visible.disconnect();
+      window.removeEventListener("resize", onWindowResize);
       document.removeEventListener("visibilitychange", sync);
       reduced.removeEventListener("change", sync);
       host.removeEventListener("pointermove", onMove);

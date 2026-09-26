@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 
+import { pageZoom } from "@/lib/zoom";
+
 const MAX_PARTICLES = 30;
 
 /** Gold, crimson, cyan, violet, diamond white. */
@@ -40,8 +42,25 @@ export function CursorSparks() {
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    // The backing store is the viewport in real screen px, as before. The
+    // box is sized here because a canvas with only `inset-0` keeps its
+    // intrinsic size, which the page zoom then shrinks to 75% of the
+    // screen. Sparks are drawn in the page's zoomed px so they shrink with
+    // everything else.
+    let zoom = 1;
+    let width = 0;
+    let height = 0;
+    const fit = () => {
+      zoom = pageZoom();
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      canvas.style.width = `${window.innerWidth / zoom}px`;
+      canvas.style.height = `${window.innerHeight / zoom}px`;
+      ctx.setTransform(zoom, 0, 0, zoom, 0, 0);
+      width = window.innerWidth / zoom;
+      height = window.innerHeight / zoom;
+    };
+    fit();
 
     const particles: Spark[] = [];
     let mouseX = -100;
@@ -54,10 +73,7 @@ export function CursorSparks() {
 
     const onResize = () => {
       window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-      }, 150);
+      resizeTimer = window.setTimeout(fit, 150);
     };
 
     const addSpark = (x: number, y: number, vx: number, vy: number, size: number, life: number) => {
@@ -78,9 +94,10 @@ export function CursorSparks() {
     const inCollapsedSidebar = (target: EventTarget | null) =>
       target instanceof Element && Boolean(target.closest("aside[data-collapsed='true']"));
 
+    // clientX/Y are real screen px; the context draws in zoomed px.
     const onMouseMove = (event: MouseEvent) => {
-      mouseX = event.clientX;
-      mouseY = event.clientY;
+      mouseX = event.clientX / zoom;
+      mouseY = event.clientY / zoom;
       if (ticking) return;
       ticking = true;
       requestAnimationFrame(() => {
@@ -105,8 +122,8 @@ export function CursorSparks() {
         const angle = ((Math.PI * 2) / 14) * i + Math.random() * 0.2;
         const speed = Math.random() * 4 + 1.5;
         addSpark(
-          event.clientX,
-          event.clientY,
+          event.clientX / zoom,
+          event.clientY / zoom,
           Math.cos(angle) * speed,
           Math.sin(angle) * speed,
           Math.random() * 3.5 + 2,

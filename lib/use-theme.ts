@@ -3,6 +3,7 @@
 import { useCallback } from "react";
 
 import { useLightMode } from "./use-external";
+import { pageZoom } from "./zoom";
 
 const STORAGE_KEY = "cheatExeTheme";
 
@@ -33,12 +34,17 @@ export function useTheme() {
       return;
     }
 
-    const x = event?.clientX ?? window.innerWidth / 2;
-    const y = event?.clientY ?? window.innerHeight / 2;
-    const endRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y),
-    );
+    // The click and the window are measured in real screen pixels, but
+    // the root's transition snapshot inherits the page zoom, so its
+    // clip-path lengths are zoomed CSS pixels. Unconverted, the circle
+    // opened up and to the left of the click and never reached the far
+    // corner on desktop.
+    const zoom = pageZoom();
+    const width = window.innerWidth / zoom;
+    const height = window.innerHeight / zoom;
+    const x = event ? event.clientX / zoom : width / 2;
+    const y = event ? event.clientY / zoom : height / 2;
+    const endRadius = Math.hypot(Math.max(x, width - x), Math.max(y, height - y));
 
     const transition = document.startViewTransition(apply);
     void transition.ready.then(() => {

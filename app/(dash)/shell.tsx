@@ -275,13 +275,13 @@ export function Shell({
 
       {terminated && <TerminatedNotice reason={terminated} />}
 
-      <div className="relative flex min-h-screen lg:h-screen lg:overflow-hidden">
+      <div className="relative flex min-h-app-screen lg:h-app-screen lg:overflow-hidden">
         <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
 
         {/* Full height, no outer margin: the header and the content column
             carry their own padding, so the scroller runs to the bottom of
             the screen instead of clipping cards 20px short of it. */}
-        <main className="relative z-[2] flex min-w-0 flex-1 flex-col lg:h-screen lg:overflow-hidden">
+        <main className="relative z-[2] flex min-w-0 flex-1 flex-col lg:h-app-screen lg:overflow-hidden">
           <Header pathname={pathname} onOpenMobile={() => setMobileOpen(true)} />
           <AnnouncementBanner />
           {/* The scrollbar gutter is always reserved, so a page that scrolls

@@ -11,6 +11,7 @@ import { useDashboard, useMyPackages } from "@/lib/store";
 import { useMediaQuery, useStoredFlag } from "@/lib/use-external";
 import type { Role } from "@/lib/types";
 import { cn, hexToRgbTriplet } from "@/lib/utils";
+import { pageZoom } from "@/lib/zoom";
 
 const STORAGE_KEY = "sidebarCollapsed";
 
@@ -20,8 +21,13 @@ const STORAGE_KEY = "sidebarCollapsed";
  * forms started fighting for space. Between here and the mobile drawer
  * the sidebar is forced to its icon rail whatever the saved preference
  * says, and the preference is restored above it.
+ *
+ * From 1024px up the page renders at 75% (see "Page zoom" in
+ * globals.css), so even a 1024px window lays out like a 1365px one and
+ * the full rail fits. Only the window width media queries see is real,
+ * hence the cut-off at the zoom breakpoint rather than 1280.
  */
-const NARROW = "(max-width: 1279px)";
+const NARROW = "(max-width: 1023px)";
 
 /**
  * The active tab's icon is stroked with this instead of a flat colour.
@@ -184,7 +190,7 @@ export function Sidebar({
           // collapse toggle sit whole across the right edge instead of
           // being cut in half by it.
           "fixed inset-y-0 left-0 z-30 m-5 flex flex-col",
-          "h-[calc(100vh-40px)]",
+          "h-[calc(100*var(--app-vh)-40px)]",
           "transition-[width,height,transform,border-radius,margin] duration-[400ms] ease-smooth",
           "lg:relative lg:inset-auto lg:translate-x-0",
           // Closed, the drawer is the 85px rail: 120% of that (102px) left
@@ -198,7 +204,7 @@ export function Sidebar({
               // everything in it starts exactly where it did.
               // The reference also stands the full rail 26px off the
               // bottom edge, a little higher than the icon pill's 20.
-              "w-[min(290px,78vw)] rounded-[22px] lg:mr-[9px] lg:mb-[26px] lg:ml-[31px] lg:h-[calc(100vh-46px)] lg:w-[290px]",
+              "w-[min(290px,78*var(--app-vw))] rounded-[22px] lg:mr-[9px] lg:mb-[26px] lg:ml-[31px] lg:h-[calc(100*var(--app-vh)-46px)] lg:w-[290px]",
         )}
       >
         {/* Referenced by the active icon's stroke. Zero-sized rather than
@@ -324,6 +330,19 @@ function Divider() {
 
 type TooltipSetter = (value: { label: string; x: number; y: number } | null) => void;
 
+/**
+ * The collapsed rail's tooltip for `el`: 12px off its right edge, level
+ * with its middle. The rect is in real screen pixels and the tooltip's
+ * left/top in zoomed CSS pixels (see lib/zoom), so it is converted here;
+ * written raw, the tooltip drew at three quarters of the icon's
+ * coordinates on desktop, up and to the left of it.
+ */
+function tooltipFor(label: string, el: Element) {
+  const zoom = pageZoom();
+  const rect = el.getBoundingClientRect();
+  return { label, x: rect.right / zoom + 12, y: (rect.top + rect.height / 2) / zoom };
+}
+
 function NavLink({
   item,
   collapsed,
@@ -347,8 +366,7 @@ function NavLink({
 
   const showTooltip = () => {
     if (!collapsed || !ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    onTooltip({ label: item.label, x: rect.right + 12, y: rect.top + rect.height / 2 });
+    onTooltip(tooltipFor(item.label, ref.current));
   };
 
   const handleClick = () => {
@@ -535,8 +553,7 @@ function UserCard({ collapsed, onTooltip }: { collapsed: boolean; onTooltip: Too
       data-probe="user-card"
       onMouseEnter={() => {
         if (!collapsed || !ref.current) return;
-        const rect = ref.current.getBoundingClientRect();
-        onTooltip({ label: name, x: rect.right + 12, y: rect.top + rect.height / 2 });
+        onTooltip(tooltipFor(name, ref.current));
       }}
       onMouseLeave={() => onTooltip(null)}
       className={cn(
@@ -642,8 +659,10 @@ function DragHandle({
   }, [collapsed]);
 
   useEffect(() => {
+    // clientX is in real screen pixels; the 40px is a CSS length, so it
+    // is measured in the page's zoomed pixels like everything else.
     const applyDelta = (currentX: number) => {
-      const delta = currentX - startX.current;
+      const delta = (currentX - startX.current) / pageZoom();
       if (collapsedRef.current && delta > 40) {
         onToggle(false);
         startX.current = currentX;
@@ -688,7 +707,7 @@ function DragHandle({
       }}
       onTouchMove={(event) => {
         const currentX = event.touches[0]!.clientX;
-        const delta = currentX - startX.current;
+        const delta = (currentX - startX.current) / pageZoom();
         if (collapsed && delta > 40) {
           onToggle(false);
           startX.current = currentX;

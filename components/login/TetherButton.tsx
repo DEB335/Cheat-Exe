@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { playClick, playDodge, playSnap } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
+import { pageZoom } from "@/lib/zoom";
 
 export type TetherState = "empty" | "checking" | "ready" | "invalid";
 
@@ -78,10 +79,16 @@ export function TetherButton({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // The canvas, the button's translate and the cord are all in CSS
+    // pixels. The rect is in real screen pixels, so it is brought back to
+    // CSS ones first: sized straight off it, the backing store was
+    // stretched unevenly over the canvas's box on the zoomed desktop page
+    // and the cord overshot the button it is tied to.
     const resize = () => {
+      const zoom = pageZoom();
       const rect = track.getBoundingClientRect();
-      canvas.width = rect.width + 300;
-      canvas.height = rect.height + 200;
+      canvas.width = rect.width / zoom + 300;
+      canvas.height = rect.height / zoom + 200;
     };
     resize();
 
@@ -106,9 +113,12 @@ export function TetherButton({
         return;
       }
 
+      // Real screen pixels in, CSS pixels out, so the reach and travel
+      // below mean the same thing at any page zoom.
+      const zoom = pageZoom();
       const btnRect = button.getBoundingClientRect();
-      const dx = event.clientX - (btnRect.left + btnRect.width / 2);
-      const dy = event.clientY - (btnRect.top + btnRect.height / 2);
+      const dx = (event.clientX - (btnRect.left + btnRect.width / 2)) / zoom;
+      const dy = (event.clientY - (btnRect.top + btnRect.height / 2)) / zoom;
       const distance = Math.hypot(dx, dy);
 
       const threshold = 110;

@@ -190,7 +190,7 @@ function LoginView() {
         {muted ? <MusicOffIcon className="size-5" /> : <MusicIcon className="size-5" />}
       </button>
 
-      <div className="no-scrollbar flex min-h-screen w-full items-center justify-center overflow-y-auto py-10 select-none">
+      <div className="no-scrollbar flex min-h-app-screen w-full items-center justify-center overflow-y-auto py-10 select-none">
         <div className="relative z-10 w-full max-w-[440px] p-6">
           <div
             key={shake}

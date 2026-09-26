@@ -344,7 +344,7 @@ function Notifications() {
       {open && (
         <div
           className={cn(
-            "animate-dropdown-fade absolute top-[calc(100%+10px)] right-0 z-[100] w-[min(340px,calc(100vw-32px))]",
+            "animate-dropdown-fade absolute top-[calc(100%+10px)] right-0 z-[100] w-[min(340px,calc(100*var(--app-vw)-32px))]",
             "overflow-hidden rounded-[18px] border border-white/8 bg-[rgba(10,15,30,0.9)]",
             "shadow-[0_10px_35px_rgba(0,0,0,0.5)] backdrop-blur-[40px]",
             "lt:border-black/6 lt:bg-white/90",

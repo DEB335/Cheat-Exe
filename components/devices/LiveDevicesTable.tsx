@@ -20,6 +20,7 @@ import { parseDevice, parseDeviceUser } from "@/lib/device-parse";
 import type { DeviceSession, Role } from "@/lib/types";
 import { deviceRules, useDeviceActions } from "@/lib/use-device-actions";
 import { cn, splitStampForDisplay } from "@/lib/utils";
+import { pageZoom } from "@/lib/zoom";
 
 const COLUMNS = ["STATUS", "USER ACCOUNT", "DEVICE & BROWSER", "IP ADDRESS", "LOGGED IN", "ACTION"];
 
@@ -363,21 +364,39 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const open = pos !== null;
 
-  const place = () => {
+  // The button's rect and the viewport are in real screen pixels, but the
+  // menu's top/left are zoomed CSS pixels (see "Page zoom" in
+  // globals.css). Everything here is converted to CSS pixels first, or
+  // on desktop the menu lands at 75% of the way to its button.
+  const measure = () => {
     const rect = buttonRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const left = Math.max(8, Math.min(rect.right - MENU_W, window.innerWidth - MENU_W - 8));
-    const below = rect.bottom + 6;
-    const top = below + MENU_H_ESTIMATE > window.innerHeight ? rect.top - 6 - MENU_H_ESTIMATE : below;
+    if (!rect) return null;
+    const zoom = pageZoom();
+    return {
+      top: rect.top / zoom,
+      bottom: rect.bottom / zoom,
+      right: rect.right / zoom,
+      viewW: window.innerWidth / zoom,
+      viewH: window.innerHeight / zoom,
+    };
+  };
+
+  const place = () => {
+    const box = measure();
+    if (!box) return;
+    const left = Math.max(8, Math.min(box.right - MENU_W, box.viewW - MENU_W - 8));
+    const below = box.bottom + 6;
+    const top = below + MENU_H_ESTIMATE > box.viewH ? box.top - 6 - MENU_H_ESTIMATE : below;
     setPos({ top: Math.max(8, top), left });
   };
 
   // Snap the flipped menu to its real height once it has rendered.
+  // offsetHeight is already in CSS pixels.
   useLayoutEffect(() => {
     const menu = menuRef.current;
-    const rect = buttonRef.current?.getBoundingClientRect();
-    if (!menu || !rect || !pos || pos.top >= rect.bottom) return;
-    const top = Math.max(8, rect.top - 6 - menu.offsetHeight);
+    const box = measure();
+    if (!menu || !box || !pos || pos.top >= box.bottom) return;
+    const top = Math.max(8, box.top - 6 - menu.offsetHeight);
     if (top !== pos.top) setPos({ ...pos, top });
   }, [pos]);
 

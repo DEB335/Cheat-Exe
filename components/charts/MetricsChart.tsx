@@ -12,12 +12,13 @@ import {
   type ChartOptions,
   type Plugin,
 } from "chart.js";
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type RefObject } from "react";
 import { Line } from "react-chartjs-2";
 
 import { BoltIcon } from "@/components/icons";
 import { useLightMode } from "@/lib/use-external";
 import { cn } from "@/lib/utils";
+import { pageZoom } from "@/lib/zoom";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip);
 
@@ -133,6 +134,67 @@ function pageFont(): string {
 
 type Side = "up-right" | "up-left" | "right" | "left";
 
+/** Crossing the zoom breakpoint is always a window resize. */
+function subscribeResize(notify: () => void) {
+  window.addEventListener("resize", notify);
+  return () => window.removeEventListener("resize", notify);
+}
+
+/*
+ * The page zoom (see lib/zoom.ts) versus chart.js, which assumes pointer
+ * and rect coordinates are in the same px as the canvas's CSS box. Under
+ * zoom they are real screen px, so both plugins below translate.
+ */
+
+/**
+ * Re-derives the event position from clientX/Y and the canvas rect, both
+ * real screen px, scaled into chart px. chart.js's own figure comes from
+ * offsetX, which is also screen px here, so a hover landed on the point
+ * to the left of the one under the pointer. Recomputed from the native
+ * event rather than scaled, so a replayed event is not scaled twice.
+ */
+const zoomedPointer: Plugin<"line"> = {
+  id: "perfZoomedPointer",
+  beforeEvent(chart, args) {
+    const { event } = args;
+    const native = event.native;
+    const source =
+      typeof TouchEvent !== "undefined" && native instanceof TouchEvent
+        ? native.touches[0]
+        : native instanceof MouseEvent
+          ? native
+          : undefined;
+    if (!source) return;
+    const rect = chart.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    event.x = ((source.clientX - rect.left) / rect.width) * chart.width;
+    event.y = ((source.clientY - rect.top) / rect.height) * chart.height;
+    args.inChartArea = chart.isPointInArea({ x: event.x, y: event.y });
+  },
+};
+
+/**
+ * chart.js sizes itself from its container's getBoundingClientRect when
+ * a resize arrives without a size -- the first layout, and any device
+ * pixel ratio change (browser zoom, another monitor). That is screen px,
+ * which it then writes to the canvas style as CSS px, so the plot shrank
+ * to 75% of its box. Hand it the container's CSS size instead.
+ */
+const cssSize: Plugin<"line"> = {
+  id: "perfCssSize",
+  beforeInit(chart) {
+    const resize = chart.resize.bind(chart);
+    chart.resize = (width, height) => {
+      const box = chart.canvas.parentElement;
+      // Unzoomed (phones) the rect is already right; leave chart.js be.
+      if (width === undefined && height === undefined && box && pageZoom() !== 1) {
+        resize(box.clientWidth, box.clientHeight);
+      }
+      else resize(width, height);
+    };
+  },
+};
+
 export function MetricsChart({
   values,
   labels = LABELS,
@@ -146,6 +208,15 @@ export function MetricsChart({
   // Re-reads the palette whenever the theme class flips.
   const light = useLightMode();
   const pal = light ? LIGHT : DARK;
+  const zoom = useSyncExternalStore(subscribeResize, pageZoom, () => 1);
+
+  // chart.js applies a new devicePixelRatio only on resize, and a zoom
+  // change (first read before the stylesheet lands, say) need not resize
+  // the box. Runs after react-chartjs-2 has pushed the new options.
+  const chartRef = useRef<ChartJS<"line">>(null);
+  useEffect(() => {
+    chartRef.current?.resize();
+  }, [zoom]);
 
   const calloutRef = useRef<HTMLDivElement>(null);
 
@@ -301,19 +372,22 @@ export function MetricsChart({
           { side: "left", left: x - PEAK_R - 6 - w, top: y + PEAK_R + 6 },
         ];
 
+        // Rects are real screen px; the candidates are in the chart's
+        // zoomed px, so bring the rects over before comparing.
+        const k = pageZoom();
         const origin = host.getBoundingClientRect();
         const blocked = avoidRef.current
           .map((ref) => ref.current?.getBoundingClientRect())
           .filter((r): r is DOMRect => !!r && r.width > 0)
           .map((r) => ({
-            left: r.left - origin.left - 8,
-            right: r.right - origin.left + 8,
-            top: r.top - origin.top - 8,
-            bottom: r.bottom - origin.top + 8,
+            left: (r.left - origin.left) / k - 8,
+            right: (r.right - origin.left) / k + 8,
+            top: (r.top - origin.top) / k - 8,
+            bottom: (r.bottom - origin.top) / k + 8,
           }));
         const fits = (c: { left: number; top: number }) =>
           c.left >= -12 &&
-          c.left + w <= origin.width + 40 &&
+          c.left + w <= origin.width / k + 40 &&
           !blocked.some(
             (b) => c.left < b.right && c.left + w > b.left && c.top < b.bottom && c.top + h + tail > b.top,
           );
@@ -325,7 +399,7 @@ export function MetricsChart({
       },
     };
 
-    return [bloom, guides, callout];
+    return [cssSize, zoomedPointer, bloom, guides, callout];
   }, [pal]);
 
   const options = useMemo<ChartOptions<"line">>(() => {
@@ -338,8 +412,10 @@ export function MetricsChart({
       responsive: true,
       maintainAspectRatio: false,
       // Bloom is per-pixel work on every redraw; a 3x phone canvas buys
-      // nothing visible over 2x.
-      devicePixelRatio: typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2),
+      // nothing visible over 2x. Times the page zoom, so the backing
+      // store matches the real screen size instead of being drawn a third
+      // too big and scaled down.
+      devicePixelRatio: typeof window === "undefined" ? 1 : Math.min(window.devicePixelRatio || 1, 2) * zoom,
       // autoPadding would reserve room for the hover radius on every side;
       // the card already leaves that room, and the plot height is what the
       // design is measured by.
@@ -398,7 +474,7 @@ export function MetricsChart({
         },
       },
     };
-  }, [pal, top, step, compact]);
+  }, [pal, top, step, compact, zoom]);
 
   const data = useMemo<ChartData<"line">>(() => {
     // The gradient depends on the plot box, which only exists after
@@ -443,7 +519,7 @@ export function MetricsChart({
 
   return (
     <div ref={rootRef} className="relative size-full">
-      <Line key={light ? "light" : "dark"} options={options} data={data} plugins={plugins} />
+      <Line ref={chartRef} key={light ? "light" : "dark"} options={options} data={data} plugins={plugins} />
       {peak >= 0 && (
         <div
           ref={calloutRef}

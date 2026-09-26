@@ -93,6 +93,64 @@ body.light-mode {
 }
 
 /* ---------------------------------------------------------------
+   Page zoom.
+
+   The panel was drawn for a ~1700px-wide canvas; on laptop screens
+   everything read as blown up, and the owner's verdict was that it
+   looks right at 75% browser zoom. So desktop renders at 75% for
+   everyone. Phones stay at 100% -- their layout is already sized for
+   them, and 75% would take body text below 10px.
+
+   What zoom changes, and how to stay correct under it:
+   - px, rem, % and insets scale with it; `fixed inset-0` still covers
+     the whole screen.
+   - vh/vw scale too, so 100vh is only 75% of the screen. Use
+     var(--app-vh) / var(--app-vw) (or h-app-screen and friends) for
+     anything that must match the real viewport.
+   - getBoundingClientRect, clientX/Y and innerWidth/Height are in real
+     screen pixels; style lengths are in zoomed CSS pixels. Divide real
+     pixels by pageZoom() (lib/zoom.ts) before writing them to a style
+     or a canvas -- ratios such as x / rect.width need no conversion.
+   --------------------------------------------------------------- */
+:root {
+  --app-zoom: 1;
+  --app-vh: calc(1vh / var(--app-zoom));
+  --app-vw: calc(1vw / var(--app-zoom));
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --app-zoom: 0.75;
+  }
+}
+
+html {
+  zoom: var(--app-zoom);
+}
+
+/* Media queries still measure the real window, while a 75% page has a
+   third more room: at 1280px it lays out like a 1707px window. These
+   move the two wide breakpoints so they switch where they would under
+   75% browser zoom (1280 * 0.75 = 960, clamped to the 1024 where zoom
+   starts; 1536 * 0.75 = 1152). Below 1024px zoom is 1 and nothing moves. */
+@theme {
+  --breakpoint-xl: 64.0625rem; /* one px past lg, so lg: still comes first */
+  --breakpoint-2xl: 72rem;
+}
+
+@utility h-app-screen {
+  height: calc(100 * var(--app-vh));
+}
+
+@utility min-h-app-screen {
+  min-height: calc(100 * var(--app-vh));
+}
+
+@utility w-app-screen {
+  width: calc(100 * var(--app-vw));
+}
+
+/* ---------------------------------------------------------------
    Animated conic border ring. A masked pseudo-element has no utility
    equivalent, so it stays hand-written -- but it is registered as a
    real Tailwind utility via @utility.
@@ -594,10 +652,13 @@ body.light-mode {
 ::view-transition-new(root) {
   z-index: 99999 !important;
 }
-.light-mode::view-transition-old(root) {
+/* The transition pseudo-elements hang off <html>, but light-mode is a
+   class on <body> -- ".light-mode::view-transition-*" never matched, and
+   the dark snapshot shrank away underneath the new light page. */
+:root:has(> body.light-mode)::view-transition-old(root) {
   z-index: 99999 !important;
 }
-.light-mode::view-transition-new(root) {
+:root:has(> body.light-mode)::view-transition-new(root) {
   z-index: 1 !important;
 }
 
