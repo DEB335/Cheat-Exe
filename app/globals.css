@@ -415,6 +415,60 @@ body.light-mode {
   }
 }
 
+/* Live devices table: rows tip up out of the screen once, on arrival. */
+@keyframes device-row-in {
+  from {
+    opacity: 0;
+    transform: perspective(900px) rotateX(-16deg) translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* A ring that leaves the online dot. Transform and opacity only, so ten
+   of them stay on the compositor. */
+@keyframes status-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  80%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* One band of light crossing the table header. */
+@keyframes panel-sweep {
+  0% {
+    transform: translateX(-120%);
+  }
+  60%,
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@theme inline {
+  --animate-device-row-in: device-row-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-status-ping: status-ping 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+  --animate-panel-sweep: panel-sweep 6s ease-in-out infinite;
+  --animate-float-y: float-y 3.2s ease-in-out infinite;
+}
+
 @theme inline {
   --animate-tab-fade-in: tab-fade-in 0.18s ease-out forwards;
   --animate-toast-slide-in: toast-slide-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;

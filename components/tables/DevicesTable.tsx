@@ -4,11 +4,8 @@ import { BanIcon, CpuChipIcon, MonitorIcon, WifiOffIcon } from "@/components/ico
 import { SmallButton } from "@/components/ui/buttons";
 import { DotBadge, RoleBadge } from "@/components/ui/Badge";
 import { Cell, DataTable, EmptyRow, Row } from "@/components/ui/Table";
-import { useToast } from "@/components/ui/Toast";
-import { del, postJson } from "@/lib/client-api";
-import { applyKickDevice } from "@/lib/optimistic";
 import { useDashboard } from "@/lib/store";
-import type { BanScope } from "@/lib/types";
+import { deviceRules, useDeviceActions } from "@/lib/use-device-actions";
 import { splitStampForDisplay } from "@/lib/utils";
 
 const OVERVIEW_COLUMNS = ["STATUS", "USER ACCOUNT", "DEVICE & BROWSER", "IP ADDRESS", "LOGGED IN", "ACTION"];
@@ -23,54 +20,12 @@ const FULL_COLUMNS = [
 ];
 
 export function DevicesTable({ variant }: { variant: "overview" | "full" }) {
-  const toast = useToast();
   const devices = useDashboard((s) => s.db.cheatExeDevices);
   const user = useDashboard((s) => s.user);
-  const refresh = useDashboard((s) => s.refresh);
-  const patchDb = useDashboard((s) => s.patch);
-  const restore = useDashboard((s) => s.restore);
+  const { kick, block } = useDeviceActions();
 
   const isOverview = variant === "overview";
   const columns = isOverview ? OVERVIEW_COLUMNS : FULL_COLUMNS;
-
-  const kick = async (sessionId: string, name: string) => {
-    if (!confirm(`Kick and ban the session for ${name}?`)) return;
-    // The row disappears on click; the write and the vault entry that
-    // follows it catch up behind.
-    const snapshot = patchDb((db) => applyKickDevice(db, sessionId));
-    toast(`Device session for user '${name}' has been kicked!`, "success");
-    try {
-      await del(`/api/devices/${encodeURIComponent(sessionId)}`);
-      void refresh();
-    } catch (err) {
-      restore(snapshot);
-      toast((err as Error).message, "error");
-    }
-  };
-
-  /**
-   * Blocks at the connection rather than the account.
-   *
-   * Kicking suspends one reseller; this stops the address or the machine
-   * reaching *any* account, and is checked before the password is, so a
-   * blocked device cannot even probe for valid credentials.
-   */
-  const block = async (
-    rules: Array<{ scope: BanScope; value: string }>,
-    label: string,
-    name: string,
-  ) => {
-    if (!confirm(`Block ${label} for ${name}? Nobody will be able to sign in from it.`)) return;
-    toast(`${label} blocked.`, "success");
-    try {
-      await postJson("/api/bans", { rules, reason: `Blocked from Active Devices`, user: name });
-      // A block also ends sessions it now covers, so take the real list.
-      void refresh();
-    } catch (err) {
-      toast((err as Error).message, "error");
-      void refresh();
-    }
-  };
 
   return (
     <DataTable columns={columns} dense>
@@ -175,23 +130,7 @@ export function DevicesTable({ variant }: { variant: "overview" | "full" }) {
                               : "This session predates device tracking -- it will get an ID on next sign-in"
                           }
                           onClick={() =>
-                            block(
-                              [
-                                ...(device.hwid
-                                  ? [{ scope: "hwid" as BanScope, value: device.hwid }]
-                                  : []),
-                                ...(device.fingerprint
-                                  ? [
-                                      {
-                                        scope: "fingerprint" as BanScope,
-                                        value: device.fingerprint,
-                                      },
-                                    ]
-                                  : []),
-                              ],
-                              "this device (HWID)",
-                              cleanUser,
-                            )
+                            block(deviceRules(device), "this device (HWID)", cleanUser)
                           }
                         >
                           <CpuChipIcon className="size-2.5" />

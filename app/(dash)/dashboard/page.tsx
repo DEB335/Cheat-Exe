@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 
 import { DevicesBanner } from "@/components/dashboard/DevicesBanner";
 import { PerformanceCard } from "@/components/dashboard/PerformanceCard";
+import { LiveDevices } from "@/components/devices/LiveDevices";
 import { AppsIcon, BriefcaseIcon, CpuIcon, LinkIcon, UsersIcon } from "@/components/icons";
-import { DevicesTable } from "@/components/tables/DevicesTable";
 import { Card } from "@/components/ui/Card";
 import { StatCard, type StatAccent } from "@/components/ui/StatCard";
 import { useDashboard, useMetrics } from "@/lib/store";
@@ -65,8 +65,8 @@ export default function OverviewPage() {
       {isOwner && (
         <Card flat className="mt-6 overflow-hidden p-0">
           <DevicesBanner online={metrics.devices} onViewAll={() => router.push("/devices")} />
-          <div className="px-[30px] pb-[30px]">
-            <DevicesTable variant="overview" />
+          <div className="px-4 pt-5 pb-7 sm:px-[30px] sm:pt-6 sm:pb-[34px]">
+            <LiveDevices />
           </div>
         </Card>
       )}
