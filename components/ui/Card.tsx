@@ -46,12 +46,19 @@ interface CardHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "ti
 
 export function CardHeader({ title, subtitle, actions, className, ...rest }: CardHeaderProps) {
   return (
-    <div {...rest} className={cn("mb-6 flex items-start justify-between gap-4", className)}>
-      <div>
+    // The title keeps at least ~220px; actions that would squeeze it below
+    // that wrap under it instead. On a phone, two buttons beside it left
+    // the title a word or two wide, wrapping onto four lines -- a lone
+    // icon still fits beside it and stays on the right.
+    <div
+      {...rest}
+      className={cn("mb-6 flex flex-wrap items-start justify-between gap-x-4 gap-y-3", className)}
+    >
+      <div className="min-w-[min(100%,220px)] flex-1">
         <h3 className="font-display text-[18px] leading-tight font-bold text-fg">{title}</h3>
         {subtitle ? <p className="mt-1.5 text-[13px] text-muted">{subtitle}</p> : null}
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils";
 const PAGE_SIZE = 10;
 
 /**
- * The live sessions under the "Real-Time Active Devices" banner: four
- * summary chips, search and role filter, then the table in a glass
- * panel with its own pager.
+ * The live sessions, on the overview under the "Real-Time Active
+ * Devices" banner and on /devices: four summary chips, search and role
+ * filter, then the table in a glass panel with its own pager.
  *
  * Every number comes from the store -- sessions, the accounts behind
  * them, the block rules, the addresses -- so nothing here can show more

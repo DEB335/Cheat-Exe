@@ -1,7 +1,7 @@
 "use client";
 
+import { LiveDevices } from "@/components/devices/LiveDevices";
 import { BanIcon, RefreshIcon } from "@/components/icons";
-import { DevicesTable } from "@/components/tables/DevicesTable";
 import { Badge } from "@/components/ui/Badge";
 import { TintButton } from "@/components/ui/buttons";
 import { Card, CardHeader } from "@/components/ui/Card";
@@ -54,7 +54,7 @@ export default function DevicesPage() {
           </>
         }
       />
-      <DevicesTable variant="full" />
+      <LiveDevices />
     </Card>
   );
 }
