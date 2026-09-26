@@ -23,7 +23,7 @@ export interface NavItem {
   /** Accent used by the collapsed rail and the click wave. */
   color: string;
   roles: Role[];
-  badge?: "devices" | "banned";
+  badge?: "devices" | "banned" | "messages";
   /**
    * Package a reseller must hold for this item to appear. The owner is
    * never gated by it.
@@ -58,6 +58,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: MegaphoneIcon,
         color: "#22d3ee",
         roles: ["OWNER", "RESELLER"],
+        badge: "messages",
         section: "DASHBOARD",
       },
     ],
@@ -236,9 +237,16 @@ export const PROFILE_ITEM: NavItem = {
 
 const ALL_ITEMS = [...NAV_GROUPS.flatMap((g) => g.items), PROFILE_ITEM];
 
-/** Page titles keyed by route, matching the original `tabs` map. */
-export const PAGE_TITLES: Record<string, { title: string; section: string }> = {
-  "/dashboard": { title: "Overview", section: "DASHBOARD" },
+/**
+ * Page titles keyed by route, matching the original `tabs` map. A
+ * subtitle, where there is one, prints under the title in the header.
+ */
+export const PAGE_TITLES: Record<string, { title: string; section: string; subtitle?: string }> = {
+  "/dashboard": {
+    title: "Overview",
+    section: "DASHBOARD",
+    subtitle: "Monitor your platform performance at a glance.",
+  },
   "/messages": { title: "Messages", section: "DASHBOARD" },
   "/generator": { title: "Key Generator", section: "LICENSE GENERATOR" },
   "/manager": { title: "Manage Key", section: "LICENSE MANAGEMENT" },

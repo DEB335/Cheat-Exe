@@ -6,6 +6,17 @@ const MESH = "linear-gradient(135deg, rgb(122, 105, 249), rgb(242, 99, 120), rgb
 const SHINE =
   "linear-gradient(135deg, rgb(59, 196, 242), rgb(122, 105, 249), rgb(242, 99, 120), rgb(245, 131, 63))";
 
+interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  /**
+   * "vivid" is the overview banner's call to action: a taller pill with a
+   * pink-to-violet rim, a lit indigo fill and a solid white label. Left
+   * out, the button is the original one, class for class.
+   */
+  variant?: "default" | "vivid";
+  /** Rendered after the label; steps forward while the button is hovered. */
+  trailingIcon?: React.ReactNode;
+}
+
 /**
  * The pill button with the animated gradient mesh, drifting border glow
  * and rotating star. Every layer of the original markup is preserved --
@@ -14,14 +25,25 @@ const SHINE =
 export function GlowButton({
   children,
   className,
+  variant = "default",
+  trailingIcon,
   ...rest
-}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+}: GlowButtonProps) {
+  const vivid = variant === "vivid";
   return (
     <button
       {...rest}
       className={cn(
         "group relative z-10 inline-flex cursor-pointer items-center justify-center overflow-hidden",
         "rounded-full border-none bg-[#1a1a24] p-[1.2px] transition-all duration-300",
+        // The rim is the button's own background showing through the
+        // padding, so the vivid gradient costs no extra layer. Its glow is
+        // a plain shadow that only changes on hover, never while idle.
+        vivid && [
+          "bg-[linear-gradient(90deg,#ff3d8b_0%,#c13ee0_48%,#6a4df5_100%)] p-[1.5px]",
+          "shadow-[0_0_16px_rgba(255,45,122,0.3),0_0_26px_rgba(106,77,245,0.28)]",
+          "hover:shadow-[0_0_22px_rgba(255,45,122,0.45),0_0_38px_rgba(106,77,245,0.45)]",
+        ],
         className,
       )}
     >
@@ -48,6 +70,14 @@ export function GlowButton({
           "relative z-[1] flex h-full w-full items-center justify-center gap-1.5",
           "rounded-full bg-[rgba(10,10,15,0.95)] py-2 pr-4 pl-3.5 transition-all duration-300",
           "lt:bg-[rgba(255,255,255,0.95)]",
+          // Stays dark in light mode as well: the label is solid white, and
+          // the pale default fill would swallow it.
+          vivid && [
+            "gap-2.5 py-3 pr-[18px] pl-[21px]",
+            "bg-[linear-gradient(90deg,#2f1145_0%,#1b0e58_52%,#18187a_100%)]",
+            "shadow-[inset_0_0_18px_rgba(124,92,255,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]",
+            "lt:bg-[linear-gradient(90deg,#2f1145_0%,#1b0e58_52%,#18187a_100%)]",
+          ],
         )}
       >
         <span
@@ -56,7 +86,7 @@ export function GlowButton({
             "group-hover:scale-[1.15] group-hover:rotate-[360deg]",
           )}
         >
-          <StarIcon />
+          <StarIcon size={vivid ? 22 : 18} />
           <span
             className="animate-star-shine absolute top-1/2 left-1/2 size-11 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-45 blur-[12px]"
             style={{ background: SHINE }}
@@ -64,22 +94,35 @@ export function GlowButton({
         </span>
         <span
           className={cn(
-            "text-clip-gradient ml-1.5 text-[13px] font-bold transition-transform duration-300",
-            "group-hover:scale-[1.03]",
+            vivid
+              ? "ml-1 text-[13.5px] font-semibold whitespace-nowrap text-white"
+              : "text-clip-gradient ml-1.5 text-[13px] font-bold",
+            "transition-transform duration-300 group-hover:scale-[1.03]",
           )}
         >
           {children}
         </span>
+        {trailingIcon ? (
+          <span
+            className={cn(
+              "relative inline-flex shrink-0 items-center transition-transform duration-300 ease-smooth",
+              "group-hover:translate-x-1",
+              vivid ? "ml-0.5 text-white" : "text-fg",
+            )}
+          >
+            {trailingIcon}
+          </span>
+        ) : null}
       </span>
     </button>
   );
 }
 
-function StarIcon() {
+function StarIcon({ size = 18 }: { size?: number }) {
   return (
     <svg
-      width="18"
-      height="18"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

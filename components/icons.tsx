@@ -380,3 +380,63 @@ export const MegaphoneIcon = (p: IconProps) => (
     <path d="M18.5 5.5a8 8 0 0 1 0 13" />
   </Stroke>
 );
+
+/** Four rounded tiles -- the "apps" glyph on the overview tile. */
+export const AppsIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <rect x="3" y="3" width="7.5" height="7.5" rx="2" />
+    <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
+    <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
+    <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
+  </Stroke>
+);
+
+export const LinkIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </Stroke>
+);
+
+export const BarChartIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <line x1="6" y1="20" x2="6" y2="14" />
+    <line x1="12" y1="20" x2="12" y2="9" />
+    <line x1="18" y1="20" x2="18" y2="4" />
+  </Stroke>
+);
+
+export const BoltIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </Stroke>
+);
+
+export const ShieldCheckIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <polyline points="9 12 11 14 15 10" />
+  </Stroke>
+);
+
+export const ArrowRightIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <line x1="5" y1="12" x2="19" y2="12" />
+    <polyline points="12 5 19 12 12 19" />
+  </Stroke>
+);
+
+/** Trend arrows for the overview tiles: rising, falling, flat. */
+export const TrendUpIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <line x1="7" y1="17" x2="17" y2="7" />
+    <polyline points="8 7 17 7 17 16" />
+  </Stroke>
+);
+
+export const TrendDownIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <line x1="7" y1="7" x2="17" y2="17" />
+    <polyline points="17 8 17 17 8 17" />
+  </Stroke>
+);

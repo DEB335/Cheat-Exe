@@ -278,12 +278,18 @@ export function Shell({
       <div className="relative flex min-h-screen lg:h-screen lg:overflow-hidden">
         <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
 
-        <main className="relative z-[2] flex min-w-0 flex-1 flex-col lg:m-5 lg:ml-0 lg:h-[calc(100vh-40px)] lg:overflow-hidden">
+        {/* Full height, no outer margin: the header and the content column
+            carry their own padding, so the scroller runs to the bottom of
+            the screen instead of clipping cards 20px short of it. */}
+        <main className="relative z-[2] flex min-w-0 flex-1 flex-col lg:h-screen lg:overflow-hidden">
           <Header pathname={pathname} onOpenMobile={() => setMobileOpen(true)} />
           <AnnouncementBanner />
+          {/* The scrollbar gutter is always reserved, so a page that scrolls
+              and one that does not end their cards on the same line as the
+              header: 28px + the 6px scrollbar = the header's 34px. */}
           <div
             data-probe="content"
-            className="animate-tab-fade-in relative z-[1] min-w-0 flex-1 px-6 pb-10 lg:overflow-x-hidden lg:overflow-y-auto lg:p-10">
+            className="animate-tab-fade-in relative z-[1] min-w-0 flex-1 px-4 pt-4 pb-10 sm:px-6 lg:overflow-x-hidden lg:overflow-y-auto lg:pt-[26px] lg:pr-[28px] lg:pb-8 lg:pl-[38px] lg:[scrollbar-gutter:stable]">
             {children}
           </div>
         </main>

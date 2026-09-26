@@ -63,7 +63,7 @@ export function AnnouncementBanner() {
               Announcement
             </span>
             {unread.length > 1 && (
-              <span className="rounded-full border border-[rgba(34,211,238,0.3)] bg-[rgba(34,211,238,0.12)] px-2 py-[1px] text-[9.5px] font-bold text-[#67e8f9]">
+              <span className="rounded-full border border-[rgba(34,211,238,0.3)] bg-[rgba(34,211,238,0.12)] px-2 py-[1px] text-[9.5px] font-bold text-[#67e8f9] lt:border-cyan-600/30 lt:bg-cyan-50 lt:text-cyan-700">
                 +{unread.length - 1} more
               </span>
             )}
@@ -85,6 +85,8 @@ export function AnnouncementBanner() {
             "flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5",
             "border-[rgba(34,211,238,0.3)] bg-[rgba(34,211,238,0.1)] text-[11.5px] font-bold text-[#67e8f9]",
             "transition-colors hover:bg-[rgba(34,211,238,0.2)] hover:text-white disabled:opacity-50",
+            // The dark palette's pale cyan all but vanishes on the light banner.
+            "lt:border-cyan-600/40 lt:bg-white lt:text-cyan-700 lt:hover:bg-cyan-50 lt:hover:text-cyan-800",
           )}
         >
           <CloseIcon className="size-3" />

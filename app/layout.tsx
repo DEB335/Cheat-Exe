@@ -34,7 +34,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${jakarta.variable} ${outfit.variable} antialiased`}>
-      <body>
+      {/* The theme script below adds `light-mode` to <body> before React
+          hydrates, so its class never matches the server's. This silences
+          that one attribute only; children are still checked. */}
+      <body suppressHydrationWarning>
         {/* Applies the saved theme before first paint so a light-mode
             reload never flashes the dark palette. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />

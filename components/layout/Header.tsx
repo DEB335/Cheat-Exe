@@ -1,15 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { setBackgroundMusicMuted } from "@/components/effects/BackgroundVideo";
 import {
+  BellIcon,
+  ChevronDownIcon,
   LogOutIcon,
   MenuIcon,
   MoonIcon,
   MusicIcon,
-  MessageIcon,
   MusicOffIcon,
   SearchIcon,
   SunIcon,
@@ -34,32 +35,79 @@ export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMob
     user?.role !== "OWNER" && pathname === "/reseller-history" ? "My Key History" : page.title;
 
   return (
-    <header className="relative z-[5] flex items-center justify-between gap-3 px-5 py-5 sm:gap-4 sm:px-6 sm:py-6 lg:px-10 lg:py-[30px]">
-      <div className="flex min-w-0 items-center gap-3">
-        <button
-          type="button"
-          onClick={onOpenMobile}
-          aria-label="Open navigation"
-          className="shrink-0 rounded-lg border border-line bg-surface p-2 text-fg lg:hidden"
-        >
-          <MenuIcon className="size-5" />
-        </button>
-        <div className="min-w-0">
-          <div className="mb-1.5 truncate text-[11px] font-extrabold tracking-[1.8px] text-muted uppercase">
-            {page.section}
-          </div>
-          <h1 className="truncate font-display text-[19px] font-extrabold text-fg sm:text-[22px] lg:text-[26px]">
-            {title}
-          </h1>
+    <header
+      className={cn(
+        // A grid rather than a row, so the subtitle can hang under the
+        // title without dragging the search and the account controls down
+        // with it: those stay centred on the title itself, as drawn.
+        "relative z-[5] grid items-center gap-x-3 gap-y-1.5 px-4 pt-5 pb-3 sm:gap-x-4 sm:px-6 sm:pt-6",
+        "grid-cols-[auto_minmax(0,1fr)_auto] md:grid-cols-[auto_minmax(0,auto)_minmax(180px,1fr)_auto]",
+        "lg:grid-cols-[minmax(0,auto)_minmax(180px,1fr)_auto] lg:gap-x-6 lg:gap-y-0 lg:pt-7 lg:pr-[34px] lg:pb-0 lg:pl-14",
+        // A fixed title column at full width keeps the search in the same
+        // place on every page, whatever length the title happens to be.
+        "2xl:grid-cols-[minmax(354px,auto)_minmax(180px,1fr)_auto]",
+      )}
+    >
+      <button
+        type="button"
+        onClick={onOpenMobile}
+        aria-label="Open navigation"
+        className="shrink-0 rounded-xl border border-[#142346] bg-[#050f24] p-2 text-fg lg:hidden lt:border-line lt:bg-surface"
+      >
+        <MenuIcon className="size-5" />
+      </button>
+
+      <div className="min-w-0 lg:self-start lg:pt-[7px]">
+        <div className="mb-1 truncate text-[11px] leading-none font-extrabold tracking-[2px] text-[#9dbcf0] uppercase lg:mb-px lg:text-[13px] lg:tracking-[2.7px] lt:text-[#3b5b9a]">
+          {page.section}
         </div>
+        <h1 className="truncate font-display text-[24px] leading-[1.1] font-extrabold text-fg [text-shadow:0_2px_14px_rgba(0,0,0,0.45)] sm:text-[30px] lg:text-[34px] lg:leading-[1.05] xl:text-[42px] lt:[text-shadow:none]">
+          {title}
+        </h1>
       </div>
 
-      <QuickSearch />
-      <div className="flex items-center gap-2.5">
+      <div className="hidden min-w-0 justify-center md:flex">
+        <QuickSearch />
+      </div>
+
+      <div className="flex shrink-0 items-center gap-2 sm:gap-2.5 lg:gap-[17px]">
         <Notifications />
         <ProfileMenu />
       </div>
+
+      {page.subtitle && (
+        // Under the title on a phone and a tablet; across the title and
+        // search columns once the menu button is gone, since the search
+        // box never reaches down this far.
+        <p className="col-[2/-1] text-[13px] leading-[1.3] font-medium text-[#8ab3e0] lg:col-[1/-2] lg:text-[14.5px] lt:text-muted">
+          {page.subtitle}
+        </p>
+      )}
     </header>
+  );
+}
+
+/** Nothing to subscribe to: the platform does not change under a page. */
+const subscribeNever = () => () => {};
+
+function isApplePlatform(): boolean {
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } };
+  return /mac|iphone|ipad|ipod/i.test(nav.userAgentData?.platform || nav.platform || nav.userAgent);
+}
+
+/**
+ * Which modifier the shortcut hint should name, or null until mounted.
+ *
+ * The server cannot know the visitor's platform, so it renders the chip
+ * empty and the client fills it in straight after hydration -- the same
+ * useSyncExternalStore pattern as lib/use-external, which is what keeps
+ * React from calling the difference a mismatch.
+ */
+function useShortcutModifier(): "meta" | "ctrl" | null {
+  return useSyncExternalStore(
+    subscribeNever,
+    () => (isApplePlatform() ? "meta" : "ctrl"),
+    () => null,
   );
 }
 
@@ -67,9 +115,11 @@ function QuickSearch() {
   const router = useRouter();
   const user = useDashboard((s) => s.user);
   const packages = useMyPackages();
+  const modifier = useShortcutModifier();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -93,35 +143,85 @@ function QuickSearch() {
     return () => document.removeEventListener("click", onClick);
   }, []);
 
+  // The chip promises Cmd/Ctrl+K, so the key has to do it -- from
+  // anywhere on the page, including from inside another field.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() !== "k" || event.altKey || event.shiftKey) return;
+      if (!(event.metaKey || event.ctrlKey)) return;
+
+      // Below md the box is display:none and cannot take focus. Leave the
+      // browser its own Ctrl+K there rather than swallow it for nothing.
+      const input = inputRef.current;
+      if (!input || input.getClientRects().length === 0) return;
+
+      event.preventDefault();
+      input.focus();
+      input.select();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const go = (href: string) => {
+    router.push(href);
+    setQuery("");
+    setOpen(false);
+  };
+
   return (
     <div
       ref={containerRef}
       className={cn(
-        "glow-ring hover:glow-ring-fast relative z-10 hidden items-center rounded-[10px]",
-        "transition-all duration-300 ease-smooth md:flex",
-        "xl:absolute xl:top-1/2 xl:left-1/2 xl:-translate-x-1/2 xl:-translate-y-1/2",
+        "glow-ring hover:glow-ring-fast relative z-10 flex w-full max-w-[354px] items-center rounded-full",
+        "transition-all duration-300 ease-smooth",
       )}
     >
-      <SearchIcon className="pointer-events-none absolute left-3 z-[2] size-[13px] -translate-y-1/2 top-1/2 text-muted" />
+      <SearchIcon className="pointer-events-none absolute top-1/2 left-4 z-[2] size-[15px] -translate-y-1/2 text-[#b4cbf0] lg:left-[23px] lg:size-[18px] lt:text-muted" />
       <input
+        ref={inputRef}
         type="text"
         value={query}
         placeholder="Search dashboard..."
+        aria-label="Search dashboard"
+        aria-keyshortcuts={modifier === null ? undefined : modifier === "meta" ? "Meta+K" : "Control+K"}
         onChange={(event) => {
           setQuery(event.target.value);
           setOpen(event.target.value.trim().length > 0);
         }}
         onFocus={() => setOpen(query.trim().length > 0)}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            setOpen(false);
+            event.currentTarget.blur();
+          } else if (event.key === "Enter" && results[0]) {
+            go(results[0].href);
+          }
+        }}
         className={cn(
-          // 140px cut the placeholder off mid-word on a 1024px screen.
-          "w-[180px] rounded-[10px] border border-line bg-input-bg py-[7px] pr-3 pl-8",
+          "h-10 w-full rounded-full border border-[#1a2b4f] bg-[#041129] pr-[72px] pl-10",
           "text-[13px] text-fg outline-none transition-all duration-300 ease-smooth",
-          "hover:w-[260px] focus:w-[260px] focus:border-white/15",
+          "placeholder:text-[#a9c0e2] focus:border-[#2c4478] focus:bg-[#061532]",
+          "lg:h-[46px] lg:pr-[84px] lg:pl-[52px] lg:text-[15px]",
+          "lt:border-input-line lt:bg-input-bg lt:placeholder:text-muted lt:focus:bg-white",
         )}
       />
+      <kbd
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute top-1/2 right-2.5 z-[2] -translate-y-1/2 rounded-[9px]",
+          "bg-[#111c38] px-2 py-[5px] font-sans text-[11px] leading-none font-medium whitespace-nowrap text-[#dce8ff] [word-spacing:2px]",
+          "lg:right-[17px] lg:px-[9px] lg:py-[6px] lg:text-[12px]",
+          "lt:bg-black/5 lt:text-muted",
+          // Blank until the platform is known, so a Mac never flashes "Ctrl".
+          modifier === null && "invisible",
+        )}
+      >
+        {modifier === "meta" ? "⌘ K" : "Ctrl K"}
+      </kbd>
 
       {open && (
-        <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-[1000] flex max-h-[250px] flex-col gap-1 overflow-y-auto rounded-xl border border-line bg-[rgba(10,15,30,0.98)] p-1.5 shadow-[var(--card-shadow)] backdrop-blur-[20px] lt:bg-white">
+        <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-[1000] flex max-h-[250px] flex-col gap-1 overflow-y-auto rounded-2xl border border-line bg-[rgba(10,15,30,0.98)] p-1.5 shadow-[var(--card-shadow)] backdrop-blur-[20px] lt:bg-white">
           {results.length === 0 ? (
             <div className="px-3 py-2 text-[12px] text-muted">No matches.</div>
           ) : (
@@ -129,11 +229,7 @@ function QuickSearch() {
               <button
                 key={item.href + item.name}
                 type="button"
-                onClick={() => {
-                  router.push(item.href);
-                  setQuery("");
-                  setOpen(false);
-                }}
+                onClick={() => go(item.href)}
                 className="rounded-lg px-3 py-2 text-left text-[12.5px] font-semibold text-muted transition-colors hover:bg-white/5 hover:text-fg"
               >
                 {item.name}
@@ -216,33 +312,32 @@ function Notifications() {
         type="button"
         onClick={toggle}
         aria-label={unread > 0 ? `${unread} unread announcements` : "Announcements"}
+        aria-expanded={open}
         className={cn(
-          "relative flex size-9 cursor-pointer items-center justify-center rounded-xl border",
-          "transition-all duration-300 ease-smooth",
-          unread > 0
-            ? [
-                "border-[rgba(34,211,238,0.45)] bg-[rgba(34,211,238,0.12)] text-[#22d3ee]",
-                "shadow-[0_0_14px_rgba(34,211,238,0.35)]",
-                "hover:bg-[rgba(34,211,238,0.2)]",
-              ]
-            : "border-line bg-surface text-muted hover:border-line-hover hover:text-fg",
+          "glow-ring hover:glow-ring-fast relative flex size-10 cursor-pointer items-center justify-center rounded-xl border",
+          "bg-[linear-gradient(160deg,#071431,#040d20)]",
+          "transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:border-[#24396c] hover:text-fg",
+          "lg:size-[52px] lg:rounded-[14px]",
+          open ? "border-[#24396c] text-fg" : "border-[#132142] text-[#a9bde2]",
+          // bg-none first: the dark gradient is a background-image, which a
+          // background-color alone would leave painted on top.
+          "lt:border-line lt:bg-none lt:bg-white lt:text-muted lt:hover:border-[#c7d2e6] lt:hover:text-fg",
         )}
       >
-        <MessageIcon className="size-[18px]" />
+        <BellIcon className="size-5 lg:size-[23px]" strokeWidth={1.8} />
 
-        {/* The neon marker. Small on purpose -- it only has to catch the
-            eye, and it sits clear of the icon's own glow. */}
+        {/* The unread marker: a lit dot, no number -- the count is in the
+            label for screen readers, and on the Messages badge in the nav.
+            Static on purpose; an idle pulse here would run on every page. */}
         {unread > 0 && (
           <span
+            aria-hidden
             className={cn(
-              "absolute -top-1 -right-1 flex h-[17px] min-w-[17px] items-center justify-center",
-              "rounded-full border border-[#0a1a1f] bg-[#22d3ee] px-1",
-              "text-[9.5px] font-extrabold text-[#04121a]",
-              "shadow-[0_0_8px_#22d3ee,0_0_16px_rgba(34,211,238,0.75)]",
+              "absolute top-[6px] right-[6px] size-2 rounded-full lg:top-[6px] lg:right-[7px] lg:size-[10px]",
+              "bg-[radial-gradient(circle_at_42%_38%,#ffe4ec_0,#ff5c85_32%,#ff1f5a_68%)]",
+              "shadow-[0_0_6px_rgba(255,31,90,0.9),0_0_14px_rgba(255,31,90,0.55)]",
             )}
-          >
-            {unread > 9 ? "9+" : unread}
-          </span>
+          />
         )}
       </button>
 
@@ -363,20 +458,37 @@ function ProfileMenu() {
       <div
         role="button"
         tabIndex={0}
+        aria-haspopup="menu"
+        aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         onKeyDown={(e) => e.key === "Enter" && setOpen((v) => !v)}
         className={cn(
-          "flex cursor-pointer items-center gap-3.5 rounded-xl border border-line bg-surface px-3 py-1.5",
-          "transition-all duration-300 ease-smooth hover:border-line-hover hover:bg-white/3",
+          "glow-ring hover:glow-ring-slow flex h-10 cursor-pointer items-center gap-2 rounded-xl border py-1 pr-2 pl-1",
+          "border-[#142548] bg-[linear-gradient(160deg,#071533,#040c1f)]",
+          "transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:border-[#24396c]",
+          "sm:gap-4 sm:pl-3.5 lg:h-16 lg:rounded-2xl lg:pr-[10px] lg:pl-[18px]",
+          "lt:border-line lt:bg-none lt:bg-white lt:hover:border-[#c7d2e6]",
         )}
       >
-        <div className="hidden flex-col items-end sm:flex">
-          <span className="text-[13px] font-[750] text-fg">{name}</span>
-          <span className="text-[11px] font-semibold text-muted">{roleLabel}</span>
+        <div className="hidden min-w-0 flex-col items-start sm:flex">
+          <span className="max-w-[160px] truncate text-[13px] leading-[1.25] font-extrabold text-fg lg:text-[14.5px]">
+            {name}
+          </span>
+          <span className="mt-0.5 text-[11px] leading-[1.25] font-semibold text-[#aec3e6] lt:text-muted">
+            {roleLabel}
+          </span>
         </div>
-        <div className="size-9 shrink-0 overflow-hidden rounded-full border-[1.5px] border-[rgba(255,31,90,0.4)] shadow-[0_0_8px_rgba(255,31,90,0.3)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={profile.avatar} alt="" className="size-full object-cover" />
+        <div className="flex items-center gap-1.5 lg:gap-[9px]">
+          <div className="size-8 shrink-0 overflow-hidden rounded-full border-2 border-[#cf2130] bg-black shadow-[0_0_10px_rgba(235,30,48,0.5),0_0_22px_rgba(235,30,48,0.18)] lg:size-[46px]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={profile.avatar} alt="" className="size-full object-cover" />
+          </div>
+          <ChevronDownIcon
+            className={cn(
+              "size-4 shrink-0 text-[#b5c8ea] transition-transform duration-300 ease-smooth lt:text-muted",
+              open && "rotate-180",
+            )}
+          />
         </div>
       </div>
 
