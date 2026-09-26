@@ -1,20 +1,22 @@
 /* ==================================================================
-   Login card decor -- the glass shield, orb and cube (GlassScene.tsx).
+   Login card decor (GlassScene.tsx) -- the glass shield with its
+   padlock and orbit ring, and the backdrop under the particle field
+   (the particles themselves are drawn on a canvas).
 
    No WebGL and no images: the 3D is real CSS 3D (perspective,
-   preserve-3d, translateZ), so the objects turn with true
-   foreshortening, and the glass is layered gradients and inset
-   shadows. Every animation touches only transform or opacity, which
-   the compositor runs without repainting anything.
+   preserve-3d, translateZ), so the shield and its ring turn with true
+   foreshortening, and the glass is layered gradients and SVG. Every
+   animation touches only transform or opacity, which the compositor
+   runs without repainting anything.
 
-   Each object's size is a single custom property, so the phone rule at
-   the bottom scales an object by changing one number.
+   The shield's size is a single custom property, so the phone rule at
+   the bottom scales it by changing one number.
    ================================================================== */
 
 /* ---- Shared ------------------------------------------------------ */
 
-/* The objects fade in once the page is live. That hides the moment
-   their animations are re-phased onto the shared clock (see
+/* The shield fades in once the page is live. That hides the moment
+   its animations are re-phased onto the shared clock (see
    LoginDecor); a remount after a failed sign-in skips the fade. */
 .object {
   opacity: 0;
@@ -27,9 +29,9 @@
   transition: none;
 }
 
-/* Turns an object to face the pointer. --lx/--ly run -1..1 and are
-   written by the particle loop, eased, so every object leans with the
-   particle field rather than snapping. */
+/* Turns the shield and its ring to face the pointer. --lx/--ly run
+   -1..1 and are written by the particle loop, eased, so they lean with
+   the particle field rather than snapping. */
 .lean {
   position: absolute;
   inset: 0;
@@ -37,13 +39,10 @@
   transform: rotateY(calc(var(--lx, 0) * 14deg)) rotateX(calc(var(--ly, 0) * -9deg));
 }
 
-/* Soft pools of light on the glass under the objects, as if they lit
-   the card. Static, so they cost one paint. */
+/* A soft pool of light on the glass under the shield, as if it lit the
+   card. Static, so it costs one paint. */
 .particles {
-  background:
-    radial-gradient(circle at 84% 9%, rgba(59, 130, 246, 0.16), transparent 40%),
-    radial-gradient(circle at 100% 42%, rgba(96, 165, 250, 0.08), transparent 24%),
-    radial-gradient(circle at 0% 100%, rgba(34, 211, 238, 0.12), transparent 36%);
+  background: radial-gradient(circle at 84% 9%, rgba(59, 130, 246, 0.16), transparent 40%);
 }
 
 /* ---- Shield ------------------------------------------------------ */
@@ -199,261 +198,6 @@
   animation: spin 5.5s linear infinite;
 }
 
-/* ---- Orb --------------------------------------------------------- */
-
-.orb {
-  --orb: 84px;
-  position: absolute;
-  top: 36%;
-  /* Far enough out to clear the end of the username field. */
-  right: -50px;
-  z-index: 20;
-  width: var(--orb);
-  height: var(--orb);
-}
-
-.orbFloat {
-  position: absolute;
-  inset: 0;
-  animation: orb-float 8.5s ease-in-out infinite;
-}
-
-/* In front of the card, so it drifts toward the pointer as the field's
-   near particles do. */
-.orbLean {
-  position: absolute;
-  inset: 0;
-  transform: translate(calc(var(--lx, 0) * 5px), calc(var(--ly, 0) * 4px));
-}
-
-/* Glows are box-shadows, not oversized elements: a shadow is ink
-   overflow, so unlike a wider box it can never scroll the page sideways
-   where the orb and cube hang off the card. */
-.orbHalo {
-  position: absolute;
-  inset: 12%;
-  border-radius: 50%;
-  /* Filled with the glow's own colour: a box-shadow is never painted
-     under its element, which would leave a dark hole in the middle. */
-  background: rgba(59, 130, 246, 0.26);
-  box-shadow:
-    0 0 26px 12px rgba(59, 130, 246, 0.26),
-    0 0 44px 18px rgba(34, 211, 238, 0.08);
-}
-
-/* Thin glass: nearly clear in the middle and brightening toward the
-   rim (the Fresnel look), tinted and lit from the top left. */
-.orbBody {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: 50%;
-  background:
-    radial-gradient(
-      circle at 50% 50%,
-      rgba(56, 189, 248, 0.04) 0 46%,
-      rgba(59, 130, 246, 0.16) 64%,
-      rgba(96, 165, 250, 0.42) 84%,
-      rgba(191, 219, 254, 0.78) 96%,
-      rgba(224, 242, 254, 0.35) 100%
-    ),
-    radial-gradient(circle at 34% 28%, rgba(186, 230, 253, 0.26), rgba(37, 99, 235, 0.14) 55%, rgba(30, 58, 138, 0.36) 100%);
-  box-shadow:
-    inset 0 0 0 1px rgba(224, 242, 254, 0.42),
-    inset -8px -10px 18px rgba(34, 211, 238, 0.38),
-    inset 6px 8px 16px rgba(191, 219, 254, 0.12),
-    0 0 16px rgba(59, 130, 246, 0.55),
-    0 0 38px rgba(34, 211, 238, 0.18),
-    0 14px 26px rgba(2, 6, 23, 0.45);
-}
-
-/* Slowly turning colour inside the glass, the refraction feel. */
-.orbSwirl {
-  position: absolute;
-  inset: 6%;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 20deg,
-    transparent 0 8%,
-    rgba(125, 211, 252, 0.22) 16%,
-    transparent 28%,
-    rgba(167, 139, 250, 0.2) 46%,
-    transparent 60%,
-    rgba(45, 212, 191, 0.18) 78%,
-    transparent 90%
-  );
-  filter: blur(4px);
-  animation: spin 24s linear infinite;
-}
-
-/* Light focused through the sphere, opposite the highlight. */
-.orbCaustic {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: radial-gradient(circle at 70% 80%, rgba(165, 243, 252, 0.6), rgba(94, 234, 212, 0.16) 22%, transparent 42%);
-}
-
-.orbRim {
-  position: absolute;
-  inset: 3%;
-  border: 1.5px solid transparent;
-  border-right-color: rgba(125, 211, 252, 0.35);
-  border-bottom-color: rgba(165, 243, 252, 0.75);
-  border-radius: 50%;
-  filter: blur(0.6px);
-  transform: rotate(18deg);
-}
-
-.orbWindow {
-  position: absolute;
-  top: 17%;
-  right: 19%;
-  width: 16%;
-  height: 10%;
-  border-radius: 40%;
-  background: rgba(224, 242, 254, 0.34);
-  filter: blur(1px);
-  transform: rotate(40deg);
-}
-
-.orbSpecular {
-  position: absolute;
-  top: 11%;
-  left: 17%;
-  width: 40%;
-  height: 23%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.4) 45%, transparent);
-  transform: rotate(-32deg);
-}
-
-.orbGlint {
-  position: absolute;
-  top: 20%;
-  left: 29%;
-  width: 6%;
-  height: 6%;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 6px 2px rgba(255, 255, 255, 0.8);
-}
-
-/* ---- Cube -------------------------------------------------------- */
-
-.cube {
-  --cube: 64px;
-  position: absolute;
-  bottom: -22px;
-  left: -26px;
-  z-index: 20;
-  width: var(--cube);
-  height: var(--cube);
-}
-
-/* Light the cube throws on whatever it sits over. Outside the float,
-   so it stays put while the cube bobs above it. */
-.cubeFloor {
-  position: absolute;
-  right: 10%;
-  bottom: -14%;
-  left: 10%;
-  height: 12%;
-  border-radius: 50%;
-  background: rgba(34, 211, 238, 0.3);
-  box-shadow: 0 0 16px 8px rgba(34, 211, 238, 0.3);
-  animation: breathe 6.5s ease-in-out infinite;
-}
-
-.cubeFloat {
-  position: absolute;
-  inset: 0;
-  animation: cube-float 6.5s ease-in-out infinite;
-}
-
-.cubeHalo {
-  position: absolute;
-  inset: 18%;
-  border-radius: 50%;
-  background: rgba(59, 130, 246, 0.28);
-  box-shadow:
-    0 0 26px 14px rgba(59, 130, 246, 0.28),
-    0 0 44px 20px rgba(34, 211, 238, 0.08);
-}
-
-.cubeStage {
-  position: absolute;
-  inset: 0;
-  perspective: 300px;
-}
-
-/* A glow floating at the centre of the block. Kept small enough (under
-   half the cube's inradius times root 2) that no face can ever cut
-   through it, so no browser has to split planes to sort it. */
-.cubeCore {
-  position: absolute;
-  inset: 30%;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(165, 243, 252, 0.7), rgba(56, 189, 248, 0.25) 55%, transparent);
-}
-
-/* Seen from a little above, turning once every half minute. */
-.cubeSpin {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  transform: rotateX(-22deg) rotateY(-35deg);
-  animation: cube-spin 30s linear infinite;
-}
-
-.face {
-  position: absolute;
-  inset: 0;
-  border: 1px solid rgba(191, 219, 254, 0.6);
-  border-radius: 16%;
-  background: linear-gradient(
-    150deg,
-    rgba(191, 219, 254, 0.3),
-    rgba(96, 165, 250, 0.1) 42%,
-    rgba(37, 99, 235, 0.16) 72%,
-    rgba(34, 211, 238, 0.3)
-  );
-  box-shadow:
-    inset 0 0 0 1px rgba(56, 189, 248, 0.25),
-    inset 0 0 14px rgba(56, 189, 248, 0.42),
-    0 0 10px rgba(56, 189, 248, 0.28);
-}
-/* A streak of reflected light across each face. */
-.face::before {
-  content: "";
-  position: absolute;
-  inset: 8%;
-  border-radius: 12%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0) 38%);
-}
-
-.front {
-  transform: translateZ(calc(var(--cube) / 2));
-}
-.back {
-  transform: rotateY(180deg) translateZ(calc(var(--cube) / 2));
-}
-.right {
-  transform: rotateY(90deg) translateZ(calc(var(--cube) / 2));
-}
-.left {
-  transform: rotateY(-90deg) translateZ(calc(var(--cube) / 2));
-}
-/* Lit from above and glowing from below, like the design's block. */
-.top {
-  background: linear-gradient(150deg, rgba(224, 242, 254, 0.42), rgba(125, 211, 252, 0.16) 55%, rgba(59, 130, 246, 0.18));
-  transform: rotateX(90deg) translateZ(calc(var(--cube) / 2));
-}
-.bottom {
-  background: radial-gradient(closest-side, rgba(94, 234, 212, 0.5), rgba(34, 211, 238, 0.18) 60%, rgba(59, 130, 246, 0.12));
-  transform: rotateX(-90deg) translateZ(calc(var(--cube) / 2));
-}
-
 /* ---- Motion ------------------------------------------------------ */
 
 @keyframes bob {
@@ -502,72 +246,25 @@
   }
 }
 
-@keyframes orb-float {
-  0%,
-  100% {
-    transform: translate(0, 0);
-  }
-  50% {
-    transform: translate(-3px, -8px);
-  }
-}
-
-@keyframes cube-float {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-7px) rotate(3deg);
-  }
-}
-
-@keyframes cube-spin {
-  from {
-    transform: rotateX(-22deg) rotateY(-35deg);
-  }
-  to {
-    transform: rotateX(-22deg) rotateY(325deg);
-  }
-}
-
 /* ---- Phones ------------------------------------------------------ */
 
-/* Smaller, and pulled in so the orb and cube stay inside the page's
-   24px gutter instead of running off the screen. */
+/* Smaller on a narrow card, and tucked further into its corner. */
 @media (max-width: 419.98px) {
   .shield {
     --shield: 90px;
     top: 14px;
     right: 14px;
   }
-  /* The gutter is too narrow to clear the username field at its
-     height, so the orb drops to the gap beside the Password label. */
-  .orb {
-    --orb: 56px;
-    top: calc(50% - 28px);
-    right: -22px;
-  }
-  .cube {
-    --cube: 46px;
-    bottom: -16px;
-    left: -18px;
-  }
 }
 
-/* Every object keeps its resting pose, and nothing moves. */
+/* The shield keeps its resting pose, and nothing moves. */
 @media (prefers-reduced-motion: reduce) {
   .shieldFloat,
   .shieldHalo,
   .shieldBody,
   .lockGlow,
   .ring,
-  .comet,
-  .orbFloat,
-  .orbSwirl,
-  .cubeFloor,
-  .cubeFloat,
-  .cubeSpin {
+  .comet {
     animation: none;
   }
 }

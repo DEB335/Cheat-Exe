@@ -39,7 +39,7 @@ const SEED = 0x5eed_c0de;
 
 /**
  * The shared clock. Every position in the field, and the phase of every
- * CSS animation on the objects, is a function of time since this moment
+ * CSS animation on the shield, is a function of time since this moment
  * -- which is fixed when the module loads, not when the card mounts --
  * so a remount picks up exactly where the last one left off.
  */
@@ -91,8 +91,6 @@ const SHIELD_RIGHT = "M50 3 C61 10 74 13.5 88 13.5 Q91 13.5 91 16.5 L91 50 C91 7
 const SHIELD_SHEEN =
   "M13.5 19 Q13.5 17 15.5 17 C28 16.6 39 13.2 48 8.4 L48 12.6 C39 17.4 29 20.3 18.2 21 L18 50 C18 58 19 64.5 21 71 L16.4 71 C14.6 65 13.5 58 13.5 50 Z";
 
-const FACES = ["front", "back", "right", "left", "top", "bottom"] as const;
-
 interface Particle {
   kind: Kind;
   /** Distance from the spin axis, and starting angle around it. */
@@ -122,16 +120,14 @@ const lean = { x: 0, y: 0, tx: 0, ty: 0 };
 const shared = { revealed: false };
 
 /**
- * The login card's decor: a 3D particle field on the glass, and three
- * glass objects -- a shield with a padlock and an orbit ring at the top
- * right, an orb on the right edge and a cube on the bottom-left corner.
+ * The login card's decor: a 3D particle field on the glass, and a glass
+ * shield with a padlock and an orbit ring at the top right.
  *
  * Render as the FIRST child of the card element (position: relative,
  * rounded). The particles fill the card, clipped to its corners, at
  * z-index 0 behind content the page gives `relative z-10`; the shield
- * sits at z-5 beside the heading, and the orb and cube at z-20, in front,
- * where they straddle the card's edges. Nothing else leaves the card:
- * the page's background video stays untouched.
+ * sits at z-5 beside the heading, inside the card's top-right corner.
+ * Nothing leaves the card: the page's background video stays untouched.
  *
  * Decorative only: no pointer events, hidden from assistive tech, one
  * still frame for reduced motion, and the particle loop stops whenever
@@ -145,14 +141,14 @@ export function LoginDecor() {
   // not safe inside url(#...), so keep only the plain characters.
   const uid = `gs${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
-  // Before paint: put this mount's objects on the shared clock.
+  // Before paint: put this mount's shield on the shared clock.
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return;
     writeLean(root);
 
     // Marked live before anything below reads styles, so on a remount
-    // the objects' very first style is already visible and there is no
+    // the shield's very first style is already visible and there is no
     // fade to replay. (Strict Mode re-runs this on the same node, which
     // already carries data-live, so the first load still fades in.)
     if (shared.revealed && root.dataset.live === undefined) root.dataset.instant = "";
@@ -384,8 +380,6 @@ export function LoginDecor() {
         <canvas ref={canvasRef} className="block size-full" />
       </div>
       <GlassShield uid={uid} />
-      <GlassOrb />
-      <GlassCube />
     </div>
   );
 }
@@ -520,53 +514,6 @@ function OrbitRing({ className }: { className: string | undefined }) {
         <div className={styles.ring}>
           <div className={styles.ringLine} />
           <div className={styles.comet} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * A clear glass bubble: nearly transparent in the middle and bright at
- * the rim, a specular highlight top left, the caustic glow it focuses
- * bottom right, and slow refracted colour turning inside it.
- */
-function GlassOrb() {
-  return (
-    <div className={cn(styles.object, styles.orb)}>
-      <div className={styles.orbFloat}>
-        <div className={styles.orbLean}>
-          <div className={styles.orbHalo} />
-          <div className={styles.orbBody}>
-            <div className={styles.orbSwirl} />
-            <div className={styles.orbCaustic} />
-            <div className={styles.orbRim} />
-            <div className={styles.orbWindow} />
-            <div className={styles.orbSpecular} />
-            <div className={styles.orbGlint} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** A real CSS 3D cube: six translucent faces with glowing edges and a light at its core. */
-function GlassCube() {
-  return (
-    <div className={cn(styles.object, styles.cube)}>
-      <div className={styles.cubeFloor} />
-      <div className={styles.cubeFloat}>
-        <div className={styles.cubeHalo} />
-        <div className={styles.cubeStage}>
-          <div className={styles.lean}>
-            <div className={styles.cubeCore} />
-            <div className={styles.cubeSpin}>
-              {FACES.map((face) => (
-                <div key={face} className={cn(styles.face, styles[face])} />
-              ))}
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -20,6 +20,7 @@ import {
   WhatsappIcon,
   YoutubeIcon,
 } from "@/components/icons";
+import { BorderRunner } from "@/components/login/BorderRunner";
 import { LoginDecor } from "@/components/login/GlassScene";
 import { TetherButton, type TetherState } from "@/components/login/TetherButton";
 import { postJson } from "@/lib/client-api";
@@ -224,14 +225,19 @@ function LoginView() {
         <Specular />
       </button>
 
-      {/* overflow-x-hidden: LoginDecor's orb and cube hang over the card's
-          edges, and on a phone the orb would otherwise widen the page. */}
+      {/* overflow-x-hidden is a safety net. LoginDecor's shield, orbit ring
+          and particles all stay inside the card, but BorderRunner's glow
+          spills a few px past its edge, and nothing decorative may ever
+          widen the page on a phone. */}
       <div className="no-scrollbar flex min-h-app-screen w-full items-center justify-center overflow-x-hidden overflow-y-auto py-10 select-none">
-        <div className="relative z-10 w-full max-w-[440px] px-5 py-6 sm:p-6">
+        <div className="relative z-10 w-full max-w-[560px] px-5 py-6 sm:p-6">
           <div
             key={shake}
             className={cn(
-              // No overflow-hidden: the decor is meant to break the frame.
+              // No overflow-hidden: the blurred rim, the bottom-edge
+              // reflection and BorderRunner's glow all bleed a few px past
+              // the edge. LoginDecor clips its own particles to the corners.
+              // The radius here is the one BorderRunner runs round.
               "relative rounded-[32px] px-6 pt-9 pb-8 sm:px-9 sm:pt-10 sm:pb-9",
               // Barely-there blue glass; the blur does the work of keeping
               // the text legible over the video, with a touch of depth
@@ -246,6 +252,9 @@ function LoginView() {
             )}
           >
             <LoginDecor />
+            {/* A comet of light running round the rim: on top of the
+                content, but it only ever draws on the edge. */}
+            <BorderRunner />
 
             {/* Luminous rim, brightest at the top-left and down the left
                 and bottom edges where the light catches, dim on the right.
