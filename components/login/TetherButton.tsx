@@ -2,23 +2,26 @@
 
 import { useEffect, useRef } from "react";
 
+import { ArrowRightIcon } from "@/components/icons";
 import { playClick, playDodge, playSnap } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
 import { pageZoom } from "@/lib/zoom";
 
 export type TetherState = "empty" | "checking" | "ready" | "invalid";
 
+// The cord takes the pill's colours: teal while it waits, amber while
+// the server checks, a cyan core in a blue haze once it is home.
 const COLORS: Record<TetherState, { stroke: string; glow: string }> = {
   empty: { stroke: "#2dd4bf", glow: "rgba(45, 212, 191, 0.4)" },
   checking: { stroke: "#f59e0b", glow: "rgba(245, 158, 11, 0.4)" },
-  ready: { stroke: "#2dd4bf", glow: "rgba(45, 212, 191, 0.4)" },
+  ready: { stroke: "#38bdf8", glow: "rgba(37, 99, 235, 0.45)" },
   invalid: { stroke: "#ef4444", glow: "rgba(239, 68, 68, 0.4)" },
 };
 
 /**
  * The runaway sign-in button. It dodges the cursor on an elastic cord
  * until the typed credentials are confirmed real, then snaps home,
- * turns green and locks.
+ * lights up and locks.
  *
  * The original decided "locked" by comparing the typed password against
  * credentials held in localStorage, which anyone could edit. The server
@@ -194,23 +197,34 @@ export function TetherButton({
 
   const invalid = state === "invalid";
   const checking = state === "checking";
+  // The arrow disc says "go"; it steps aside while a check or a sign-in
+  // is in flight so the longer label can sit in the middle.
+  const showArrow = !disabled && !checking;
 
   return (
     <div
       ref={trackRef}
-      className="relative mt-6 flex h-[84px] w-full items-center justify-center rounded-[42px] bg-[#090d10] shadow-[inset_0_3px_8px_rgba(0,0,0,0.6)]"
+      // The rim is an inset shadow rather than a border: a border would
+      // shrink the padding box the canvas is sized against and stretch
+      // the cord off the button by a pixel or two.
+      className={cn(
+        "relative mt-6 flex h-[84px] w-full items-center justify-center rounded-[42px]",
+        "bg-[linear-gradient(to_bottom,rgba(15,23,42,0.6),rgba(8,14,30,0.55))]",
+        "shadow-[inset_0_0_0_1px_rgba(96,165,250,0.35),inset_0_3px_10px_rgba(0,0,0,0.55),inset_0_-1px_0_rgba(147,197,253,0.12),0_0_22px_rgba(59,130,246,0.18)]",
+      )}
     >
+      {/* The home slot: a ghost of the pill marking where it belongs. */}
       <div
         className={cn(
-          "pointer-events-none absolute flex h-[52px] w-[140px] items-center justify-center rounded-[26px]",
-          "border-2 border-dashed transition-all duration-350",
+          "pointer-events-none absolute flex h-[52px] w-[170px] items-center justify-center rounded-full",
+          "border-2 border-dashed bg-white/[0.02] transition-all duration-350",
           locked
-            ? "border-[rgba(16,185,129,0.7)] bg-[rgba(16,185,129,0.05)] shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+            ? "border-[rgba(45,212,191,0.75)] bg-[rgba(31,209,165,0.06)] shadow-[0_0_22px_rgba(31,209,165,0.3),inset_0_0_14px_rgba(45,212,191,0.12)]"
             : invalid
               ? "border-[rgba(239,68,68,0.6)] bg-[rgba(239,68,68,0.05)] shadow-[0_0_15px_rgba(239,68,68,0.15)]"
               : checking
-                ? "border-[rgba(245,158,11,0.6)] bg-[rgba(245,158,11,0.05)]"
-                : "border-[rgba(45,212,191,0.4)]",
+                ? "border-[rgba(245,158,11,0.6)] bg-[rgba(245,158,11,0.05)] shadow-[0_0_14px_rgba(245,158,11,0.12)]"
+                : "border-[rgba(96,165,250,0.3)]",
         )}
       >
         <div
@@ -218,7 +232,7 @@ export function TetherButton({
             "flex size-[22px] items-center justify-center rounded-full border-2 transition-all duration-350",
             "after:block after:size-1.5 after:rounded-full after:transition-all after:duration-350 after:content-['']",
             locked
-              ? "border-[rgba(16,185,129,0.6)] bg-[rgba(16,185,129,0.2)] after:bg-[#10b981]"
+              ? "border-[rgba(45,212,191,0.6)] bg-[rgba(31,209,165,0.2)] after:bg-[#2dd4bf]"
               : invalid
                 ? "border-[rgba(239,68,68,0.6)] bg-[rgba(239,68,68,0.2)] after:bg-[#ef4444]"
                 : checking
@@ -249,33 +263,85 @@ export function TetherButton({
           playClick();
         }}
         className={cn(
-          "animate-button-shimmer absolute z-20 flex h-[52px] w-[144px] items-center justify-center gap-2",
-          "rounded-[26px] text-[16px] font-bold [background-size:200%_200%]",
-          "shadow-[0_5px_15px_rgba(0,0,0,0.2)]",
-          "transition-[background,color,box-shadow] duration-300",
+          "group absolute z-20 flex h-[52px] w-[170px] items-center justify-center",
+          "rounded-full border text-[16px] font-bold whitespace-nowrap",
+          "transition-[background,color,box-shadow,border-color,filter] duration-300",
+          showArrow ? "pr-[40px] pl-4" : "px-4",
           locked ? "cursor-pointer" : "cursor-not-allowed",
           disabled && "cursor-wait",
           locked
             ? [
-                "border-none bg-[linear-gradient(to_bottom,#0f402b,#10b981)] text-[#6ee7b7]",
-                "shadow-[0_0_25px_rgba(16,185,129,0.35),0_10px_25px_rgba(0,0,0,0.5)]",
-                "hover:bg-[linear-gradient(to_bottom,#135237,#059669)] hover:text-white",
-                "hover:shadow-[0_0_30px_rgba(16,185,129,0.5),0_10px_25px_rgba(0,0,0,0.5)]",
+                // The full look: a glossy teal-to-blue pill with a blue halo.
+                "border-white/25 text-white [text-shadow:0_1px_2px_rgba(15,23,42,0.4)]",
+                "bg-[linear-gradient(90deg,#1fd1a5_0%,#2dd4bf_18%,#3b82f6_64%,#2563eb_100%)]",
+                "shadow-[0_0_22px_rgba(56,189,248,0.5),0_0_44px_rgba(37,99,235,0.32),0_8px_20px_rgba(0,0,0,0.45),inset_0_-2px_6px_rgba(15,23,42,0.3)]",
+                "enabled:hover:brightness-110",
+                "enabled:hover:shadow-[0_0_28px_rgba(56,189,248,0.65),0_0_56px_rgba(37,99,235,0.42),0_8px_20px_rgba(0,0,0,0.45),inset_0_-2px_6px_rgba(15,23,42,0.3)]",
               ]
             : invalid
               ? [
-                  "border-none bg-[linear-gradient(to_bottom,#400f13,#ef4444)] text-[#fca5a5]",
-                  "shadow-[0_0_20px_rgba(239,68,68,0.25),0_10px_25px_rgba(0,0,0,0.5)]",
+                  "border-[rgba(248,113,113,0.5)] text-[#fecaca]",
+                  "bg-[#0a1122] bg-[linear-gradient(90deg,rgba(239,68,68,0.6),rgba(185,28,28,0.55))]",
+                  "shadow-[0_0_22px_rgba(239,68,68,0.4),0_8px_20px_rgba(0,0,0,0.45)]",
                 ]
               : checking
                 ? [
-                    "border border-[rgba(245,158,11,0.35)] bg-[#2a2113] text-[#d6a44a]",
-                    "shadow-[0_0_16px_rgba(245,158,11,0.18)]",
+                    "border-[rgba(245,158,11,0.45)] text-[#fcd34d]",
+                    "bg-[#0a1122] bg-[linear-gradient(90deg,rgba(245,158,11,0.3),rgba(217,119,6,0.2))]",
+                    "shadow-[0_0_14px_rgba(245,158,11,0.2),0_8px_20px_rgba(0,0,0,0.4)]",
                   ]
-                : ["border border-[rgba(45,212,191,0.25)] bg-[#182824] text-[#72a294]"],
+                : [
+                    // Not available yet: the same pill, washed out to glass.
+                    "border-white/12 text-white/55",
+                    // A solid base under the tint: the home slot's marker sits right
+                    // behind the label and would otherwise show through it.
+                    "bg-[#0a1122] bg-[linear-gradient(90deg,rgba(31,209,165,0.34),rgba(59,130,246,0.38))]",
+                    "shadow-[0_0_14px_rgba(45,212,191,0.14),0_8px_20px_rgba(0,0,0,0.4)]",
+                  ],
         )}
       >
-        {label}
+        {/* Amber heartbeat while the server makes up its mind. */}
+        {checking && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 animate-pulse rounded-full shadow-[0_0_24px_rgba(245,158,11,0.55)] motion-reduce:animate-none"
+          />
+        )}
+
+        {/* Glass sheen across the top half. */}
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-x-[6px] top-[2px] h-[46%] rounded-full transition-opacity duration-300",
+            "bg-[linear-gradient(to_bottom,rgba(255,255,255,0.5),rgba(255,255,255,0.06))]",
+            locked ? "opacity-100" : invalid ? "opacity-60" : "opacity-40",
+          )}
+        />
+
+        <span className="relative">{label}</span>
+
+        {showArrow && (
+          <span
+            aria-hidden
+            className={cn(
+              "absolute top-1/2 right-[7px] flex size-9 -translate-y-1/2 items-center justify-center rounded-full border",
+              "transition-[background,color,border-color,box-shadow] duration-300",
+              locked
+                ? "border-white/40 bg-[rgba(30,64,175,0.55)] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_0_10px_rgba(37,99,235,0.5)]"
+                : invalid
+                  ? "border-[rgba(254,202,202,0.35)] bg-[rgba(127,29,29,0.45)] text-[#fecaca]"
+                  : "border-white/15 bg-white/[0.04] text-white/45",
+            )}
+          >
+            <ArrowRightIcon
+              className={cn(
+                "size-[18px] transition-transform duration-300",
+                locked && "group-enabled:group-hover:translate-x-[3px]",
+              )}
+              strokeWidth={2.25}
+            />
+          </span>
+        )}
       </button>
     </div>
   );

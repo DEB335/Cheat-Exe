@@ -20,6 +20,7 @@ import {
   WhatsappIcon,
   YoutubeIcon,
 } from "@/components/icons";
+import { LoginDecor } from "@/components/login/GlassScene";
 import { TetherButton, type TetherState } from "@/components/login/TetherButton";
 import { postJson } from "@/lib/client-api";
 import { SESSION_LIFETIME_MINUTES } from "@/lib/session-lifetime";
@@ -27,36 +28,68 @@ import { playClick, playError, playType } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
 
 
+/** Each link is a glass marble tinted with its brand. `rgb` is an
+    "r,g,b" triplet (fed to the classes as --c so they can vary its alpha);
+    `ink` is the glyph, a pale tint of the brand that reads on its own
+    colour. */
 const SOCIALS = [
   {
     key: "discord",
     href: "https://discord.gg/Rt6FWbW8HD",
     label: "Discord",
     icon: DiscordIcon,
-    hover: "hover:text-[#5865F2] hover:border-[#5865F2] hover:bg-[rgba(88,101,242,0.1)] hover:shadow-[0_8px_24px_rgba(88,101,242,0.3)]",
+    rgb: "88,101,242",
+    ink: "#f5f6ff",
   },
   {
     key: "telegram",
     href: "https://t.me/CHEAT_EXE_01",
     label: "Telegram",
     icon: SendIcon,
-    hover: "hover:text-[#0088CC] hover:border-[#0088CC] hover:bg-[rgba(0,136,204,0.1)] hover:shadow-[0_8px_24px_rgba(0,136,204,0.3)]",
+    rgb: "41,169,235",
+    ink: "#d6f1ff",
   },
   {
     key: "youtube",
     href: "http://www.youtube.com/@cheatexe1",
     label: "YouTube",
     icon: YoutubeIcon,
-    hover: "hover:text-[#FF0000] hover:border-[#FF0000] hover:bg-[rgba(255,0,0,0.1)] hover:shadow-[0_8px_24px_rgba(255,0,0,0.3)]",
+    rgb: "255,0,0",
+    ink: "#ffd6da",
   },
   {
     key: "whatsapp",
     href: "https://whatsapp.com/channel/0029VbChn2OFsn0YYp4Wp31d",
     label: "WhatsApp",
     icon: WhatsappIcon,
-    hover: "hover:text-[#25D366] hover:border-[#25D366] hover:bg-[rgba(37,211,102,0.1)] hover:shadow-[0_8px_24px_rgba(37,211,102,0.3)]",
+    rgb: "37,211,102",
+    ink: "#d3fbe1",
   },
 ];
+
+/**
+ * A glass marble tinted by --c (an "r,g,b" triplet on the element): lit
+ * from the top-left and deepening to a dark core so it reads as a ball
+ * rather than a disc, with a rim and a bloom in its own colour that both
+ * strengthen on hover. Needs a positioned element (for <Specular />).
+ */
+const SPHERE = cn(
+  "rounded-full bg-[radial-gradient(circle_at_32%_26%,rgba(255,255,255,0.3)_0%,rgba(var(--c),0.55)_24%,rgba(var(--c),0.2)_60%,rgba(6,12,32,0.72)_100%)]",
+  "shadow-[inset_0_0_0_1px_rgba(var(--c),0.6),inset_0_-7px_12px_-2px_rgba(var(--c),0.5),inset_0_2px_3px_rgba(255,255,255,0.3),0_0_18px_-2px_rgba(var(--c),0.55),0_10px_18px_-8px_rgba(0,0,0,0.6)]",
+  "transition-all duration-300 ease-smooth",
+  "hover:shadow-[inset_0_0_0_1px_rgba(var(--c),0.9),inset_0_-7px_14px_-2px_rgba(var(--c),0.65),inset_0_2px_3px_rgba(255,255,255,0.45),0_0_30px_2px_rgba(var(--c),0.7),0_16px_22px_-10px_rgba(0,0,0,0.6)]",
+);
+
+/** The window-light glint on a SPHERE. Sized in percent so one glint
+    fits every marble. Painted above the glyph, as a reflection would be. */
+function Specular() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute top-[14%] left-[11%] h-[22%] w-[44%] -rotate-[38deg] rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.85),rgba(255,255,255,0))]"
+    />
+  );
+}
 
 export default function LoginPage() {
   return (
@@ -179,141 +212,197 @@ function LoginView() {
           setBackgroundMusicMuted(next);
           playClick();
         }}
+        style={{ "--c": "96,165,250" } as React.CSSProperties}
         className={cn(
-          "fixed top-5 right-5 z-[10000] flex size-[42px] items-center justify-center rounded-full",
-          "border border-white/10 bg-[rgba(10,15,30,0.7)] text-white backdrop-blur-[10px]",
-          "transition-all duration-300 ease-smooth",
-          "hover:-translate-y-0.5 hover:scale-105 hover:border-[rgba(255,31,90,0.4)]",
-          "hover:text-[#ff1f5a] hover:shadow-[0_0_15px_rgba(255,31,90,0.25)]",
+          "fixed top-5 right-5 z-[10000] flex size-[42px] items-center justify-center",
+          SPHERE,
+          "text-[#dbeafe] backdrop-blur-[10px]",
+          "hover:-translate-y-0.5 hover:scale-105 hover:text-[#a5f3fc]",
         )}
       >
         {muted ? <MusicOffIcon className="size-5" /> : <MusicIcon className="size-5" />}
+        <Specular />
       </button>
 
-      <div className="no-scrollbar flex min-h-app-screen w-full items-center justify-center overflow-y-auto py-10 select-none">
-        <div className="relative z-10 w-full max-w-[440px] p-6">
+      {/* overflow-x-hidden: LoginDecor's orb and cube hang over the card's
+          edges, and on a phone the orb would otherwise widen the page. */}
+      <div className="no-scrollbar flex min-h-app-screen w-full items-center justify-center overflow-x-hidden overflow-y-auto py-10 select-none">
+        <div className="relative z-10 w-full max-w-[440px] px-5 py-6 sm:p-6">
           <div
             key={shake}
             className={cn(
-              "relative rounded-[32px] border border-[rgba(45,212,191,0.25)] bg-[rgba(13,19,21,0.55)]",
-              "px-9 pt-10 pb-9 backdrop-blur-[12px]",
-              "shadow-[0_0_60px_rgba(0,0,0,0.8),0_0_50px_rgba(45,212,191,0.35),0_0_20px_rgba(45,212,191,0.2),0_0_1px_1px_rgba(45,212,191,0.15)]",
+              // No overflow-hidden: the decor is meant to break the frame.
+              "relative rounded-[32px] px-6 pt-9 pb-8 sm:px-9 sm:pt-10 sm:pb-9",
+              // Barely-there blue glass; the blur does the work of keeping
+              // the text legible over the video, with a touch of depth
+              // added towards the bottom.
+              "bg-[linear-gradient(160deg,rgba(140,180,255,0.1)_0%,rgba(120,160,255,0.06)_45%,rgba(20,40,95,0.16)_100%)]",
+              // Light mode hides the video and paints the page near-white,
+              // where clear glass would lose the white text: go dark there.
+              "lt:bg-[linear-gradient(160deg,rgba(22,40,88,0.92)_0%,rgba(8,15,40,0.95)_100%)]",
+              "backdrop-blur-[20px] backdrop-saturate-140",
+              "shadow-[0_24px_70px_-20px_rgba(2,6,23,0.8),0_0_60px_-6px_rgba(59,130,246,0.38),0_0_22px_rgba(56,189,248,0.12),inset_0_1px_0_rgba(255,255,255,0.1),inset_0_0_42px_rgba(96,165,250,0.07)]",
               shake > 0 && "animate-shake-card",
             )}
           >
-            <div className="mb-6 flex items-center gap-3">
-              <div className="flex size-7 items-center justify-center rounded-full border-[2.5px] border-[#2dd4bf] shadow-[0_0_14px_rgba(45,212,191,0.35)]">
-                <div className="size-2 rounded-full bg-[#2dd4bf]" />
+            <LoginDecor />
+
+            {/* Luminous rim, brightest at the top-left and down the left
+                and bottom edges where the light catches, dim on the right.
+                The conic sweep starts at 12 o'clock and runs clockwise. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-70 blur-[5px]"
+            >
+              <span className="glass-edge bg-[conic-gradient(from_0deg,rgba(147,197,253,0.5),rgba(147,197,253,0.12)_40deg,rgba(96,165,250,0.14)_95deg,rgba(96,165,250,0.5)_145deg,rgba(125,196,255,0.85)_180deg,rgba(56,189,248,0.7)_230deg,rgba(103,232,249,0.8)_290deg,rgba(207,250,254,1)_328deg,rgba(147,197,253,0.5))] [--glass-edge:2px]" />
+            </span>
+            <span
+              aria-hidden
+              className="glass-edge bg-[conic-gradient(from_0deg,rgba(186,220,255,0.6),rgba(147,197,253,0.2)_40deg,rgba(96,165,250,0.22)_95deg,rgba(96,165,250,0.55)_145deg,rgba(165,214,255,0.9)_180deg,rgba(56,189,248,0.8)_230deg,rgba(103,232,249,0.9)_290deg,rgba(224,251,255,1)_328deg,rgba(186,220,255,0.6))]"
+            />
+
+            {/* Glass sheen: a flare off the top-left corner and two
+                diagonal bands of reflected light across the pane. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[radial-gradient(160px_circle_at_0%_0%,rgba(165,243,252,0.16),transparent_70%),linear-gradient(118deg,rgba(255,255,255,0.1)_0%,rgba(255,255,255,0.03)_22%,transparent_34%,transparent_58%,rgba(255,255,255,0.05)_64%,transparent_74%)]"
+            />
+
+            {/* Reflection along the bottom edge: a hard bright line over a
+                soft bloom. Inset past the 32px corners so it stays on the
+                straight. */}
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-6 -bottom-[3px] h-[6px] rounded-full bg-[linear-gradient(90deg,transparent,rgba(96,165,250,0.75),transparent)] blur-[5px]"
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-10 bottom-0 h-px bg-[linear-gradient(90deg,transparent,rgba(207,237,255,0.95)_30%,rgba(207,237,255,0.95)_70%,transparent)]"
+            />
+
+            <div className="relative z-10">
+              {/* The first two rows stop short of the top-right corner, where
+                  LoginDecor parks its shield; the subtitle runs full width
+                  beneath it. */}
+              <div className="pr-[96px] sm:pr-[112px]">
+                <div className="mb-6 flex items-center gap-3 whitespace-nowrap">
+                  <div className="flex size-[30px] shrink-0 items-center justify-center rounded-full border-[2.5px] border-[#5eead4] shadow-[0_0_14px_rgba(45,212,191,0.6),0_0_30px_rgba(34,211,238,0.25),inset_0_0_8px_rgba(45,212,191,0.45)] sm:size-8">
+                    <div className="size-2 rounded-full bg-[#ccfbf1] shadow-[0_0_6px_1px_#5eead4,0_0_14px_3px_rgba(34,211,238,0.7)] sm:size-2.5" />
+                  </div>
+                  <div className="text-[14px] font-bold tracking-[4px] text-white uppercase [text-shadow:0_0_10px_rgba(191,219,254,0.35)] sm:text-[16px] sm:tracking-[5px]">
+                    CHEAT{" "}
+                    <span className="bg-linear-to-r from-[#5eead4] to-[#22d3ee] bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(34,211,238,0.7)] [text-shadow:none]">
+                      EXE
+                    </span>
+                  </div>
+                </div>
+
+                {/* pb-1 keeps the "g" descender inside the clipped gradient. */}
+                <h1 className="mb-2 bg-linear-to-b from-white from-35% to-[#bfdbfe] bg-clip-text pb-1 text-[34px] leading-[1.1] font-extrabold tracking-[-0.8px] text-transparent drop-shadow-[0_0_16px_rgba(147,197,253,0.4)] sm:text-[40px]">
+                  Sign in
+                </h1>
               </div>
-              <div className="text-[13px] font-bold tracking-[3px] text-[#94a3b8] uppercase">
-                CHEAT EXE
+              <p className="mb-7 text-[14px] leading-[1.55] text-[#b4c6e7] sm:text-[14.5px]">
+                Welcome back. The button holds still once your credentials check out.
+              </p>
+
+              {error && <Notice tone="error">{error}</Notice>}
+              {!error && check === "unreachable" && (
+                <Notice tone="warn">
+                  Could not reach the server to check your credentials. The button stays locked until
+                  it can -- edit a field to try again.
+                </Notice>
+              )}
+              {success && <Notice tone="ok">{success}</Notice>}
+
+              <form onSubmit={submit} autoComplete="off">
+                <Field
+                  id="logUsername"
+                  label="Username"
+                  icon={<UserIcon className="size-[18px]" />}
+                  type="text"
+                  value={username}
+                  autoComplete="username"
+                  onChange={(value) => {
+                    setUsername(value);
+                    setError("");
+                    playType();
+                  }}
+                />
+
+                <Field
+                  id="logPassword"
+                  label="Password"
+                  icon={<LockIcon className="size-[18px]" />}
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  autoComplete="current-password"
+                  onChange={(value) => {
+                    setPassword(value);
+                    setError("");
+                    playType();
+                  }}
+                  trailing={
+                    <button
+                      type="button"
+                      title="Toggle password visibility"
+                      onClick={() => {
+                        playClick();
+                        setShowPassword((v) => !v);
+                      }}
+                      className="absolute right-4 flex cursor-pointer items-center justify-center rounded-md p-1 text-[#7d8fb8] transition-colors hover:text-[#dbeafe]"
+                    >
+                      {showPassword ? (
+                        <EyeOffIcon className="size-[18px]" />
+                      ) : (
+                        <EyeIcon className="size-[18px]" />
+                      )}
+                    </button>
+                  }
+                />
+
+                <TetherButton
+                  state={state}
+                  label={busy ? "Signing in..." : check === "checking" ? "Checking..." : "Log in"}
+                  disabled={busy}
+                  bolt={bolt}
+                />
+              </form>
+
+              <div className="mt-[26px] mb-5 flex items-center gap-4">
+                <span className="h-px flex-1 bg-[linear-gradient(90deg,rgba(147,197,253,0.08),rgba(147,197,253,0.55))]" />
+                {/* The left padding balances the tracking after the last letter. */}
+                <span className="pl-[4px] text-[10.5px] font-bold tracking-[4px] text-[#a5c8f5]">
+                  CONNECT
+                </span>
+                <span className="h-px flex-1 bg-[linear-gradient(90deg,rgba(147,197,253,0.55),rgba(147,197,253,0.08))]" />
               </div>
-            </div>
 
-            <h1 className="mb-2 text-[30px] font-extrabold tracking-[-0.5px] text-white">Sign in</h1>
-            <p className="mb-7 text-[13.5px] leading-[1.5] text-[#94a3b8]">
-              Welcome back. The button holds still once your credentials check out.
-            </p>
-
-            {error && (
-              <div className="mb-[18px] rounded-xl border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.12)] px-4 py-[11px] text-center text-[12.5px] leading-[1.4] font-semibold text-[#fca5a5]">
-                {error}
+              <div className="flex justify-center gap-3.5 sm:gap-5">
+                {SOCIALS.map((social) => {
+                  const Icon = social.icon;
+                  return (
+                    <button
+                      key={social.key}
+                      type="button"
+                      title={social.label}
+                      onClick={() => {
+                        playClick();
+                        window.open(social.href, "_blank", "noopener,noreferrer");
+                      }}
+                      style={{ "--c": social.rgb, color: social.ink } as React.CSSProperties}
+                      className={cn(
+                        "relative flex size-[52px] cursor-pointer items-center justify-center sm:size-[54px]",
+                        SPHERE,
+                        "hover:-translate-y-1 hover:scale-[1.06]",
+                      )}
+                    >
+                      <Icon className="size-[22px] drop-shadow-[0_0_6px_rgba(var(--c),0.9)]" />
+                      <Specular />
+                    </button>
+                  );
+                })}
               </div>
-            )}
-            {!error && check === "unreachable" && (
-              <div className="mb-[18px] rounded-xl border border-[rgba(245,158,11,0.25)] bg-[rgba(245,158,11,0.12)] px-4 py-[11px] text-center text-[12.5px] leading-[1.4] font-semibold text-[#fcd34d]">
-                Could not reach the server to check your credentials. The button stays locked until
-                it can -- edit a field to try again.
-              </div>
-            )}
-            {success && (
-              <div className="mb-[18px] rounded-xl border border-[rgba(45,212,191,0.25)] bg-[rgba(45,212,191,0.12)] px-4 py-[11px] text-center text-[12.5px] leading-[1.4] font-semibold text-[#5eead4]">
-                {success}
-              </div>
-            )}
-
-            <form onSubmit={submit} autoComplete="off">
-              <Field
-                id="logUsername"
-                label="Username"
-                icon={<UserIcon className="size-[18px]" />}
-                type="text"
-                value={username}
-                autoComplete="username"
-                onChange={(value) => {
-                  setUsername(value);
-                  setError("");
-                  playType();
-                }}
-              />
-
-              <Field
-                id="logPassword"
-                label="Password"
-                icon={<LockIcon className="size-[18px]" />}
-                type={showPassword ? "text" : "password"}
-                value={password}
-                autoComplete="current-password"
-                onChange={(value) => {
-                  setPassword(value);
-                  setError("");
-                  playType();
-                }}
-                trailing={
-                  <button
-                    type="button"
-                    title="Toggle password visibility"
-                    onClick={() => {
-                      playClick();
-                      setShowPassword((v) => !v);
-                    }}
-                    className="absolute right-4 flex cursor-pointer items-center justify-center rounded-md p-1 text-[#64748b] transition-colors hover:text-[#cbd5e1]"
-                  >
-                    {showPassword ? (
-                      <EyeOffIcon className="size-[18px]" />
-                    ) : (
-                      <EyeIcon className="size-[18px]" />
-                    )}
-                  </button>
-                }
-              />
-
-              <TetherButton
-                state={state}
-                label={busy ? "Signing in..." : check === "checking" ? "Checking..." : "Log in"}
-                disabled={busy}
-                bolt={bolt}
-              />
-            </form>
-
-            <div className="my-[26px] mb-5 flex items-center text-center text-[10px] font-bold tracking-[2px] text-[#475569] before:mr-[1.2em] before:flex-1 before:border-b before:border-white/6 before:content-[''] after:ml-[1.2em] after:flex-1 after:border-b after:border-white/6 after:content-['']">
-              CONNECT
-            </div>
-
-            <div className="flex justify-center gap-4">
-              {SOCIALS.map((social) => {
-                const Icon = social.icon;
-                return (
-                  <button
-                    key={social.key}
-                    type="button"
-                    title={social.label}
-                    onClick={() => {
-                      playClick();
-                      window.open(social.href, "_blank", "noopener,noreferrer");
-                    }}
-                    className={cn(
-                      "flex size-[46px] cursor-pointer items-center justify-center rounded-full",
-                      "border border-white/8 bg-[#0b0f12] text-[#94a3b8]",
-                      "shadow-[0_4px_12px_rgba(0,0,0,0.4)] transition-all duration-300 ease-smooth",
-                      "hover:-translate-y-1 hover:scale-[1.06]",
-                      social.hover,
-                    )}
-                  >
-                    <Icon className="size-5" />
-                  </button>
-                );
-              })}
             </div>
           </div>
         </div>
@@ -548,13 +637,21 @@ function Field({
 }) {
   return (
     <div className="relative mb-5">
-      <div className="mb-2 flex items-center justify-between">
-        <label htmlFor={id} className="text-[13px] font-semibold text-[#cbd5e1]">
+      <div className="mb-2 flex items-center justify-between pl-1">
+        <label htmlFor={id} className="text-[13.5px] font-semibold text-white">
           {label}
         </label>
       </div>
-      <div className="group relative flex items-center">
-        <span className="pointer-events-none absolute left-[18px] text-[#64748b] transition-colors duration-200 group-focus-within:text-[#2dd4bf]">
+      <div className="group relative flex items-center rounded-full">
+        {/* Gradient rim, cyan into blue (see glass-edge). It is positioned
+            and the input is not, so it paints over the input's outer pixel
+            -- exactly where a border would sit. Focus brightens and
+            thickens it. */}
+        <span
+          aria-hidden
+          className="glass-edge bg-[linear-gradient(90deg,#5eead4,#38bdf8_45%,#6366f1)] opacity-60 transition-opacity duration-250 group-focus-within:opacity-100 group-focus-within:[--glass-edge:1.5px]"
+        />
+        <span className="pointer-events-none absolute left-5 text-[#7d8fb8] transition-all duration-200 group-focus-within:text-[#5eead4] group-focus-within:drop-shadow-[0_0_6px_rgba(94,234,212,0.75)]">
           {icon}
         </span>
         <input
@@ -567,14 +664,38 @@ function Field({
           onFocus={playClick}
           onChange={(event) => onChange(event.target.value)}
           className={cn(
-            "w-full rounded-2xl border border-white/8 bg-[#0b0f12] px-12 py-4",
+            "w-full rounded-full bg-[rgba(8,15,35,0.45)] py-[17px] pr-12 pl-[52px]",
             "text-[14.5px] font-medium text-white outline-none transition-all duration-250 select-text",
-            "placeholder:font-normal placeholder:text-[#475569]",
-            "focus:border-[rgba(45,212,191,0.5)] focus:bg-[#090c0e] focus:shadow-[0_0_0_3px_rgba(45,212,191,0.15)]",
+            "placeholder:font-normal placeholder:text-[#8497c4]",
+            // Lit upper lip, a shaded lower one, and a soft blue bloom.
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.14),inset_0_-10px_18px_-8px_rgba(2,6,23,0.5),0_0_16px_-2px_rgba(59,130,246,0.3)]",
+            "focus:bg-[rgba(8,15,35,0.55)]",
+            "focus:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-10px_18px_-8px_rgba(2,6,23,0.5),0_0_24px_rgba(56,189,248,0.45),0_0_0_4px_rgba(56,189,248,0.1)]",
           )}
         />
         {trailing}
       </div>
+    </div>
+  );
+}
+
+const NOTICE_TONES = {
+  error:
+    "border-[rgba(248,113,113,0.4)] bg-[rgba(239,68,68,0.14)] text-[#fca5a5] shadow-[0_0_20px_-4px_rgba(239,68,68,0.45),inset_0_1px_0_rgba(255,255,255,0.1)]",
+  warn: "border-[rgba(251,191,36,0.4)] bg-[rgba(245,158,11,0.13)] text-[#fcd34d] shadow-[0_0_20px_-4px_rgba(245,158,11,0.4),inset_0_1px_0_rgba(255,255,255,0.1)]",
+  ok: "border-[rgba(94,234,212,0.4)] bg-[rgba(45,212,191,0.13)] text-[#5eead4] shadow-[0_0_20px_-4px_rgba(45,212,191,0.45),inset_0_1px_0_rgba(255,255,255,0.1)]",
+};
+
+/** A status line above the form, as a tinted pane of the same glass. */
+function Notice({ tone, children }: { tone: keyof typeof NOTICE_TONES; children: React.ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "mb-[18px] rounded-[20px] border px-4 py-[11px] text-center text-[12.5px] leading-[1.4] font-semibold",
+        NOTICE_TONES[tone],
+      )}
+    >
+      {children}
     </div>
   );
 }

@@ -673,3 +673,30 @@ html {
   box-shadow: 0 0 8px var(--wave-color), inset 0 0 4px var(--wave-color);
   animation: wave-expand 0.6s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
 }
+
+/* ---------------------------------------------------------------
+   Login glass
+
+   A thin gradient rim for see-through glass (the login card and its
+   input pills). A border cannot carry a gradient round rounded corners,
+   and the usual padding-box/border-box background trick shows the
+   gradient straight through a translucent fill -- so the rim is its own
+   layer: a gradient masked down to a ring --glass-edge wide (1px by
+   default). It fills its positioned parent and inherits its radius; the
+   caller supplies the gradient with bg-[...].
+   --------------------------------------------------------------- */
+@utility glass-edge {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  padding: var(--glass-edge, 1px);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
