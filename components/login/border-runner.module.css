@@ -1,12 +1,21 @@
 /* ==================================================================
-   The light running round the login card's rim (BorderRunner.tsx).
+   The neon light running round the login card's rim (BorderRunner.tsx).
 
    Each stroke is the card's outline as an SVG rect with pathLength 100,
    dashed down to one short dash per lap; sliding stroke-dashoffset by
    100 carries that dash once round the rounded rectangle at constant
    speed, at any card size. Each dash's own start and end offsets come in
    as --from and --to, so one set of keyframes serves them all.
+
+   The colour is --neon, registered as a <color> so it animates smoothly
+   through the neon keyframes rather than jumping between them.
    ================================================================== */
+
+@property --neon {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #00f0ff;
+}
 
 /* Fades in once the page is live. That hides the moment the dashes are
    re-phased onto the shared clock (see BorderRunner); a remount after a
@@ -22,16 +31,21 @@
   transition: none;
 }
 
-/* A soft halo under the line. Kept tight: with the widest stroke at
-   13px it reaches about a dozen px past the edge, faintly, inside the
-   page's 20px side gutter. */
-.bloom {
-  filter: blur(4px);
+/* One runner. Its colour cycles, and the glow is a pair of tight
+   drop-shadows in the same colour: they add a halo behind the strokes
+   without softening the strokes themselves, so the line stays sharp. */
+.runner {
+  animation: neon var(--cycle) linear infinite;
+  filter: drop-shadow(0 0 1px var(--neon)) drop-shadow(0 0 3px var(--neon));
 }
 
-/* A hairline of glow on the line itself, so the head sparkles. */
-.trail {
-  filter: drop-shadow(0 0 2px rgba(186, 230, 253, 0.9)) drop-shadow(0 0 5px rgba(34, 211, 238, 0.6));
+.neon {
+  stroke: var(--neon);
+}
+
+/* The white-hot filament down the middle of the head. */
+.core {
+  stroke: #fff;
 }
 
 /* The resting offset is where the dash sits when nothing moves. */
@@ -49,11 +63,40 @@
   }
 }
 
-/* Parked at the resting offsets: the comet lights the top-left corner
-   and its echo the bottom-right. Stopped outright rather than left to
-   the global reduced-motion rule, which would still run one 0.01ms lap. */
+/* Round the colour wheel in order, so each step blends through a
+   neighbouring neon rather than a muddy mix of opposites. */
+@keyframes neon {
+  0%,
+  100% {
+    --neon: #00f0ff; /* cyan */
+  }
+  14% {
+    --neon: #2d6bff; /* electric blue */
+  }
+  28% {
+    --neon: #a238ff; /* violet */
+  }
+  42% {
+    --neon: #ff1ff1; /* magenta */
+  }
+  57% {
+    --neon: #ff2e63; /* hot pink */
+  }
+  71% {
+    --neon: #ffe81f; /* yellow */
+  }
+  85% {
+    --neon: #39ff14; /* lime */
+  }
+}
+
+/* Parked at the resting offsets in steady cyan: the comet lights the
+   top-left corner and its echo the bottom-right. Stopped outright rather
+   than left to the global reduced-motion rule, which would still run
+   one 0.01ms lap. */
 @media (prefers-reduced-motion: reduce) {
-  .dash {
+  .dash,
+  .runner {
     animation: none;
   }
 }

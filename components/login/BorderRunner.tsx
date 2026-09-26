@@ -19,6 +19,13 @@ const EPOCH = typeof performance !== "undefined" ? performance.now() : 0;
 const LAP_S = 6.5;
 
 /**
+ * Seconds for the neon to run once through its colours (see the neon
+ * keyframes). Deliberately not a multiple of the lap, so each corner
+ * sees a different colour from one lap to the next.
+ */
+const CYCLE_S = 9;
+
+/**
  * Every rect is given this pathLength, so dash lengths and offsets are
  * percentages of the perimeter at any card size -- and a lap is always
  * exactly one run of the dash pattern.
@@ -35,56 +42,48 @@ const RADIUS = 31.5;
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
-type Tone = "head" | "body" | "mid" | "tail";
-
 interface Runner {
   /** Where the head is at the start of each lap: percent of the loop, clockwise from where the top edge leaves the top-left corner. */
   start: number;
   /** Scales the opacity of every stroke. */
   strength: number;
-  tones: Record<Tone, string>;
+  /** How far through the colour cycle this runner is, 0..1. */
+  hue: number;
 }
 
 interface Stroke {
   /** Length back from the head, in percent of the loop. */
   len: number;
   width: number;
-  tone: Tone;
   opacity: number;
+  /** The white-hot filament at the head, rather than the neon colour. */
+  core?: boolean;
 }
 
 const RUNNERS: readonly Runner[] = [
-  // The comet: white-hot at the head, cooling through teal and cyan to
-  // blue down the tail. Parked (reduced motion) it lights the top-left
-  // corner, where the rim already catches the most light.
-  { start: 0, strength: 1, tones: { head: "#e0f2fe", body: "#5eead4", mid: "#22d3ee", tail: "#3b82f6" } },
-  // Half a lap behind, a dimmer blue echo, so one side of the card is
-  // never left dark for long.
-  { start: LOOP / 2, strength: 0.5, tones: { head: "#dbeafe", body: "#93c5fd", mid: "#60a5fa", tail: "#3b82f6" } },
+  // The comet. Parked (reduced motion) it lights the top-left corner,
+  // where the rim already catches the most light.
+  { start: 0, strength: 1, hue: 0 },
+  // Half a lap behind and half a colour cycle apart, a dimmer echo, so
+  // one side of the card is never left dark and the two never match.
+  { start: LOOP / 2, strength: 0.6, hue: 0.5 },
 ];
 
 /**
- * The line itself. A gradient cannot follow a path, so the tail's fade
- * is built from dashes of falling length and rising opacity that all end
- * at the head: they stack up brightest at the front. Longest first, so
- * the short bright ones paint on top.
+ * The line: sharp strokes only, no blur, so it reads as a crisp neon
+ * tube. A gradient cannot follow a path, so the tail's fade is built
+ * from dashes that all end at the head and stack up brightest at the
+ * front. Many faint dashes of one width, spaced evenly, rather than a
+ * few strong ones: that keeps the fade a smooth ramp with no visible
+ * steps in brightness or thickness. Longest first, so the bright tip
+ * and the white filament paint on top.
  */
+const RAMP_LENGTHS = [24, 21, 18, 15, 12, 9.5, 7, 5, 3.5];
+
 const TRAIL: readonly Stroke[] = [
-  { len: 22, width: 2, tone: "tail", opacity: 0.25 },
-  { len: 14, width: 2, tone: "tail", opacity: 0.35 },
-  { len: 8, width: 2.25, tone: "mid", opacity: 0.6 },
-  { len: 4, width: 2.5, tone: "body", opacity: 0.85 },
-  { len: 1.5, width: 3, tone: "head", opacity: 1 },
-];
-
-/**
- * The bloom under it: wider, shorter strokes, blurred by the CSS, with
- * the widest at the head so it reads as a spark.
- */
-const BLOOM: readonly Stroke[] = [
-  { len: 16, width: 6, tone: "tail", opacity: 0.5 },
-  { len: 7, width: 9, tone: "mid", opacity: 0.85 },
-  { len: 2.5, width: 13, tone: "mid", opacity: 0.8 },
+  ...RAMP_LENGTHS.map((len) => ({ len, width: 2.25, opacity: 0.16 })),
+  { len: 2, width: 2.75, opacity: 1 },
+  { len: 1.2, width: 1.25, opacity: 1, core: true },
 ];
 
 /**
@@ -94,13 +93,15 @@ const BLOOM: readonly Stroke[] = [
 const shared = { revealed: false };
 
 /**
- * A comet of light running round the login card's border, exactly on the
- * rim, at constant speed, with a dimmer echo half a lap behind.
+ * A comet of neon light running round the login card's border, exactly
+ * on the rim, at constant speed, cycling through neon colours, with a
+ * dimmer echo half a lap (and half a colour cycle) behind.
  *
  * Render inside the card element (position: relative, rounded-[32px]).
  * It sits at z-15, over the glass, the rim and the content (z-10), but
- * it only ever draws on the edge. The glow spills a few px outside the
- * card and nothing else leaves it: the background video stays untouched.
+ * it only ever draws on the edge. Its tight glow spills a few px outside
+ * the card and nothing else leaves it: the background video stays
+ * untouched.
  *
  * Decorative only: no pointer events, hidden from assistive tech, and
  * parked in place for reduced motion.
@@ -143,43 +144,52 @@ export function BorderRunner() {
     <div
       ref={rootRef}
       aria-hidden
-      style={{ "--lap": `${LAP_S}s` } as CSSProperties}
+      style={{ "--lap": `${LAP_S}s`, "--cycle": `${CYCLE_S}s` } as CSSProperties}
       className={cn("pointer-events-none absolute inset-[0.5px] z-[15]", styles.root)}
     >
-      <Layer strokes={BLOOM} className={styles.bloom} />
-      <Layer strokes={TRAIL} className={styles.trail} />
+      {RUNNERS.map((runner) => (
+        <RunnerLine key={runner.start} runner={runner} />
+      ))}
     </div>
   );
 }
 
 /**
- * One SVG covering the card, holding each runner's strokes. The rects
- * are all the card's outline; only the dash differs. overflow-visible,
- * because the stroke is centred on the edge and half of it lies outside.
+ * One runner: an SVG covering the card whose rects are all the card's
+ * outline; only the dash differs. Each runner is its own <svg> because
+ * the colour cycle and the glow live on it -- CSS filters on elements
+ * inside an SVG are not supported everywhere, on the <svg> box they are.
+ * overflow-visible, because the stroke is centred on the edge and half
+ * of it lies outside.
  */
-function Layer({ strokes, className }: { strokes: readonly Stroke[]; className: string | undefined }) {
+function RunnerLine({ runner }: { runner: Runner }) {
   return (
-    <svg className={cn("absolute inset-0 size-full overflow-visible", className)}>
-      {RUNNERS.flatMap((runner, r) =>
-        strokes.map((stroke, s) => (
-          <rect
-            key={`${r}-${s}`}
-            width="100%"
-            height="100%"
-            rx={RADIUS}
-            ry={RADIUS}
-            pathLength={LOOP}
-            fill="none"
-            stroke={runner.tones[stroke.tone]}
-            strokeOpacity={stroke.opacity * runner.strength}
-            strokeWidth={stroke.width}
-            strokeLinecap="round"
-            strokeDasharray={`${stroke.len} ${LOOP - stroke.len}`}
-            className={styles.dash}
-            style={dashOffsets(runner.start, stroke.len)}
-          />
-        )),
-      )}
+    <svg
+      className={cn("absolute inset-0 size-full overflow-visible", styles.runner)}
+      // A negative delay starts this runner part-way through the cycle.
+      style={{ animationDelay: `${-runner.hue * CYCLE_S}s` }}
+    >
+      {TRAIL.map((stroke, s) => (
+        <rect
+          key={s}
+          width="100%"
+          height="100%"
+          rx={RADIUS}
+          ry={RADIUS}
+          pathLength={LOOP}
+          fill="none"
+          strokeOpacity={stroke.opacity * runner.strength}
+          strokeWidth={stroke.width}
+          strokeLinecap="round"
+          strokeDasharray={`${stroke.len} ${LOOP - stroke.len}`}
+          // Joined by hand, not with cn(): this file's module classes all
+          // start "border-runner-module__", which tailwind-merge reads as
+          // rival border utilities and keeps only the last -- dropping the
+          // dash class, and with it the motion.
+          className={`${styles.dash} ${stroke.core ? styles.core : styles.neon}`}
+          style={dashOffsets(runner.start, stroke.len)}
+        />
+      ))}
     </svg>
   );
 }
