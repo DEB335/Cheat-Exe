@@ -136,8 +136,10 @@ function Chip({
         </div>
 
         {/* Left on the glass: lifted in 3D, the number and label would be
-            drawn ~2% oversize and soft even with the tile at rest. */}
-        <div className="min-w-0 flex-1">
+            drawn ~2% oversize and soft even with the tile at rest.
+            Positioned so it paints after the blurred glass layer above;
+            left in flow, that absolute layer painted over it and blurred it. */}
+        <div className="relative min-w-0 flex-1">
           <div
             className="font-display text-[21px] leading-none font-extrabold text-white tabular-nums [text-shadow:0_0_14px_rgba(var(--chip),0.6)] sm:text-[22px] lt:text-fg lt:[text-shadow:none]"
           >
