@@ -242,15 +242,12 @@ export default function GeneratorPage() {
         </div>
 
         <div className="relative flex justify-center pt-10 pb-2">
-          {/* The lit floor the button stands on: a flat ellipse of light
-              across the panel, brightest where the pill touches it. */}
+          {/* The lit floor the button stands on: a soft pool of light,
+              brightest where the pill touches it. Light only -- the owner
+              asked for no drawn line under the button. */}
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-x-[2%] -bottom-3 h-[46px] rounded-[50%] border-t border-[rgba(165,180,252,0.34)] bg-[radial-gradient(46%_100%_at_50%_0%,rgba(168,85,247,0.42),rgba(59,130,246,0.14)_50%,transparent_80%)] lt:opacity-40"
-          />
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-[16%] bottom-[5px] h-[2px] rounded-full bg-[linear-gradient(90deg,transparent,#a5b4fc_20%,#ffffff_50%,#f0abfc_80%,transparent)] shadow-[0_0_14px_2px_rgba(192,132,252,0.75)] lt:opacity-40"
+            className="pointer-events-none absolute inset-x-[2%] -bottom-3 h-[46px] rounded-[50%] bg-[radial-gradient(46%_100%_at_50%_0%,rgba(168,85,247,0.42),rgba(59,130,246,0.14)_50%,transparent_80%)] lt:opacity-40"
           />
           <NeonCta
             icon={<KeyIcon />}
