@@ -21,6 +21,10 @@
    The bloom is split: one shadow pulled up and left in --rim-a, one
    pushed down and right in --rim-c, so the halo takes the colour of
    the stretch of rim it sits beside rather than one flat wash.
+
+   Every glow here is kept low on purpose. At full strength the borders
+   read as too bright over the video, and the owner asked for a quiet
+   halo: the rim should be seen, not shine.
    --------------------------------------------------------------- */
 .panel {
   background:
@@ -31,132 +35,140 @@
   -webkit-backdrop-filter: blur(22px) saturate(1.35);
   backdrop-filter: blur(22px) saturate(1.35);
   box-shadow:
-    -16px -12px 46px -24px rgba(var(--rim-a), 0.8),
-    18px 16px 50px -24px rgba(var(--rim-c), 0.8),
-    0 0 34px -12px rgba(var(--rim-b), 0.5),
+    -12px -10px 38px -24px rgba(var(--rim-a), 0.3),
+    14px 12px 40px -24px rgba(var(--rim-c), 0.3),
+    0 0 26px -14px rgba(var(--rim-b), 0.22),
     0 26px 60px -32px rgba(0, 0, 0, 0.9),
     inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    inset 0 0 46px rgba(var(--rim-b), 0.06);
+    inset 0 0 46px rgba(var(--rim-b), 0.04);
 }
 
 .panel:hover {
   box-shadow:
-    -18px -14px 52px -22px rgba(var(--rim-a), 0.95),
-    20px 18px 58px -22px rgba(var(--rim-c), 0.95),
-    0 0 44px -10px rgba(var(--rim-b), 0.6),
+    -14px -12px 44px -22px rgba(var(--rim-a), 0.42),
+    16px 14px 46px -22px rgba(var(--rim-c), 0.42),
+    0 0 32px -12px rgba(var(--rim-b), 0.3),
     0 30px 64px -30px rgba(0, 0, 0, 0.9),
     inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 0 52px rgba(var(--rim-b), 0.09);
+    inset 0 0 52px rgba(var(--rim-b), 0.06);
 }
 
 /* The smaller card: tighter bloom, so a grid of them does not merge
    into one haze. */
 .md {
   box-shadow:
-    -10px -8px 30px -18px rgba(var(--rim-a), 0.75),
-    12px 10px 32px -18px rgba(var(--rim-c), 0.75),
-    0 0 22px -10px rgba(var(--rim-b), 0.55),
+    -8px -6px 24px -18px rgba(var(--rim-a), 0.28),
+    10px 8px 26px -18px rgba(var(--rim-c), 0.28),
+    0 0 18px -10px rgba(var(--rim-b), 0.22),
     0 18px 40px -26px rgba(0, 0, 0, 0.9),
     inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    inset 0 0 30px rgba(var(--rim-b), 0.08);
+    inset 0 0 30px rgba(var(--rim-b), 0.05);
 }
 .md:hover {
   box-shadow:
-    -12px -10px 36px -16px rgba(var(--rim-a), 0.95),
-    14px 12px 38px -16px rgba(var(--rim-c), 0.95),
-    0 0 30px -8px rgba(var(--rim-b), 0.7),
+    -10px -8px 30px -16px rgba(var(--rim-a), 0.42),
+    12px 10px 32px -16px rgba(var(--rim-c), 0.42),
+    0 0 24px -8px rgba(var(--rim-b), 0.3),
     0 22px 44px -24px rgba(0, 0, 0, 0.9),
     inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 0 36px rgba(var(--rim-b), 0.11);
+    inset 0 0 36px rgba(var(--rim-b), 0.07);
 }
 
 /* ---------------------------------------------------------------
    The rim: a gradient masked to a ring by the global `glass-edge`
-   utility, bright where the light catches (top-left) and cooling
-   through violet to blue. Two white-hot patches ride the top-left
-   corner and the top edge, like the highlights in the mockups.
+   utility, brightest where the light catches (top-left) and cooling
+   through violet to blue. Two soft highlights ride the top-left corner
+   and the top edge, like the mockups, but dimmed so the line stays a
+   line rather than a lamp.
    --------------------------------------------------------------- */
 .rim {
-  --glass-edge: 2px;
+  --glass-edge: 1.5px;
+  opacity: 0.8;
   background:
-    radial-gradient(22% 38% at 0% 0%, rgba(255, 235, 255, 0.95), transparent 70%),
-    radial-gradient(20% 30% at 46% 0%, rgba(235, 242, 255, 0.85), transparent 70%),
-    radial-gradient(24% 34% at 100% 100%, rgba(var(--rim-c), 1), transparent 70%),
+    radial-gradient(22% 38% at 0% 0%, rgba(255, 235, 255, 0.45), transparent 70%),
+    radial-gradient(20% 30% at 46% 0%, rgba(235, 242, 255, 0.35), transparent 70%),
+    radial-gradient(24% 34% at 100% 100%, rgba(var(--rim-c), 0.5), transparent 70%),
     linear-gradient(118deg, rgb(var(--rim-a)) 0%, rgb(var(--rim-b)) 48%, rgb(var(--rim-c)) 100%);
+  transition: opacity 0.4s ease;
+}
+.panel:hover .rim {
+  opacity: 1;
 }
 
-/* The same ring, thicker and blurred, as the rim's own glow. Static:
-   it is rasterised once, and hover only changes its opacity. */
+/* The same ring, thicker and blurred, as the rim's own glow. Kept
+   faint: a hint of colour beside the line, not a halo. Static: it is
+   rasterised once, and hover only changes its opacity. */
 .rimGlow {
   position: absolute;
   inset: 0;
   border-radius: inherit;
   pointer-events: none;
-  filter: blur(7px);
-  opacity: 0.85;
+  filter: blur(6px);
+  opacity: 0.28;
   transition: opacity 0.4s ease;
 }
 .rimGlow > span {
-  --glass-edge: 4px;
+  --glass-edge: 3px;
   background: linear-gradient(118deg, rgb(var(--rim-a)) 0%, rgb(var(--rim-b)) 48%, rgb(var(--rim-c)) 100%);
 }
 .panel:hover .rimGlow {
-  opacity: 1;
+  opacity: 0.45;
 }
 
 /* The smaller card's rim is a hair finer. */
 .md .rim {
-  --glass-edge: 1.5px;
+  --glass-edge: 1.25px;
 }
 .md .rimGlow > span {
-  --glass-edge: 3px;
+  --glass-edge: 2.5px;
 }
 
 /* ---------------------------------------------------------------
-   Light streaks: short lengths of the rim that burn brighter, each a
-   hard white core over a soft coloured bloom. Placed on the straights,
-   clear of the rounded corners.
+   Light streaks: short lengths of the rim that catch a little more
+   light, each a pale core over a faint coloured bloom. Placed on the
+   straights, clear of the rounded corners, and kept subtle -- they
+   were the brightest thing on the page at full strength.
    --------------------------------------------------------------- */
 .streak {
   position: absolute;
   pointer-events: none;
   border-radius: 999px;
-  opacity: 0.85;
+  opacity: 0.32;
   transition: opacity 0.4s ease;
 }
 .panel:hover .streak {
-  opacity: 1;
+  opacity: 0.55;
 }
 
 .streakTop {
   top: -1px;
   left: 14%;
   width: 36%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95) 45%, rgba(255, 255, 255, 0.95) 60%, transparent);
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85) 45%, rgba(255, 255, 255, 0.85) 60%, transparent);
   box-shadow:
-    0 0 10px 1px rgba(var(--rim-a), 0.9),
-    0 0 26px 3px rgba(var(--rim-b), 0.45);
+    0 0 8px 1px rgba(var(--rim-a), 0.45),
+    0 0 18px 2px rgba(var(--rim-b), 0.2);
 }
 
 .streakLeft {
   left: -1px;
   top: 18%;
-  width: 2px;
+  width: 1.5px;
   height: 30%;
-  background: linear-gradient(180deg, transparent, rgba(255, 230, 255, 0.9) 50%, transparent);
-  box-shadow: 0 0 12px 1px rgba(var(--rim-a), 0.85);
+  background: linear-gradient(180deg, transparent, rgba(255, 230, 255, 0.8) 50%, transparent);
+  box-shadow: 0 0 8px 1px rgba(var(--rim-a), 0.4);
 }
 
 .streakBottom {
   bottom: -1px;
   right: 12%;
   width: 34%;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(225, 240, 255, 0.9) 50%, transparent);
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(225, 240, 255, 0.8) 50%, transparent);
   box-shadow:
-    0 0 10px 1px rgba(var(--rim-c), 0.9),
-    0 0 24px 3px rgba(var(--rim-c), 0.4);
+    0 0 8px 1px rgba(var(--rim-c), 0.45),
+    0 0 16px 2px rgba(var(--rim-c), 0.18);
 }
 
 /* ---------------------------------------------------------------
@@ -179,8 +191,8 @@
   width: 30%;
   height: 1px;
   pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(var(--rim-a), 0.95), transparent);
-  box-shadow: 0 0 8px rgba(var(--rim-a), 0.8);
+  background: linear-gradient(90deg, transparent, rgba(var(--rim-a), 0.6), transparent);
+  box-shadow: 0 0 6px rgba(var(--rim-a), 0.35);
 }
 
 /* ---------------------------------------------------------------
@@ -208,10 +220,10 @@
   opacity: 0.6;
 }
 :global(body.light-mode) .rimGlow {
-  opacity: 0.18;
+  opacity: 0.1;
 }
 :global(body.light-mode) .streak {
-  opacity: 0.35;
+  opacity: 0.2;
 }
 :global(body.light-mode) .inset {
   background: rgba(248, 250, 255, 0.85);

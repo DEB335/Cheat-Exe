@@ -54,11 +54,11 @@ export function ProfileCard({
           under the buttons. Painted first so the content sits over it. */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-44 rounded-b-[24px] bg-[radial-gradient(60%_90%_at_50%_100%,rgba(255,112,67,0.22),rgba(255,61,154,0.1)_45%,transparent_75%)] lt:opacity-50"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-44 rounded-b-[24px] bg-[radial-gradient(60%_90%_at_50%_100%,rgba(255,112,67,0.14),rgba(255,61,154,0.06)_45%,transparent_75%)] lt:opacity-50"
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-[14%] -bottom-px h-[2px] rounded-full bg-[linear-gradient(90deg,transparent,#ff8a4c_28%,#ff3d9a_72%,transparent)] shadow-[0_0_14px_2px_rgba(255,112,67,0.65),0_0_34px_6px_rgba(255,61,154,0.3)] lt:opacity-60"
+        className="pointer-events-none absolute inset-x-[14%] -bottom-px h-[2px] rounded-full bg-[linear-gradient(90deg,transparent,#ff8a4c_28%,#ff3d9a_72%,transparent)] opacity-60 shadow-[0_0_10px_1px_rgba(255,112,67,0.3),0_0_24px_4px_rgba(255,61,154,0.12)] lt:opacity-40"
       />
 
       <div className="relative flex flex-1 flex-col gap-4">
