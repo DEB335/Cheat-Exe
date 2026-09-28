@@ -1,0 +1,227 @@
+/* ==================================================================
+   Manage Key action glyph (manager-glyph.tsx): a neon icon bobbing
+   over a small disc of light, at the left of each action card.
+
+   The root is an inline-size container and everything is laid out in
+   cqw, so the glyph keeps its proportions at whatever width the card
+   gives it (designed round 72 x 88). The disc's centre sits 23.8cqw up
+   from the bottom (the disc SVG is 72 x 30, 3cqw off the floor).
+
+   Animations are transform/opacity only; standalone translate/rotate/
+   scale are dropped from CSS modules here, so offsets use `transform`.
+   ================================================================== */
+
+.root {
+  container-type: inline-size;
+  --disc-y: 23.8cqw;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---- The disc ---------------------------------------------------- */
+
+.disc {
+  position: absolute;
+  left: 0;
+  bottom: 3cqw;
+  width: 100cqw;
+  height: 41.7cqw;
+  overflow: visible;
+  /* The disc throws its light onto the card round it, as in the mockup. */
+  filter: drop-shadow(0 0 4px rgb(var(--holo-a) / 0.9));
+}
+
+.ringOuter {
+  fill: none;
+  stroke: rgb(var(--holo-a) / 0.45);
+  stroke-width: 0.7;
+  stroke-dasharray: 0.8 1.8;
+}
+.ringMid {
+  fill: none;
+  stroke: rgb(var(--holo-a));
+  stroke-width: 0.8;
+}
+.rim {
+  fill: none;
+  stroke: rgb(var(--holo-hot));
+  stroke-width: 0.7;
+}
+.hotspot {
+  fill: rgb(var(--holo-hot));
+}
+
+/* A ring of light swelling off the disc and fading, over and over. */
+.pulse {
+  position: absolute;
+  left: 50%;
+  bottom: var(--disc-y);
+  width: 42cqw;
+  height: 8.6cqw;
+  margin-bottom: -4.3cqw;
+  border-radius: 50%;
+  border: 1.5px solid rgb(var(--holo-a) / 0.85);
+  box-shadow: 0 0 6px rgb(var(--holo-a) / 0.6);
+  opacity: 0;
+  animation: ag-pulse 3s ease-out infinite;
+}
+
+/* The soft cone of light rising off the disc toward the icon. */
+.beam {
+  position: absolute;
+  left: 50%;
+  bottom: var(--disc-y);
+  width: 56cqw;
+  height: 66cqw;
+  transform: translateX(-50%);
+  clip-path: polygon(28% 100%, 72% 100%, 100% 0, 0 0);
+  background: linear-gradient(to top, rgb(var(--holo-b) / 0.34), rgb(var(--holo-a) / 0.08) 60%, transparent);
+  -webkit-mask-image: radial-gradient(ellipse 60% 100% at 50% 100%, #000 40%, transparent);
+  mask-image: radial-gradient(ellipse 60% 100% at 50% 100%, #000 40%, transparent);
+  animation: ag-breathe 4.2s ease-in-out infinite;
+  transition: opacity 0.3s ease;
+}
+
+/* ---- The icon ---------------------------------------------------- */
+
+/* Nearly the box's full width: in the mockup the icon, not its disc,
+   is what fills the card's left side. */
+.lift {
+  position: absolute;
+  left: 50%;
+  bottom: 26cqw;
+  width: 98cqw;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.bob {
+  width: 100%;
+  height: 100%;
+  animation: ag-bob 4.8s ease-in-out infinite;
+}
+
+.icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.glass {
+  fill: rgb(var(--holo-b) / 0.14);
+}
+
+.bloom,
+.tube,
+.core {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.bloom {
+  stroke: rgb(var(--holo-b));
+  stroke-width: 4.6;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+.tube {
+  stroke-width: 2.6;
+}
+.core {
+  stroke: rgb(var(--holo-hot));
+  stroke-width: 0.9;
+  opacity: 0.9;
+}
+
+/* While the card it sits in is hovered (the action button, or any
+   Tailwind group round it) the icon rises and burns brighter, in step
+   with the card's own lift and glow -- but not on a disabled button,
+   whose card stays put while a request runs. */
+:global(:is(button, a, .group, .group\/action):not(:disabled)):hover .lift {
+  transform: translateX(-50%) translateY(-4cqw);
+}
+:global(:is(button, a, .group, .group\/action):not(:disabled)):hover .bloom {
+  opacity: 1;
+}
+:global(:is(button, a, .group, .group\/action):not(:disabled)):hover .beam {
+  opacity: 1;
+  animation-play-state: paused;
+}
+
+/* ---- Light mode -------------------------------------------------- */
+
+/* White-hot cores disappear on the light theme and additive glow turns
+   to haze, so the icon draws in the tone's deeper colour. */
+:global(body.light-mode) .core {
+  opacity: 0;
+}
+:global(body.light-mode) .bloom {
+  opacity: 0.35;
+}
+:global(body.light-mode) .tube {
+  stroke: rgb(var(--holo-b));
+}
+:global(body.light-mode) .rim {
+  stroke: rgb(var(--holo-b));
+}
+:global(body.light-mode) .disc {
+  filter: drop-shadow(0 0 2px rgb(var(--holo-a) / 0.45));
+}
+:global(body.light-mode) .beam {
+  opacity: 0.5;
+  animation: none;
+}
+
+/* ---- Motion ------------------------------------------------------ */
+
+@keyframes ag-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3.5cqw);
+  }
+}
+
+@keyframes ag-breathe {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ag-pulse {
+  0% {
+    opacity: 0.9;
+    transform: translateX(-50%) scale(0.55);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1.55);
+  }
+}
+
+/* Off screen or in a hidden tab (see usePauseWhenHidden). */
+.root[data-holo-paused] * {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bob,
+  .beam,
+  .pulse {
+    animation: none;
+  }
+  .lift {
+    transition: none;
+  }
+}

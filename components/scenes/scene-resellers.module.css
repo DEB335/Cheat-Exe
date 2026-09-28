@@ -1,0 +1,225 @@
+/* ==================================================================
+   The Reseller Management hero (ResellerScene.tsx, resellers-floor.tsx,
+   resellers-glass-user.tsx).
+
+   The root takes its position and size from the caller's Tailwind
+   classes (these rules are unlayered and would beat them, so none of
+   them sets position or size on the root). Inside it, a square "rig"
+   as large as the box allows holds every layer, and all of them are in
+   % of the rig or in its SVG viewBox, so the scene scales as one piece
+   and a wider or taller box never stretches it.
+
+   Colours are the kit's --holo-a/b/c/hot (set on the root). Only
+   transform and opacity animate, and standalone translate/rotate/scale
+   are not used: this pipeline drops them from CSS modules.
+   ================================================================== */
+
+.root {
+  container-type: size;
+  isolation: isolate;
+  /* The pedestal's bloom reaches a little past the rig; clip it here so
+     the scene never pushes its panel wider. Nothing visible is lost:
+     the bloom has faded out by the box's edge. */
+  overflow: clip;
+  --beam-a: 1;
+}
+
+.rig {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(100cqw, 100cqh);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+
+/* Blue light pooling on the floor to the left, magenta to the right,
+   violet behind the shield: the mockup's two-tone glow. Static. */
+.haze {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(34% 17% at 20% 78%, rgb(var(--holo-c) / 0.34), transparent 72%),
+    radial-gradient(34% 17% at 80% 78%, rgb(var(--holo-a) / 0.28), transparent 72%),
+    radial-gradient(44% 40% at 50% 46%, rgb(var(--holo-b) / 0.2), transparent 72%);
+}
+
+/* ---- Floor ------------------------------------------------------- */
+
+.floor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.grid {
+  opacity: 0.6;
+}
+
+/* A ring tipped into the floor (the kit pedestal's view, cos 76deg =
+   0.24); the tip lives here and the spin on the child, so the spin
+   needs no 3D. */
+.floorPlane {
+  position: absolute;
+  left: 50%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) rotateX(76deg);
+}
+
+.floorPlane > span {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+/* Fine dashes round the outside, turning slowly. */
+.hudDashes {
+  width: 97%;
+  opacity: 0.6;
+}
+.hudDashes > span {
+  background: repeating-conic-gradient(rgb(var(--holo-hot) / 0.9) 0deg 1.3deg, transparent 1.3deg 4.5deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4.5px) calc(100% - 0.5px), transparent);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4.5px) calc(100% - 0.5px), transparent);
+  animation: scene-spin 70s linear infinite;
+}
+
+/* Long magenta and blue arcs just outside the pad, turning the other way. */
+.hudArcs {
+  width: 86%;
+}
+.hudArcs > span {
+  background: conic-gradient(
+    transparent 0deg 14deg,
+    rgb(var(--holo-a) / 0.95) 14deg 70deg,
+    transparent 70deg 96deg,
+    rgb(var(--holo-hot) / 0.9) 96deg 102deg,
+    transparent 102deg 188deg,
+    rgb(var(--holo-c) / 0.95) 188deg 262deg,
+    transparent 262deg 298deg,
+    rgb(var(--holo-b) / 0.9) 298deg 316deg,
+    transparent 316deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px) calc(100% - 0.5px), transparent);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px) calc(100% - 0.5px), transparent);
+  animation: scene-spin 28s linear infinite reverse;
+}
+
+/* ---- Light beams ------------------------------------------------- */
+
+/* Position, height and colour come inline (BEAMS in ResellerScene). */
+.beam {
+  position: absolute;
+  width: max(1px, 0.3%);
+  transform: translateX(-50%);
+  background: linear-gradient(
+    to top,
+    transparent,
+    rgb(var(--beam) / calc(0.8 * var(--beam-a))) 5%,
+    rgb(var(--beam) / calc(0.28 * var(--beam-a))) 48%,
+    transparent
+  );
+  animation: beam-pulse var(--beam-s) ease-in-out infinite;
+}
+
+/* A glint climbing the beam: a bright slip at the foot of a copy of the
+   beam, slid up it. Invisible at rest, so it simply is not there under
+   reduced motion. */
+.beam > span {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, transparent, rgb(var(--holo-hot) / 0.95) 5%, transparent 11%);
+  opacity: 0;
+  animation: beam-climb calc(var(--beam-s) * 0.9) linear infinite;
+}
+
+/* ---- Glass user -------------------------------------------------- */
+
+/* The kit centres a custom glyph in a slot half the shield wide. The
+   mockup's user nearly fills the face, so this overhangs the slot,
+   centred on it. Absolute, because the slot is a grid, and a grid track
+   would size itself to an SVG's default 300px before the % resolved. */
+.user {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 127%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  overflow: visible;
+}
+
+/* The dark core the light passes through. */
+.userCore {
+  fill: #120b48;
+  fill-opacity: 0.62;
+}
+
+/* ---- Light mode -------------------------------------------------- */
+
+/* Coloured lines on pale glass: the glows go quiet, the shapes stay. */
+:global(body.light-mode) .root {
+  --beam-a: 0.55;
+}
+:global(body.light-mode) .haze {
+  opacity: 0.45;
+}
+:global(body.light-mode) .grid {
+  opacity: 0.4;
+}
+:global(body.light-mode) .userCore {
+  fill: rgb(var(--holo-c));
+  fill-opacity: 0.16;
+}
+
+/* ---- Motion ------------------------------------------------------ */
+
+@keyframes scene-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes beam-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes beam-climb {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-88%);
+    opacity: 0;
+  }
+}
+
+/* Off screen or in a hidden tab (usePauseWhenHidden). Last, so it wins
+   over the animations above at equal specificity. */
+.root[data-holo-paused] * {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beam,
+  .beam > span,
+  .hudDashes > span,
+  .hudArcs > span {
+    animation: none;
+  }
+}

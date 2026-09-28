@@ -2,27 +2,31 @@
 
 import { useState } from "react";
 
-import { BanIcon, CheckCircleIcon, RotateIcon, SearchIcon, TrashIcon } from "@/components/icons";
-import { ActionButton } from "@/components/ui/buttons";
-import { Card, CardHeader } from "@/components/ui/Card";
-import { Input } from "@/components/ui/form";
+import { LinkIcon } from "@/components/icons";
+import { ActionCard } from "@/components/manager/ActionCard";
+import { KeyInfoPanel, type KeyInfo } from "@/components/manager/KeyInfoPanel";
+import { KeyLookup } from "@/components/manager/KeyLookup";
+import { NeonPanel, PanelHeader, type NeonRim, type NeonTone } from "@/components/neon";
+import { ManageKeyScene, type ActionGlyphKind } from "@/components/scenes/ManageKeyScene";
 import { useToast } from "@/components/ui/Toast";
 import { postJson } from "@/lib/client-api";
 import { useDashboard } from "@/lib/store";
 import type { KeyAction } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
-interface KeyInfo {
-  key: string;
-  appName: string;
-  packageName: string;
-  status: string;
-  createdAt: string;
-  expiryDate: string;
-  hwid: string;
-  ip: string;
-  durationDays: number;
-}
+// The four /api/keys/manage actions, in the order the API lists them.
+const ACTIONS: {
+  action: KeyAction;
+  glyph: ActionGlyphKind;
+  rim: NeonRim;
+  tone: NeonTone;
+  title: string;
+  hint: string;
+}[] = [
+  { action: "reset_hwid", glyph: "reset", rim: "violet", tone: "violet", title: "Reset HWID", hint: "Reset hardware ID" },
+  { action: "ban_key", glyph: "ban", rim: "danger", tone: "red", title: "Ban", hint: "Ban this license" },
+  { action: "unban_key", glyph: "unban", rim: "blue", tone: "blue", title: "Unban", hint: "Remove ban" },
+  { action: "delete_key", glyph: "delete", rim: "pink", tone: "magenta", title: "Delete", hint: "Permanently delete" },
+];
 
 export default function ManagerPage() {
   const toast = useToast();
@@ -88,127 +92,51 @@ export default function ManagerPage() {
   };
 
   return (
-    <Card flat>
-      <CardHeader
-        title="Manage Key"
-        subtitle="Use the same actions supported by your existing API."
-      />
+    <NeonPanel rim="blue">
+      {/* The key hologram stands in the header's right-hand side from lg
+          up; the header row is held tall enough for it, and padded clear
+          of it, so it never sits on the title or the key field. */}
+      <ManageKeyScene className="pointer-events-none absolute top-0 right-4 hidden h-[260px] w-[460px] lg:block 2xl:right-8" />
 
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row">
-        <Input
+      <div className="relative z-10">
+        <div className="mb-6 lg:flex lg:min-h-[196px] lg:items-center lg:pr-[470px] 2xl:pr-[490px]">
+          <PanelHeader
+            icon={<LinkIcon />}
+            iconTone="violet"
+            iconVariant="glass"
+            title="Manage Key"
+            subtitle="Use the same actions supported by your existing API."
+            className="mb-0 lg:flex-1"
+          />
+        </div>
+
+        <KeyLookup
           value={key}
-          onChange={(event) => {
-            setKey(event.target.value);
+          onChange={(value) => {
+            setKey(value);
             setInfo(null);
             setNotFound(null);
           }}
-          onKeyDown={(event) => event.key === "Enter" && lookup()}
-          placeholder="Enter license key"
-          className="p-4"
-        />
-        <ActionButton
-          tone="neutral"
+          onLookup={lookup}
           disabled={busy !== null}
-          onClick={lookup}
-          className="shrink-0 px-6 sm:w-auto"
+          checking={busy === "lookup"}
+          notFound={notFound}
         >
-          <SearchIcon className="size-4" strokeWidth={2} />
-          {busy === "lookup" ? "Checking..." : "Lookup"}
-        </ActionButton>
-      </div>
+          {info && <KeyInfoPanel info={info} />}
+        </KeyLookup>
 
-      {notFound && (
-        <div className="mb-6 rounded-xl border border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.1)] px-4 py-3 text-[13px] font-semibold text-[#f87171]">
-          {notFound}
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 sm:gap-5 2xl:grid-cols-4">
+          {ACTIONS.map(({ action, ...card }) => (
+            <ActionCard
+              key={action}
+              {...card}
+              busy={busy === action}
+              disabled={busy !== null}
+              onClick={() => run(action)}
+            />
+          ))}
         </div>
-      )}
-
-      {info && <KeyInfoPanel info={info} />}
-
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-4">
-        <ActionButton tone="primary" disabled={busy !== null} onClick={() => run("reset_hwid")}>
-          <RotateIcon className="size-4" />
-          Reset HWID
-        </ActionButton>
-        <ActionButton tone="danger" disabled={busy !== null} onClick={() => run("ban_key")}>
-          <BanIcon className="size-4" strokeWidth={2} />
-          Ban
-        </ActionButton>
-        <ActionButton tone="success" disabled={busy !== null} onClick={() => run("unban_key")}>
-          <CheckCircleIcon className="size-4" />
-          Unban
-        </ActionButton>
-        <ActionButton tone="danger" disabled={busy !== null} onClick={() => run("delete_key")}>
-          <TrashIcon className="size-4" />
-          Delete
-        </ActionButton>
       </div>
-    </Card>
-  );
-}
-
-function KeyInfoPanel({ info }: { info: KeyInfo }) {
-  const active = info.status?.toLowerCase() === "active";
-  const bound = info.hwid && info.hwid !== "Not Bound";
-
-  return (
-    <div className="mb-6 rounded-[14px] border border-line bg-white/2 p-5">
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <span className="font-mono text-[14px] font-semibold text-[#10b981]">{info.key}</span>
-        <span
-          className={cn(
-            "rounded-[20px] border px-3 py-1 text-[11px] font-extrabold tracking-[0.5px] uppercase",
-            active
-              ? "border-[rgba(16,185,129,0.25)] bg-green-glow text-green"
-              : "border-[rgba(239,68,68,0.25)] bg-[rgba(239,68,68,0.15)] text-[#ef4444]",
-          )}
-        >
-          {info.status}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
-        <Detail label="Package" value={info.packageName} />
-        <Detail label="Application" value={info.appName} />
-        <Detail label="Created" value={info.createdAt} />
-        <Detail label="Expiry" value={info.expiryDate} />
-        <Detail
-          label="HWID"
-          value={bound ? info.hwid : "Not Bound"}
-          muted={!bound}
-          mono={Boolean(bound)}
-        />
-        <Detail label="IP" value={info.ip || "None"} muted={!info.ip || info.ip === "None"} mono />
-      </div>
-    </div>
-  );
-}
-
-function Detail({
-  label,
-  value,
-  muted,
-  mono,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-  mono?: boolean;
-}) {
-  return (
-    <div>
-      <div className="mb-1 text-[10px] font-extrabold tracking-[1px] text-muted uppercase">
-        {label}
-      </div>
-      <div
-        className={cn(
-          "text-[13px] font-semibold break-all",
-          muted ? "text-muted" : "text-fg",
-          mono && "font-mono",
-        )}
-      >
-        {value || "—"}
-      </div>
-    </div>
+    </NeonPanel>
   );
 }

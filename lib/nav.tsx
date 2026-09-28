@@ -238,27 +238,117 @@ export const PROFILE_ITEM: NavItem = {
 const ALL_ITEMS = [...NAV_GROUPS.flatMap((g) => g.items), PROFILE_ITEM];
 
 /**
+ * Neon ramps a run of title text can be lit with. The header owns the
+ * actual stops (and deeper ones for light mode); this only names them.
+ */
+export type TitleGradient =
+  | "cyan-violet-pink"
+  | "pink-violet-blue"
+  | "blue-violet"
+  | "blue-magenta"
+  | "pink-violet";
+
+/** Glass emblem the header draws beside the title. */
+export type TitleIcon = "key-cube" | "shield-key" | "gear";
+
+/** Eyebrow colour. Left out, the eyebrow keeps the pale blue every page had. */
+export type EyebrowTone = "violet" | "indigo" | "cyan" | "blue";
+
+export interface PageTitle {
+  /** The plain name. Search, the tab and anything else that reads a title use this. */
+  title: string;
+  /** Eyebrow printed above the title. */
+  section: string;
+  subtitle?: string;
+  /**
+   * The title split into runs, for the two-tone headings in the
+   * redesign ("Key" white, "Generator" lit). Joined, they must spell
+   * `title` exactly -- the header falls back to `title` whenever it
+   * prints something else, as the reseller's "My Key History" does.
+   */
+  parts?: Array<{ text: string; gradient?: TitleGradient }>;
+  icon?: TitleIcon;
+  eyebrowTone?: EyebrowTone;
+  /** A short neon bar in front of the eyebrow. */
+  eyebrowBar?: boolean;
+  /** A glowing hairline under the title. */
+  underline?: boolean;
+}
+
+/**
  * Page titles keyed by route, matching the original `tabs` map. A
  * subtitle, where there is one, prints under the title in the header.
+ * The optional styling fields follow the redesign mockups page by page;
+ * a page without them renders exactly as it always has.
  */
-export const PAGE_TITLES: Record<string, { title: string; section: string; subtitle?: string }> = {
+export const PAGE_TITLES: Record<string, PageTitle> = {
   "/dashboard": {
     title: "Overview",
     section: "DASHBOARD",
     subtitle: "Monitor your platform performance at a glance.",
   },
   "/messages": { title: "Messages", section: "DASHBOARD" },
-  "/generator": { title: "Key Generator", section: "LICENSE GENERATOR" },
-  "/manager": { title: "Manage Key", section: "LICENSE MANAGEMENT" },
-  "/owner-history": { title: "Owner Key History", section: "LICENSE MANAGEMENT" },
-  "/reseller-history": { title: "Reseller Key History", section: "LICENSE MANAGEMENT" },
-  "/resellers": { title: "Reseller Management", section: "SYSTEM" },
-  "/profile": { title: "Profile Settings", section: "ADMIN CONTROLS" },
+  "/generator": {
+    title: "Key Generator",
+    section: "LICENSE GENERATOR",
+    parts: [{ text: "Key " }, { text: "Generator", gradient: "cyan-violet-pink" }],
+    icon: "key-cube",
+    eyebrowTone: "indigo",
+  },
+  "/manager": {
+    title: "Manage Key",
+    section: "LICENSE MANAGEMENT",
+    icon: "shield-key",
+    eyebrowTone: "violet",
+    underline: true,
+  },
+  "/owner-history": {
+    title: "Owner Key History",
+    section: "LICENSE MANAGEMENT",
+    icon: "shield-key",
+    eyebrowTone: "violet",
+  },
+  "/reseller-history": {
+    title: "Reseller Key History",
+    section: "LICENSE MANAGEMENT",
+    icon: "shield-key",
+    eyebrowTone: "violet",
+  },
+  "/resellers": {
+    title: "Reseller Management",
+    section: "SYSTEM",
+    parts: [{ text: "Reseller Management", gradient: "pink-violet-blue" }],
+    eyebrowTone: "cyan",
+  },
+  "/profile": {
+    title: "Profile Settings",
+    section: "ADMIN CONTROLS",
+    subtitle: "Manage your account details, credentials and preferences.",
+    parts: [{ text: "Profile " }, { text: "Settings", gradient: "blue-violet" }],
+    icon: "gear",
+  },
   "/devices": { title: "Active Devices", section: "MONITORING" },
-  "/banned-vault": { title: "Banned & Kicked Vault", section: "MONITORING" },
-  "/audit-logs": { title: "Audit Logs", section: "MONITORING" },
+  "/banned-vault": {
+    title: "Banned & Kicked Vault",
+    section: "MONITORING",
+    parts: [{ text: "Banned & Kicked", gradient: "blue-magenta" }, { text: " Vault" }],
+    eyebrowBar: true,
+  },
+  "/audit-logs": {
+    title: "Audit Logs",
+    section: "MONITORING",
+    subtitle: "Track system activities, user actions and security events in real-time.",
+    parts: [{ text: "Audit Logs", gradient: "cyan-violet-pink" }],
+    eyebrowTone: "cyan",
+  },
   "/uid-bypass": { title: "Account Overview", section: "UID BYPASS" },
-  "/uid-bypass/whitelist": { title: "Whitelist Management", section: "UID BYPASS" },
+  "/uid-bypass/whitelist": {
+    title: "Whitelist Management",
+    section: "UID BYPASS",
+    subtitle: "Manage and control UIDs for bypass service. Add, track and manage whitelisted users easily.",
+    parts: [{ text: "Whitelist " }, { text: "Management", gradient: "pink-violet" }],
+    eyebrowTone: "blue",
+  },
 };
 
 export function navColor(pathname: string): string {

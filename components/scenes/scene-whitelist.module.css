@@ -1,0 +1,253 @@
+/* ==================================================================
+   Whitelist hero (WhitelistScene.tsx).
+
+   The kit's shield-over-pedestal hologram, plus the two things the
+   whitelist mockup adds round it: a curtain of light streaks rising
+   off the pedestal behind the shield, and two glass cards floating in
+   front of it at different depths -- an ID card on the left and a bold
+   "UID" badge on the right.
+
+   The cards live inside the stage's object box, so they bob with the
+   shield, sit between the back and front particle layers, and inherit
+   the stage's --hx/--hy. They are one CSS-3D scene of their own: each
+   card is pushed toward the viewer by a different amount, so the same
+   lean moves the near badge further than the ID card behind it.
+
+   Only transform and opacity animate. Standalone translate/rotate/
+   scale compute to none in this pipeline, so every offset is inside
+   `transform`. Colours are the palette vars (--holo-a/b/c/hot) that
+   paletteVars sets on the root.
+   ================================================================== */
+
+/* The caller sizes the root; the scene is the largest square that
+   fits it, centred, so a wide or short box never pushes the shield
+   out through the top and a tall one never stretches it. */
+.root {
+  container-type: size;
+}
+
+.square {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: min(100cqw, 100cqh);
+  height: min(100cqw, 100cqh);
+}
+
+/* ---- Light curtain ----------------------------------------------- */
+
+/* Thin streaks of light standing on the pedestal's top face, like the
+   holographic column behind the mockup's shield. Behind the stage, so
+   its halo tints them and the shield's glass covers the middle ones. */
+.curtain {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: 20%;
+  height: 74%;
+  /* Faded at both ends: the streaks rise out of the pedestal's glow
+     and thin out into the panel, rather than starting and stopping. */
+  -webkit-mask: linear-gradient(to top, transparent, #000 16%, #000 55%, transparent);
+  mask: linear-gradient(to top, transparent, #000 16%, #000 55%, transparent);
+}
+
+.curtain > span {
+  position: absolute;
+  bottom: 0;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(to top, rgb(var(--holo-hot)), rgb(var(--holo-c) / 0.7) 30%, rgb(var(--holo-a) / 0.3) 65%, transparent);
+  box-shadow: 0 0 8px rgb(var(--holo-c) / 0.9);
+  transform-origin: bottom;
+  opacity: 0.4;
+  animation: streak-flicker 5.6s ease-in-out infinite;
+}
+
+.curtain > span:nth-child(3n + 2) {
+  background: linear-gradient(to top, rgb(var(--holo-hot)), rgb(var(--holo-a) / 0.7) 30%, rgb(var(--holo-b) / 0.3) 65%, transparent);
+  box-shadow: 0 0 8px rgb(var(--holo-a) / 0.85);
+  animation-duration: 7.2s;
+}
+
+/* ---- Floating cards ---------------------------------------------- */
+
+/* Covers the shield exactly (the float box it shares takes the
+   shield's size), so the cards are placed as shares of the shield:
+   cqw here is the shield's width. */
+.props {
+  position: absolute;
+  inset: 0;
+  container-type: inline-size;
+  perspective: 280cqw;
+}
+
+/* Leans with the stage (--hx/--hy, -1..1) a little harder than the
+   shield does, so the cards read as nearer than the glass behind. */
+.propsLean {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateY(calc(var(--hx, 0) * 24deg)) rotateX(calc(var(--hy, 0) * -15deg));
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Each card's resting pose: its depth and its turn. Both open outward
+   like the mockup's, the ID card with its left edge nearest, the badge
+   with its right. */
+.card {
+  position: absolute;
+  transform-style: preserve-3d;
+}
+
+.idCard {
+  left: -20%;
+  top: 64%;
+  width: 58%;
+  aspect-ratio: 1.42;
+  transform: translateZ(8cqw) rotateY(26deg) rotateZ(5deg);
+}
+
+.uidCard {
+  left: 72%;
+  top: 67%;
+  width: 50%;
+  aspect-ratio: 1.3;
+  transform: translateZ(15cqw) rotateY(-24deg) rotateZ(-6deg);
+}
+
+/* Each card drifts on its own period, so the two never move as one. */
+.drift {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: card-drift 6.4s ease-in-out infinite;
+}
+
+.uidCard .drift {
+  animation-duration: 7.6s;
+  animation-delay: -3s;
+}
+
+/* Frosted neon glass: a white sheen over the top-left, the palette
+   tinting the pane, a white-hot edge and a coloured bloom. */
+.glass {
+  position: absolute;
+  inset: 0;
+  border-radius: 7cqw;
+  border: 1.5px solid rgb(255 255 255 / 0.85);
+  background:
+    linear-gradient(140deg, rgb(255 255 255 / 0.46), rgb(255 255 255 / 0.1) 36%, transparent 58%),
+    linear-gradient(160deg, rgb(var(--holo-c) / 0.78), rgb(var(--holo-b) / 0.58) 55%, rgb(var(--holo-a) / 0.5));
+  box-shadow:
+    0 0 6cqw rgb(var(--holo-c) / 0.75),
+    0 0 1.6cqw rgb(var(--holo-hot) / 0.6),
+    inset 0 0 4cqw rgb(var(--holo-hot) / 0.32);
+}
+
+/* A second pane a little behind the first gives the glass its edge
+   once the card turns. */
+.glassBack {
+  position: absolute;
+  inset: 0;
+  border-radius: 7cqw;
+  border: 1px solid rgb(var(--holo-c) / 0.8);
+  background: rgb(var(--holo-b) / 0.22);
+  transform: translateZ(-2.6cqw);
+}
+
+/* The card's print floats just off the glass. */
+.print {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: #fff;
+  transform: translateZ(1.4cqw);
+}
+
+.uidText {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 19cqw;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  color: #fff;
+  text-shadow:
+    0 0 1.2cqw rgb(255 255 255 / 0.8),
+    0 0 4cqw rgb(var(--holo-c) / 0.95),
+    0 0 8cqw rgb(var(--holo-a) / 0.6);
+  transform: translateZ(2cqw);
+}
+
+/* ---- Light mode -------------------------------------------------- */
+
+/* Pale frosted glass with coloured edges and deep ink: the white-on-
+   neon of the dark theme would vanish on the white panel. */
+:global(body.light-mode) .curtain {
+  opacity: 0.45;
+}
+:global(body.light-mode) .glass {
+  border-color: rgb(var(--holo-c) / 0.75);
+  background:
+    linear-gradient(140deg, rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.45) 50%, transparent),
+    linear-gradient(160deg, rgb(var(--holo-c) / 0.3), rgb(var(--holo-b) / 0.2) 55%, rgb(var(--holo-a) / 0.26));
+  box-shadow: 0 1.5cqw 5cqw -1.5cqw rgb(var(--holo-b) / 0.55);
+}
+:global(body.light-mode) .glassBack {
+  background: rgb(var(--holo-b) / 0.1);
+  border-color: rgb(var(--holo-b) / 0.45);
+}
+:global(body.light-mode) .print,
+:global(body.light-mode) .uidText {
+  color: rgb(67 56 202);
+}
+:global(body.light-mode) .uidText {
+  text-shadow: 0 0 3cqw rgb(var(--holo-a) / 0.35);
+}
+
+/* ---- Motion ------------------------------------------------------ */
+
+@keyframes streak-flicker {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scaleY(0.8);
+  }
+  40% {
+    opacity: 0.95;
+    transform: scaleY(1);
+  }
+  55% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes card-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotateX(0deg);
+  }
+  50% {
+    transform: translate3d(0, -7%, 2cqw) rotateX(7deg);
+  }
+}
+
+/* Off screen or in a hidden tab (usePauseWhenHidden). */
+.root[data-holo-paused] * {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .curtain > span,
+  .drift {
+    animation: none;
+  }
+  .propsLean {
+    transition: none;
+  }
+}

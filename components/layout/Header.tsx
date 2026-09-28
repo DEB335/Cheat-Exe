@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { setBackgroundMusicMuted } from "@/components/effects/BackgroundVideo";
 import {
@@ -20,7 +20,14 @@ import { useToast } from "@/components/ui/Toast";
 import { api, del, patchJson } from "@/lib/client-api";
 import { REACTIONS } from "@/lib/messages";
 import { applyClearMine, applyReadAll, applyReaction } from "@/lib/optimistic";
-import { PAGE_TITLES, SEARCH_ITEMS } from "@/lib/nav";
+import {
+  PAGE_TITLES,
+  SEARCH_ITEMS,
+  type EyebrowTone,
+  type PageTitle,
+  type TitleGradient,
+  type TitleIcon,
+} from "@/lib/nav";
 import { UID_BYPASS_PACKAGE, canManageWhitelist } from "@/lib/packages";
 import { useDashboard, useMyPackages } from "@/lib/store";
 import { useTheme } from "@/lib/use-theme";
@@ -29,7 +36,7 @@ import { cn, formatStampForDisplay } from "@/lib/utils";
 
 export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMobile: () => void }) {
   const user = useDashboard((s) => s.user);
-  const page = PAGE_TITLES[pathname] ?? { title: "Overview", section: "DASHBOARD" };
+  const page: PageTitle = PAGE_TITLES[pathname] ?? { title: "Overview", section: "DASHBOARD" };
 
   const title =
     user?.role !== "OWNER" && pathname === "/reseller-history" ? "My Key History" : page.title;
@@ -57,14 +64,7 @@ export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMob
         <MenuIcon className="size-5" />
       </button>
 
-      <div className="min-w-0 lg:self-start lg:pt-[7px]">
-        <div className="mb-1 truncate text-[11px] leading-none font-extrabold tracking-[2px] text-[#9dbcf0] uppercase lg:mb-px lg:text-[13px] lg:tracking-[2.7px] lt:text-[#3b5b9a]">
-          {page.section}
-        </div>
-        <h1 className="truncate font-display text-[24px] leading-[1.1] font-extrabold text-fg [text-shadow:0_2px_14px_rgba(0,0,0,0.45)] sm:text-[30px] lg:text-[34px] lg:leading-[1.05] xl:text-[42px] lt:[text-shadow:none]">
-          {title}
-        </h1>
-      </div>
+      <PageHeading page={page} title={title} />
 
       <div className="hidden min-w-0 justify-center md:flex">
         <QuickSearch />
@@ -86,6 +86,409 @@ export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMob
     </header>
   );
 }
+
+/* ---------------------------------------------------------------
+   Page heading
+
+   Eyebrow over title, as every page has always had. The redesign
+   mockups dress some titles up -- a lit word, a coloured eyebrow, a
+   glass emblem -- and lib/nav says which page gets what. A page that
+   asks for none of it gets the original markup, class for class.
+   --------------------------------------------------------------- */
+
+const EYEBROW_TYPE =
+  "text-[11px] leading-none font-extrabold tracking-[2px] text-[#9dbcf0] uppercase lg:text-[13px] lg:tracking-[2.7px] lt:text-[#3b5b9a]";
+const EYEBROW = `mb-1 truncate lg:mb-px ${EYEBROW_TYPE}`;
+
+const TITLE_TYPE =
+  "font-display text-[24px] leading-[1.1] font-extrabold text-fg [text-shadow:0_2px_14px_rgba(0,0,0,0.45)] sm:text-[30px] lg:text-[34px] lg:leading-[1.05] xl:text-[42px] lt:[text-shadow:none]";
+const TITLE = `truncate ${TITLE_TYPE}`;
+
+/*
+ * Room for a glow. Both lines truncate, and `truncate` clips whatever
+ * is painted past the box -- a neon halo round the letters stopped dead
+ * in a hard-edged rectangle. A lit line swaps overflow:hidden for
+ * overflow:clip, which still ends the text in an ellipsis but lets the
+ * paint run on past the edge by overflow-clip-margin.
+ *
+ * Safari has no overflow-clip-margin yet, so the line also gets real
+ * padding to paint into, handed straight back as negative margin so
+ * every letter stays exactly where it was. The stack holding the lines
+ * is a flex column, where margins add up instead of collapsing, so the
+ * sums hold: under the eyebrow, 4px of padding and a -3px margin leave
+ * the 1px gap it always had on a desktop (4px and 0 leave the 4px below
+ * lg), and the title's 8px in and 8px out cancel.
+ */
+const GLOW_CLIP = "overflow-clip text-ellipsis whitespace-nowrap [overflow-clip-margin:14px]";
+const EYEBROW_LIT = `${GLOW_CLIP} -mx-2.5 -mt-1 mb-0 px-2.5 py-1 lg:-mx-4 lg:-mb-[3px] lg:px-4 ${EYEBROW_TYPE}`;
+const TITLE_LIT = `${GLOW_CLIP} -mx-2.5 -my-2 px-2.5 py-2 lg:-mx-3 lg:px-3 ${TITLE_TYPE}`;
+
+const EYEBROW_TONES: Record<EyebrowTone, string> = {
+  violet:
+    "text-[#b99dff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5),0_0_10px_rgba(139,92,246,0.55)] lt:text-[#6d28d9] lt:[text-shadow:none]",
+  cyan: "text-[#62e4ff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5),0_0_10px_rgba(34,211,238,0.45)] lt:text-[#0e7490] lt:[text-shadow:none]",
+  blue: "text-[#7fb2ff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5),0_0_10px_rgba(59,130,246,0.5)] lt:text-[#1d4ed8] lt:[text-shadow:none]",
+  // Violet running into blue, as "LICENSE GENERATOR" is drawn.
+  indigo:
+    "bg-linear-to-r from-[#c7a4ff] to-[#7f9dff] bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(139,92,246,0.55)] lt:from-[#6d28d9] lt:to-[#1d4ed8] lt:drop-shadow-none",
+};
+
+/**
+ * A lit run of title text. The ramp is mirrored and drawn twice as
+ * wide as the word, so at rest the word shows its first half (a -> b -> c)
+ * and hovering the heading slides it across to the reverse. That slide
+ * is the only motion: a gradient that flowed forever would re-rasterise
+ * the glyphs every frame on every page (see text-rgb-flow in
+ * globals.css), whereas this runs once, for as long as it is pointed at.
+ *
+ * The glow is a filter rather than a text-shadow, because a text-shadow
+ * paints over clipped-background text and muddies the gradient.
+ */
+const LIT_TEXT = [
+  "bg-[linear-gradient(90deg,var(--ta),var(--tb)_25%,var(--tc)_50%,var(--tb)_75%,var(--ta))]",
+  "bg-[length:200%_100%] bg-left bg-clip-text text-transparent [text-shadow:none]",
+  "[filter:drop-shadow(0_2px_8px_rgba(0,0,0,0.45))_drop-shadow(0_0_11px_var(--tg))]",
+  "transition-[background-position] duration-[1600ms] ease-smooth group-hover/title:bg-right",
+  "lt:[filter:none]",
+].join(" ");
+
+/** Stops per ramp, with deeper ones for light mode where a pastel would wash out. */
+const RAMPS: Record<TitleGradient, string> = {
+  "cyan-violet-pink":
+    "[--ta:#67e8f9] [--tb:#a78bfa] [--tc:#f58ad6] [--tg:rgba(167,139,250,0.5)] lt:[--ta:#0891b2] lt:[--tb:#7c3aed] lt:[--tc:#db2777]",
+  "pink-violet-blue":
+    "[--ta:#ff86d6] [--tb:#c4a1ff] [--tc:#9fd0ff] [--tg:rgba(196,161,255,0.45)] lt:[--ta:#db2777] lt:[--tb:#7c3aed] lt:[--tc:#2563eb]",
+  "blue-violet":
+    "[--ta:#5ea4ff] [--tb:#8b8dff] [--tc:#bb8cff] [--tg:rgba(99,102,241,0.55)] lt:[--ta:#2563eb] lt:[--tb:#4f46e5] lt:[--tc:#7c3aed]",
+  "blue-magenta":
+    "[--ta:#4f95ff] [--tb:#9a7bff] [--tc:#d06bff] [--tg:rgba(139,92,246,0.55)] lt:[--ta:#1d4ed8] lt:[--tb:#6d28d9] lt:[--tc:#a21caf]",
+  "pink-violet":
+    "[--ta:#ff7ad0] [--tb:#d38bff] [--tc:#a78bfa] [--tg:rgba(236,72,153,0.42)] lt:[--ta:#db2777] lt:[--tb:#9333ea] lt:[--tc:#7c3aed]",
+};
+
+function PageHeading({ page, title }: { page: PageTitle; title: string }) {
+  // The runs were written for the page's own title. When the header
+  // prints something else (a reseller's "My Key History"), fall back to
+  // the plain text rather than light up words that are not there.
+  const parts =
+    page.parts && page.parts.map((part) => part.text).join("") === title ? page.parts : null;
+  const lit = parts?.some((part) => part.gradient) ?? false;
+  const litEyebrow = Boolean(page.eyebrowTone || page.eyebrowBar);
+
+  // Nothing to dress up: the original markup, untouched.
+  if (!parts && !litEyebrow && !page.icon && !page.underline) {
+    return (
+      <div className="min-w-0 lg:self-start lg:pt-[7px]">
+        <div className={EYEBROW}>{page.section}</div>
+        <h1 className={TITLE}>{title}</h1>
+      </div>
+    );
+  }
+
+  const eyebrow = (
+    <div className={litEyebrow ? EYEBROW_LIT : EYEBROW}>
+      {page.eyebrowBar && (
+        // Hung out in the gutter on a desktop, so the eyebrow's first
+        // letter still lines up with the title's, as drawn.
+        <span
+          aria-hidden
+          className={cn(
+            "mr-2.5 inline-block h-[0.8em] w-[3px] rounded-full align-[-0.05em] lg:-ml-[13px]",
+            "bg-linear-to-b from-[#6fb1ff] to-[#8b5cf6] shadow-[0_0_8px_rgba(96,165,250,0.85)]",
+            "lt:from-[#2563eb] lt:to-[#6d28d9] lt:shadow-none",
+          )}
+        />
+      )}
+      {page.eyebrowTone ? (
+        <span className={EYEBROW_TONES[page.eyebrowTone]}>{page.section}</span>
+      ) : (
+        page.section
+      )}
+    </div>
+  );
+
+  const heading = (
+    <h1 className={lit ? TITLE_LIT : TITLE}>
+      {parts
+        ? parts.map((part, i) =>
+            part.gradient ? (
+              <span key={i} className={`${LIT_TEXT} ${RAMPS[part.gradient]}`}>
+                {part.text}
+              </span>
+            ) : (
+              <Fragment key={i}>{part.text}</Fragment>
+            ),
+          )
+        : title}
+    </h1>
+  );
+
+  // The cog sits in the title line itself, with the eyebrow running on
+  // above it, the way the Profile mockup sets it.
+  if (page.icon === "gear") {
+    return (
+      <div className="group/title flex min-w-0 flex-col lg:self-start lg:pt-[7px]">
+        {eyebrow}
+        <div className="flex min-w-0 items-center gap-2.5 lg:gap-3">
+          <TitleEmblem kind="gear" className="size-[30px] lg:size-[32px] xl:size-[38px]" />
+          <div className="flex min-w-0 flex-col">{heading}</div>
+        </div>
+      </div>
+    );
+  }
+
+  const stack = (
+    <>
+      {eyebrow}
+      {page.underline ? (
+        <div className="relative flex min-w-0 flex-col">
+          {heading}
+          <TitleUnderline />
+        </div>
+      ) : (
+        heading
+      )}
+    </>
+  );
+
+  if (!page.icon) {
+    return <div className="group/title flex min-w-0 flex-col lg:self-start lg:pt-[7px]">{stack}</div>;
+  }
+
+  // An emblem spanning eyebrow and title together. It is drawn a touch
+  // taller than the pair and hands the difference back in negative
+  // margin, so the row -- and the search and account controls centred
+  // on it -- stays the height it is on every other page.
+  return (
+    <div className="group/title flex min-w-0 items-center gap-3 lg:gap-4 lg:self-start lg:pt-[7px]">
+      <TitleEmblem kind={page.icon} className="size-10 lg:-my-px lg:size-[52px] xl:-my-[3px] xl:size-16" />
+      <div className="flex min-w-0 flex-col">{stack}</div>
+    </div>
+  );
+}
+
+/**
+ * The glowing hairline under a title, with a hot spot a third of the way
+ * along. It runs just under the baseline, behind the letters, rather
+ * than below the descenders: the announcement banner starts right where
+ * the title ends, and a line of its own would either sit on the banner's
+ * rim or push the header taller on this one page. Behind the text (z
+ * below it, inside the header's stacking context) the g and y cross it
+ * the way they would a real underline.
+ */
+function TitleUnderline() {
+  return (
+    <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-[2px] -z-10 h-[2px] lg:bottom-[3px]">
+      <span
+        className={cn(
+          "absolute inset-0 rounded-full",
+          "bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.9)_16%,#eadcff_32%,rgba(96,165,250,0.85)_62%,transparent)]",
+          "[filter:drop-shadow(0_0_4px_rgba(167,139,250,0.9))]",
+          "lt:bg-[linear-gradient(90deg,transparent,#7c3aed_16%,#6d28d9_32%,#2563eb_62%,transparent)] lt:[filter:none]",
+        )}
+      />
+      <span className="absolute top-1/2 left-[24%] h-[7px] w-[38px] -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,#ffffff,rgba(167,139,250,0.7)_45%,transparent)] lt:hidden" />
+    </span>
+  );
+}
+
+/* ---------------------------------------------------------------
+   Title emblems
+
+   Small glass objects in the redesign's palette, drawn as inline SVG so
+   they stay sharp at any zoom and cost nothing to keep on screen. There
+   is only ever one header, so the gradient ids are fixed.
+   --------------------------------------------------------------- */
+
+const EMBLEM_GLOW: Record<TitleIcon, string> = {
+  "key-cube":
+    "[filter:drop-shadow(0_0_10px_rgba(192,38,211,0.45))_drop-shadow(0_4px_14px_rgba(59,130,246,0.35))] group-hover/title:[filter:drop-shadow(0_0_14px_rgba(217,70,239,0.65))_drop-shadow(0_4px_18px_rgba(59,130,246,0.5))]",
+  "shield-key":
+    "[filter:drop-shadow(0_0_10px_rgba(139,92,246,0.55))_drop-shadow(0_4px_14px_rgba(59,130,246,0.3))] group-hover/title:[filter:drop-shadow(0_0_14px_rgba(167,139,250,0.75))_drop-shadow(0_4px_18px_rgba(59,130,246,0.45))]",
+  gear: "[filter:drop-shadow(0_0_8px_rgba(96,165,250,0.7))] group-hover/title:[filter:drop-shadow(0_0_12px_rgba(129,140,248,0.9))]",
+};
+
+function TitleEmblem({ kind, className }: { kind: TitleIcon; className: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        // Not on a phone, where the title column is already narrow, nor on
+        // a tablet, where the search box joins the row and would be the
+        // one squeezed to make room for it.
+        "relative hidden shrink-0 sm:block md:hidden lg:block",
+        "transition-transform duration-500 ease-smooth group-hover/title:-translate-y-0.5 group-hover/title:scale-[1.05]",
+        className,
+      )}
+    >
+      {/* A soft pool of light behind the glass. Static: a gradient fill,
+          nothing that repaints. */}
+      <span className="absolute inset-[-22%] rounded-full bg-[radial-gradient(closest-side,rgba(139,92,246,0.3),rgba(59,130,246,0.12)_55%,transparent)] lt:hidden" />
+      <span
+        className={cn(
+          "relative block size-full transition-[filter] duration-500",
+          EMBLEM_GLOW[kind],
+          "lt:[filter:drop-shadow(0_3px_8px_rgba(79,70,229,0.28))] lt:group-hover/title:[filter:drop-shadow(0_3px_10px_rgba(79,70,229,0.4))]",
+        )}
+      >
+        {kind === "key-cube" ? <KeyCubeArt /> : kind === "shield-key" ? <ShieldKeyArt /> : <GearArt />}
+      </span>
+    </span>
+  );
+}
+
+/** Key Generator: a faceted glass cube with a neon key caught inside it. */
+function KeyCubeArt() {
+  const key = (
+    <>
+      <circle cx="23" cy="36" r="5.6" />
+      <path d="M28.6 36H45M40 36v5M44 36v3.6" />
+    </>
+  );
+  return (
+    <svg viewBox="0 0 64 64" fill="none" className="size-full overflow-visible">
+      <defs>
+        <linearGradient id="page-title-cube-top" x1="10" y1="6" x2="54" y2="30" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ffb8f2" stopOpacity="0.9" />
+          <stop offset="1" stopColor="#a78bfa" stopOpacity="0.6" />
+        </linearGradient>
+        <linearGradient id="page-title-cube-left" x1="9" y1="18" x2="32" y2="58" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#d946ef" stopOpacity="0.85" />
+          <stop offset="1" stopColor="#4c1d95" stopOpacity="0.92" />
+        </linearGradient>
+        <linearGradient id="page-title-cube-right" x1="55" y1="18" x2="32" y2="58" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#60a5fa" stopOpacity="0.9" />
+          <stop offset="1" stopColor="#1e2a78" stopOpacity="0.95" />
+        </linearGradient>
+        <linearGradient id="page-title-cube-rim" x1="9" y1="5" x2="55" y2="58" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ff8ae6" />
+          <stop offset="0.5" stopColor="#b69cff" />
+          <stop offset="1" stopColor="#6fb1ff" />
+        </linearGradient>
+      </defs>
+
+      {/* The pool of light it floats over. */}
+      <ellipse cx="32" cy="60" rx="19" ry="2.8" fill="#8b5cf6" fillOpacity="0.5" />
+
+      <path d="M32 5 55 17.5 32 30.5 9 17.5Z" fill="url(#page-title-cube-top)" />
+      <path d="M9 17.5 32 30.5V58L9 45Z" fill="url(#page-title-cube-left)" />
+      <path d="M55 17.5 32 30.5V58L55 45Z" fill="url(#page-title-cube-right)" />
+      <path
+        d="M9 17.5 32 30.5 55 17.5M32 30.5V58"
+        stroke="#ffffff"
+        strokeOpacity="0.4"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M32 5 55 17.5V45L32 58 9 45V17.5Z"
+        stroke="url(#page-title-cube-rim)"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      {/* Light catching the top edges. */}
+      <path d="M13.5 17.8 30.5 8.6" stroke="#ffffff" strokeOpacity="0.85" strokeWidth="1.3" strokeLinecap="round" />
+      <path d="M36 8.8 50 16.4" stroke="#ffffff" strokeOpacity="0.35" strokeWidth="1" strokeLinecap="round" />
+
+      <g transform="rotate(45 32 36)" strokeLinecap="round" strokeLinejoin="round">
+        <g stroke="#ff4fd8" strokeOpacity="0.6" strokeWidth="5.6">
+          {key}
+        </g>
+        <g stroke="#fff5fe" strokeWidth="2.4">
+          {key}
+        </g>
+      </g>
+
+      {/* A glint on the corner. */}
+      <path d="M50 6.5 51.1 9.4 54 10.5 51.1 11.6 50 14.5 48.9 11.6 46 10.5 48.9 9.4Z" fill="#ffffff" fillOpacity="0.9" />
+    </svg>
+  );
+}
+
+/** Manage Key and the key histories: a glass shield holding a lit key. */
+function ShieldKeyArt() {
+  const shield = "M32 5 53 12.5V29c0 14-9 24-21 30C20 53 11 43 11 29V12.5Z";
+  const key = (
+    <>
+      <circle cx="24.5" cy="31.5" r="4.8" />
+      <path d="M29.3 31.5H41.8M37.2 31.5v4.2M40.8 31.5v3.2" />
+    </>
+  );
+  return (
+    <svg viewBox="0 0 64 64" fill="none" className="size-full overflow-visible">
+      <defs>
+        <linearGradient id="page-title-shield-fill" x1="32" y1="5" x2="32" y2="59" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#2e2380" stopOpacity="0.95" />
+          <stop offset="1" stopColor="#0a0f35" stopOpacity="0.95" />
+        </linearGradient>
+        <radialGradient id="page-title-shield-core" cx="32" cy="31" r="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#8b5cf6" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#8b5cf6" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="page-title-shield-sheen" x1="11" y1="5" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.3" />
+          <stop offset="0.55" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+        <linearGradient id="page-title-shield-rim" x1="11" y1="5" x2="53" y2="59" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ff7ae0" />
+          <stop offset="0.5" stopColor="#9b7bff" />
+          <stop offset="1" stopColor="#5fa8ff" />
+        </linearGradient>
+      </defs>
+
+      <ellipse cx="32" cy="61" rx="15" ry="2.4" fill="#8b5cf6" fillOpacity="0.45" />
+
+      <path d={shield} fill="url(#page-title-shield-fill)" />
+      <path d={shield} fill="url(#page-title-shield-core)" />
+      <path d={shield} fill="url(#page-title-shield-sheen)" />
+      <path d={shield} stroke="url(#page-title-shield-rim)" strokeWidth="2" strokeLinejoin="round" />
+      <path
+        d="M32 10.5 48 16.3v13.1c0 11-6.9 19-16 23.9-9.1-4.9-16-12.9-16-23.9V16.3Z"
+        stroke="#ffffff"
+        strokeOpacity="0.18"
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
+
+      <g transform="rotate(-45 32 32)" strokeLinecap="round" strokeLinejoin="round">
+        <g stroke="#60a5fa" strokeOpacity="0.65" strokeWidth="5">
+          {key}
+        </g>
+        <g stroke="#eef4ff" strokeWidth="2.2">
+          {key}
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/** Profile: a lit cog. */
+function GearArt() {
+  return (
+    <svg viewBox="0 0 64 64" fill="none" className="size-full overflow-visible">
+      <defs>
+        <linearGradient id="page-title-gear-body" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#7cc4ff" />
+          <stop offset="0.5" stopColor="#6d7dff" />
+          <stop offset="1" stopColor="#b26cff" />
+        </linearGradient>
+        <linearGradient id="page-title-gear-sheen" x1="10" y1="6" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#ffffff" stopOpacity="0.55" />
+          <stop offset="0.6" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={GEAR_PATH} fill="url(#page-title-gear-body)" />
+      <path d={GEAR_PATH} fill="url(#page-title-gear-sheen)" />
+      <path d={GEAR_PATH} stroke="#e0e7ff" strokeOpacity="0.55" strokeWidth="1.2" strokeLinejoin="round" />
+      <circle cx="32" cy="32" r="10" fill="#0b1238" stroke="#c7d2fe" strokeOpacity="0.7" strokeWidth="1.6" />
+      <circle cx="32" cy="32" r="4.2" fill="#8fb8ff" fillOpacity="0.55" />
+    </svg>
+  );
+}
+
+/** Eight teeth on a 27 / 21.5 radius pair, centred in a 64 box. */
+const GEAR_PATH =
+  "M26.8 11.14L28.01 5.3A27 27 0 0 1 35.99 5.3L37.2 11.14A21.5 21.5 0 0 1 43.07 13.57L48.06 10.3A27 27 0 0 1 53.7 15.94L50.43 20.93A21.5 21.5 0 0 1 52.86 26.8L58.7 28.01A27 27 0 0 1 58.7 35.99L52.86 37.2A21.5 21.5 0 0 1 50.43 43.07L53.7 48.06A27 27 0 0 1 48.06 53.7L43.07 50.43A21.5 21.5 0 0 1 37.2 52.86L35.99 58.7A27 27 0 0 1 28.01 58.7L26.8 52.86A21.5 21.5 0 0 1 20.93 50.43L15.94 53.7A27 27 0 0 1 10.3 48.06L13.57 43.07A21.5 21.5 0 0 1 11.14 37.2L5.3 35.99A27 27 0 0 1 5.3 28.01L11.14 26.8A21.5 21.5 0 0 1 13.57 20.93L10.3 15.94A27 27 0 0 1 15.94 10.3L20.93 13.57A21.5 21.5 0 0 1 26.8 11.14Z";
 
 /** Nothing to subscribe to: the platform does not change under a page. */
 const subscribeNever = () => () => {};

@@ -1,0 +1,321 @@
+/* ==================================================================
+   Manage Key hologram (ManageKeyScene.tsx): the radar dome, the floor
+   rings and the data streaks round the kit's HoloStage + HoloKey.
+
+   The root is a size container, so everything here is laid out in
+   cqw/cqh of the box the caller gives it. The dome's equator and the
+   floor rings sit on the pedestal's top face, which the stage puts at
+   pedestalSize (0.6) x 22.1cqw above the bottom -- keep --eq in step
+   with the pedestalSize the component passes.
+
+   Every animation is a transform or an opacity on a whole element (the
+   SVGs turn as one layer), so the compositor runs them and nothing
+   repaints. Standalone translate/rotate/scale are dropped from CSS
+   modules in this pipeline, so every offset lives in `transform`.
+   ================================================================== */
+
+.root {
+  isolation: isolate;
+  container-type: size;
+  /* The pedestal's top face, and the dome's diameter: as wide as the
+     mockup's, but never taller than the room above the pedestal. */
+  --eq: 13.3cqw;
+  --d: min(84cqw, calc(200cqh - 2 * var(--eq) - 4cqh));
+  --mk-violet: 168 85 247;
+}
+
+/* ---- Radar dome -------------------------------------------------- */
+
+/* Only the upper half of the dome's circle shows: the box is half as
+   tall as it is wide and clips the rest, fading out toward the floor. */
+.dome {
+  position: absolute;
+  left: 50%;
+  bottom: var(--eq);
+  width: var(--d);
+  height: calc(var(--d) / 2);
+  overflow: hidden;
+  z-index: 0;
+  -webkit-mask-image: linear-gradient(to top, transparent, #000 24%);
+  mask-image: linear-gradient(to top, transparent, #000 24%);
+  /* A touch of parallax against the key's lean. */
+  transform: translateX(-50%) translate(calc(var(--hx, 0) * -1cqw), calc(var(--hy, 0) * -0.5cqw));
+  transition: transform 0.7s ease-out;
+}
+
+.domeTilt {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The glass: clear in the middle, catching light toward its rim. */
+.shell {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--holo-b) / 0.03),
+    rgb(var(--holo-b) / 0.05) 70%,
+    rgb(var(--holo-a) / 0.12) 96%,
+    transparent 99.5%
+  );
+}
+
+/* The radar beam: a wedge of light sweeping round, bright on its
+   leading edge. */
+.sweep {
+  position: absolute;
+  inset: 3%;
+  border-radius: 50%;
+  background: conic-gradient(
+    transparent 0deg 290deg,
+    rgb(var(--holo-a) / 0.04) 290deg,
+    rgb(var(--holo-a) / 0.16) 357deg,
+    rgb(var(--holo-hot) / 0.32) 360deg
+  );
+  -webkit-mask-image: radial-gradient(closest-side, transparent 20%, #000 70%);
+  mask-image: radial-gradient(closest-side, transparent 20%, #000 70%);
+  animation: mk-spin 8s linear infinite;
+  will-change: transform;
+}
+
+.spinSlow {
+  animation: mk-spin 48s linear infinite;
+  will-change: transform;
+}
+.spinBack {
+  animation: mk-spin 72s linear infinite reverse;
+  will-change: transform;
+}
+
+.dotted,
+.outline,
+.arcBloom,
+.arcMain,
+.arcCore,
+.arcAccent,
+.innerArc {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.dotted {
+  stroke: rgb(var(--holo-a) / 0.6);
+  stroke-width: 1.3;
+  stroke-dasharray: 0.01 3.4;
+}
+.outline {
+  stroke: rgb(var(--holo-a) / 0.18);
+  stroke-width: 0.6;
+}
+.fine {
+  stroke: rgb(var(--holo-a) / 0.32);
+  stroke-width: 0.5;
+}
+.arcBloom {
+  stroke: rgb(var(--holo-a));
+  stroke-width: 5;
+  opacity: 0.85;
+}
+.arcMain {
+  stroke: rgb(var(--holo-a));
+  stroke-width: 2.4;
+}
+.arcCore {
+  stroke: rgb(var(--holo-hot));
+  stroke-width: 0.8;
+}
+.arcAccent {
+  stroke: rgb(var(--mk-violet) / 0.9);
+  stroke-width: 1.8;
+}
+.tickBand {
+  stroke: rgb(var(--holo-a) / 0.5);
+  stroke-width: 0.7;
+}
+.innerArc {
+  stroke: rgb(var(--holo-c) / 0.7);
+  stroke-width: 1;
+  stroke-dasharray: 6 3;
+}
+
+/* ---- Floor rings ------------------------------------------------- */
+
+/* Wide rings on the floor round the pedestal: circles tipped flat with
+   rotateX, centred on the pedestal's top face (the negative margin puts
+   the square's centre on --eq). The dashed one turns in the floor's
+   plane: it is flattened into its parent, then tipped with it. */
+.floor {
+  position: absolute;
+  left: 50%;
+  bottom: var(--eq);
+  width: 98cqw;
+  aspect-ratio: 1;
+  margin-bottom: -49cqw;
+  z-index: 0;
+  transform: translateX(-50%) rotateX(77deg);
+  -webkit-mask-image: radial-gradient(closest-side, #000 70%, transparent);
+  mask-image: radial-gradient(closest-side, #000 70%, transparent);
+}
+
+.floor > span {
+  position: absolute;
+  border-radius: 50%;
+}
+
+.floorDots {
+  inset: 0;
+  border: 4px dotted rgb(var(--holo-a) / 0.45);
+}
+.floorDash {
+  inset: 10%;
+  border: 3px dashed rgb(var(--holo-c) / 0.55);
+  animation: mk-spin 60s linear infinite;
+  will-change: transform;
+}
+.floorRing {
+  inset: 19%;
+  border: 2px solid rgb(var(--holo-a) / 0.32);
+  box-shadow:
+    0 0 14px rgb(var(--holo-a) / 0.35),
+    inset 0 0 14px rgb(var(--holo-a) / 0.25);
+}
+
+/* ---- Data streaks ------------------------------------------------ */
+
+/* Thin lines of light flicking outward either side of the pedestal. */
+.streak {
+  position: absolute;
+  width: 15cqw;
+  height: 1px;
+  border-radius: 1px;
+  z-index: 1;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, rgb(var(--holo-a) / 0.9) 60%, rgb(var(--holo-hot)), transparent);
+  animation: mk-streak-left 4.6s ease-in-out infinite;
+}
+.streakL1 {
+  left: 3cqw;
+  bottom: calc(var(--eq) + 7cqw);
+}
+.streakL2 {
+  left: 9cqw;
+  bottom: calc(var(--eq) - 2cqw);
+  animation-duration: 5.4s;
+  animation-delay: -2.1s;
+}
+.streakR1,
+.streakR2 {
+  background: linear-gradient(270deg, transparent, rgb(var(--mk-violet) / 0.9) 60%, rgb(var(--holo-hot)), transparent);
+  animation-name: mk-streak-right;
+}
+.streakR1 {
+  right: 3cqw;
+  bottom: calc(var(--eq) + 11cqw);
+  animation-duration: 5s;
+  animation-delay: -1.2s;
+}
+.streakR2 {
+  right: 8cqw;
+  bottom: calc(var(--eq) + 1cqw);
+  animation-duration: 4.2s;
+  animation-delay: -3.3s;
+}
+
+/* ---- Light mode -------------------------------------------------- */
+
+/* On the light theme the white-hot lines vanish and additive glows
+   wash out, so the HUD draws in the palette's deeper blue instead. */
+:global(body.light-mode) .shell,
+:global(body.light-mode) .sweep {
+  opacity: 0.55;
+}
+:global(body.light-mode) .arcCore {
+  stroke: rgb(var(--holo-c));
+}
+:global(body.light-mode) .arcBloom {
+  opacity: 0.4;
+}
+:global(body.light-mode) .dotted,
+:global(body.light-mode) .tickBand {
+  stroke: rgb(var(--holo-c) / 0.65);
+}
+:global(body.light-mode) .outline,
+:global(body.light-mode) .fine {
+  stroke: rgb(var(--holo-c) / 0.45);
+}
+:global(body.light-mode) .floorDots {
+  border-color: rgb(var(--holo-c) / 0.5);
+}
+:global(body.light-mode) .streak {
+  background: linear-gradient(90deg, transparent, rgb(var(--holo-c) / 0.85), transparent);
+}
+
+/* ---- Motion ------------------------------------------------------ */
+
+@keyframes mk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mk-streak-left {
+  0% {
+    opacity: 0;
+    transform: translateX(6cqw) scaleX(0.4);
+  }
+  35% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-6cqw) scaleX(1);
+  }
+}
+
+@keyframes mk-streak-right {
+  0% {
+    opacity: 0;
+    transform: translateX(-6cqw) scaleX(0.4);
+  }
+  35% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(6cqw) scaleX(1);
+  }
+}
+
+/* Off screen or in a hidden tab (see usePauseWhenHidden). */
+.root[data-holo-paused] * {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sweep,
+  .spinSlow,
+  .spinBack,
+  .floorDash,
+  .streak {
+    animation: none;
+  }
+  .streak {
+    opacity: 0.6;
+  }
+  .dome {
+    transition: none;
+  }
+}

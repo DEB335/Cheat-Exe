@@ -1,0 +1,406 @@
+/* ==================================================================
+   Hologram objects: the glass shield, the neon key and the glass cube
+   (HoloShield.tsx, HoloKey.tsx, HoloCube.tsx).
+
+   Real CSS 3D, no WebGL and no images: each object is a size container
+   whose depth offsets are in cqw, so its glass keeps the same thickness
+   relative to its size at any width. Inside it, three wrappers stack
+   their transforms:
+
+     .scene  perspective (on a child of the container, so cqw resolves)
+     .lean   turns toward the pointer: --hx/--hy (-1..1, written by
+             HoloStage's usePointerLean), eased by a transition
+     .idle   the object's own slow sway (a keyframe animation)
+
+   Only transform and opacity animate. The SVG glass inside is static,
+   so it is painted once and the compositor moves it. Nothing here sets
+   a CSS filter on an animated subtree, which would force a repaint of
+   the whole object every frame.
+
+   Colours come from --holo-a/b/c/hot (see paletteVars). Standalone
+   translate/rotate/scale are dropped by this pipeline, so every offset
+   is inside `transform`. Roots take position and size from Tailwind
+   (see the note in holo-stage.module.css).
+   ================================================================== */
+
+/* ---- Shared ------------------------------------------------------ */
+
+.object {
+  container-type: inline-size;
+  pointer-events: none;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  perspective: 320cqw;
+}
+
+.lean,
+.idle {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.lean {
+  transform: rotateY(calc(var(--hx, 0) * 20deg)) rotateX(calc(var(--hy, 0) * -13deg));
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* A soft glow behind the object. Flat, painted once; it only breathes. */
+.halo {
+  position: absolute;
+  inset: -18% -22%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--holo-b) / 0.5),
+    rgb(var(--holo-c) / 0.18) 55%,
+    transparent
+  );
+  animation: holo-breathe 5s ease-in-out infinite;
+}
+
+/* ---- Shield ------------------------------------------------------ */
+
+.shield {
+  aspect-ratio: 100 / 112;
+}
+
+/* Rests turned a little left, like the mockups, and rocks through the
+   front so the glyph visibly floats off the glass. */
+.shield .idle {
+  transform: rotateY(-12deg) rotateX(4deg);
+  animation: shield-rock 9s ease-in-out infinite;
+}
+
+.plateBack {
+  transform: translateZ(-7cqw);
+}
+.plateMid {
+  transform: translateZ(-3.5cqw);
+}
+
+.glyphGlow {
+  position: absolute;
+  left: 16%;
+  width: 68%;
+  top: 18%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(var(--holo-a) / 0.5), rgb(var(--holo-b) / 0.2) 55%, transparent);
+  transform: translateZ(4cqw);
+  animation: holo-breathe 3.6s ease-in-out infinite;
+}
+
+.glyph {
+  transform: translateZ(10cqw);
+}
+
+/* A ReactNode glyph sits in the shield's face. */
+.glyphSlot {
+  position: absolute;
+  left: 24%;
+  right: 24%;
+  top: 22%;
+  bottom: 30%;
+  display: grid;
+  place-items: center;
+  transform: translateZ(10cqw);
+}
+
+/* ---- Key --------------------------------------------------------- */
+
+.key {
+  aspect-ratio: 6 / 5;
+}
+
+.key .idle {
+  transform: rotateY(-16deg) rotateX(10deg);
+  animation: key-sway 8s ease-in-out infinite;
+}
+
+/* The key lies along the box's diagonal, bow low on the left. */
+.keyBody {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92%;
+  aspect-ratio: 200 / 90;
+  transform-style: preserve-3d;
+  transform: translate(-50%, -50%) rotateZ(-34deg);
+}
+
+.keyBack {
+  transform: translateZ(-4.5cqw);
+}
+.keyMid {
+  transform: translateZ(-2.2cqw);
+}
+
+/* ---- Cube -------------------------------------------------------- */
+
+.cube {
+  aspect-ratio: 1;
+}
+
+.cube .idle {
+  transform: rotateX(-15deg) rotateY(-28deg);
+  animation: cube-sway 10s ease-in-out infinite;
+}
+
+/* The cube itself is 58% of the box, so its turned corners and glow
+   stay inside. Half its edge is 29cqw: every face is pushed out by that. */
+.cubeBody {
+  position: absolute;
+  inset: 21%;
+  transform-style: preserve-3d;
+  transform: rotateZ(var(--cube-tilt, 0deg));
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  border-radius: 17%;
+  border: 1.5px solid rgb(var(--holo-c) / 0.75);
+  /* Deep navy glass, tinted: six faces overlap, so each stays dark or
+     the cube turns milky. */
+  background: linear-gradient(
+    150deg,
+    rgb(var(--holo-c) / 0.2),
+    rgb(10 14 52 / 0.4) 50%,
+    rgb(var(--holo-b) / 0.22)
+  );
+  box-shadow:
+    inset 0 0 4cqw rgb(var(--holo-b) / 0.45),
+    inset 0 0 1cqw rgb(var(--holo-hot) / 0.3),
+    0 0 3cqw rgb(var(--holo-c) / 0.28);
+}
+
+.front {
+  transform: translateZ(29cqw);
+  border-color: rgb(var(--holo-hot) / 0.8);
+  background: linear-gradient(
+    150deg,
+    rgb(var(--holo-hot) / 0.16),
+    rgb(12 16 60 / 0.5) 42%,
+    rgb(var(--holo-b) / 0.3)
+  );
+}
+.back {
+  transform: rotateY(180deg) translateZ(29cqw);
+}
+.right {
+  transform: rotateY(90deg) translateZ(29cqw);
+  border-color: rgb(var(--holo-a) / 0.7);
+  background: linear-gradient(
+    180deg,
+    rgb(var(--holo-b) / 0.3),
+    rgb(10 12 48 / 0.5) 55%,
+    rgb(var(--holo-a) / 0.24)
+  );
+}
+.left {
+  transform: rotateY(-90deg) translateZ(29cqw);
+}
+.top {
+  transform: rotateX(90deg) translateZ(29cqw);
+  border-color: rgb(var(--holo-hot) / 0.7);
+  background: linear-gradient(135deg, rgb(var(--holo-hot) / 0.22), rgb(var(--holo-c) / 0.2) 50%, rgb(14 18 64 / 0.4));
+}
+.bottom {
+  transform: rotateX(-90deg) translateZ(29cqw);
+}
+
+/* Light trapped in the glass: a glow at the cube's heart. */
+.core {
+  position: absolute;
+  inset: 10%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(var(--holo-b) / 0.45), rgb(var(--holo-c) / 0.18) 55%, transparent);
+}
+
+/* Neon corner brackets framing the front glyph, as on the vault cube. */
+.bracket {
+  position: absolute;
+  width: 20%;
+  height: 20%;
+  border: 0 solid rgb(var(--holo-a) / 0.95);
+  box-shadow: 0 0 1.6cqw rgb(var(--holo-a) / 0.8);
+}
+.bracket:nth-child(1) {
+  top: 11%;
+  left: 11%;
+  border-top-width: 2px;
+  border-left-width: 2px;
+  border-top-left-radius: 30%;
+}
+.bracket:nth-child(2) {
+  top: 11%;
+  right: 11%;
+  border-top-width: 2px;
+  border-right-width: 2px;
+  border-top-right-radius: 30%;
+}
+.bracket:nth-child(3) {
+  bottom: 11%;
+  left: 11%;
+  border-bottom-width: 2px;
+  border-left-width: 2px;
+  border-bottom-left-radius: 30%;
+}
+.bracket:nth-child(4) {
+  bottom: 11%;
+  right: 11%;
+  border-bottom-width: 2px;
+  border-right-width: 2px;
+  border-bottom-right-radius: 30%;
+}
+
+/* Vents on the side face and a slot on the lid. */
+.vents {
+  position: absolute;
+  left: 30%;
+  right: 30%;
+  top: 22%;
+  bottom: 22%;
+  background: repeating-linear-gradient(
+    180deg,
+    rgb(var(--holo-hot) / 0.55) 0 1.5px,
+    transparent 1.5px 13%
+  );
+  border-radius: 3px;
+  opacity: 0.7;
+}
+.slot {
+  position: absolute;
+  left: 32%;
+  right: 32%;
+  top: 40%;
+  bottom: 40%;
+  border-radius: 999px;
+  border: 1.5px solid rgb(var(--holo-hot) / 0.7);
+  box-shadow: 0 0 2cqw rgb(var(--holo-b) / 0.7), inset 0 0 1.5cqw rgb(var(--holo-a) / 0.6);
+}
+
+.faceGlyph {
+  position: absolute;
+  inset: 16%;
+  width: 68%;
+  height: 68%;
+  overflow: visible;
+  transform: translateZ(0.5px);
+}
+
+/* A Saturn ring round the cube, split into a far half drawn behind it
+   and a near half in front, so it passes round the glass. */
+.orbit {
+  position: absolute;
+  left: -2%;
+  right: -2%;
+  top: 50%;
+  aspect-ratio: 1;
+  transform: translateY(-50%) rotateZ(-14deg) rotateX(74deg);
+  border-radius: 50%;
+}
+.orbit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgb(var(--holo-hot) / 0.7);
+  box-shadow: 0 0 2.4cqw rgb(var(--holo-b) / 0.85), inset 0 0 2.4cqw rgb(var(--holo-c) / 0.6);
+}
+.orbitBack {
+  clip-path: inset(0 0 50% 0);
+  opacity: 0.5;
+}
+.orbitFront {
+  clip-path: inset(50% 0 0 0);
+}
+
+/* ---- Light mode -------------------------------------------------- */
+
+/* Pale frosted glass with coloured edges: legible, not glowing. */
+:global(body.light-mode) .halo {
+  opacity: 0.35;
+  animation: none;
+}
+:global(body.light-mode) .face {
+  box-shadow: inset 0 0 4cqw rgb(var(--holo-b) / 0.25);
+  border-color: rgb(var(--holo-c) / 0.7);
+  background: linear-gradient(150deg, rgb(var(--holo-c) / 0.2), rgb(255 255 255 / 0.3) 50%, rgb(var(--holo-b) / 0.22));
+}
+:global(body.light-mode) .darkFill {
+  fill: rgb(var(--holo-c) / 0.12);
+}
+
+/* ---- Motion ------------------------------------------------------ */
+
+@keyframes holo-breathe {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shield-rock {
+  0%,
+  100% {
+    transform: rotateY(-20deg) rotateX(6deg);
+  }
+  50% {
+    transform: rotateY(-2deg) rotateX(1deg);
+  }
+}
+
+@keyframes key-sway {
+  0%,
+  100% {
+    transform: rotateY(-24deg) rotateX(14deg);
+  }
+  50% {
+    transform: rotateY(-8deg) rotateX(6deg);
+  }
+}
+
+@keyframes cube-sway {
+  0%,
+  100% {
+    transform: rotateX(-17deg) rotateY(-34deg);
+  }
+  50% {
+    transform: rotateX(-11deg) rotateY(-18deg);
+  }
+}
+
+/* Off screen or in a hidden tab (see usePauseWhenHidden). */
+.object[data-holo-paused] *,
+.object[data-holo-paused] *::before {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .halo,
+  .glyphGlow,
+  .shield .idle,
+  .key .idle,
+  .cube .idle {
+    animation: none;
+  }
+  .lean {
+    transition: none;
+  }
+}

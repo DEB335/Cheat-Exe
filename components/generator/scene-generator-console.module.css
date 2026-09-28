@@ -1,0 +1,30 @@
+/* ==================================================================
+   Key Generator console (KeyConsole.tsx).
+
+   Only the caret lives here: a hard on/off blink needs a keyframe, and
+   the global stylesheet is not this page's to add one to. Paint and
+   layout stay in Tailwind classes on the component.
+   ================================================================== */
+
+.caret {
+  animation: caret-blink 1.06s steps(1, end) infinite;
+}
+
+@keyframes caret-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* A caret that never stops blinking is exactly the kind of motion the
+   setting asks to be spared; it stays lit instead. */
+@media (prefers-reduced-motion: reduce) {
+  .caret {
+    animation: none;
+  }
+}

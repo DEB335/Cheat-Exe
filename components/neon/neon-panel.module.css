@@ -1,0 +1,220 @@
+/* ==================================================================
+   Neon glass panel (NeonPanel.tsx).
+
+   The rim colours arrive as three rgb triplets on the element:
+   --rim-a (top-left, where the light comes from), --rim-b (the middle
+   of the sweep) and --rim-c (bottom-right). Everything here reads them,
+   so one set of rules draws every rim preset.
+
+   Two things this file must not do, both learned the hard way here:
+   - use the standalone translate/rotate/scale properties -- in a CSS
+     module they compute to none; the hover lift is a Tailwind class;
+   - be overridden from Tailwind: these rules are unlayered and beat
+     any utility, so only paint lives here, never layout.
+   ================================================================== */
+
+/* ---------------------------------------------------------------
+   The pane. Deep navy glass, opaque enough to hold white text over
+   the bright background video, with the rim colours pooling faintly
+   in the two lit corners and a sheen across the top.
+
+   The bloom is split: one shadow pulled up and left in --rim-a, one
+   pushed down and right in --rim-c, so the halo takes the colour of
+   the stretch of rim it sits beside rather than one flat wash.
+   --------------------------------------------------------------- */
+.panel {
+  background:
+    radial-gradient(560px 340px at 0% 0%, rgba(var(--rim-a), 0.14), transparent 70%),
+    radial-gradient(620px 380px at 100% 100%, rgba(var(--rim-c), 0.13), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0) 16%),
+    linear-gradient(160deg, rgba(13, 17, 52, 0.9) 0%, rgba(7, 10, 36, 0.9) 48%, rgba(10, 8, 38, 0.92) 100%);
+  -webkit-backdrop-filter: blur(22px) saturate(1.35);
+  backdrop-filter: blur(22px) saturate(1.35);
+  box-shadow:
+    -16px -12px 46px -24px rgba(var(--rim-a), 0.8),
+    18px 16px 50px -24px rgba(var(--rim-c), 0.8),
+    0 0 34px -12px rgba(var(--rim-b), 0.5),
+    0 26px 60px -32px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 0 46px rgba(var(--rim-b), 0.06);
+}
+
+.panel:hover {
+  box-shadow:
+    -18px -14px 52px -22px rgba(var(--rim-a), 0.95),
+    20px 18px 58px -22px rgba(var(--rim-c), 0.95),
+    0 0 44px -10px rgba(var(--rim-b), 0.6),
+    0 30px 64px -30px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 0 52px rgba(var(--rim-b), 0.09);
+}
+
+/* The smaller card: tighter bloom, so a grid of them does not merge
+   into one haze. */
+.md {
+  box-shadow:
+    -10px -8px 30px -18px rgba(var(--rim-a), 0.75),
+    12px 10px 32px -18px rgba(var(--rim-c), 0.75),
+    0 0 22px -10px rgba(var(--rim-b), 0.55),
+    0 18px 40px -26px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 0 30px rgba(var(--rim-b), 0.08);
+}
+.md:hover {
+  box-shadow:
+    -12px -10px 36px -16px rgba(var(--rim-a), 0.95),
+    14px 12px 38px -16px rgba(var(--rim-c), 0.95),
+    0 0 30px -8px rgba(var(--rim-b), 0.7),
+    0 22px 44px -24px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    inset 0 0 36px rgba(var(--rim-b), 0.11);
+}
+
+/* ---------------------------------------------------------------
+   The rim: a gradient masked to a ring by the global `glass-edge`
+   utility, bright where the light catches (top-left) and cooling
+   through violet to blue. Two white-hot patches ride the top-left
+   corner and the top edge, like the highlights in the mockups.
+   --------------------------------------------------------------- */
+.rim {
+  --glass-edge: 2px;
+  background:
+    radial-gradient(22% 38% at 0% 0%, rgba(255, 235, 255, 0.95), transparent 70%),
+    radial-gradient(20% 30% at 46% 0%, rgba(235, 242, 255, 0.85), transparent 70%),
+    radial-gradient(24% 34% at 100% 100%, rgba(var(--rim-c), 1), transparent 70%),
+    linear-gradient(118deg, rgb(var(--rim-a)) 0%, rgb(var(--rim-b)) 48%, rgb(var(--rim-c)) 100%);
+}
+
+/* The same ring, thicker and blurred, as the rim's own glow. Static:
+   it is rasterised once, and hover only changes its opacity. */
+.rimGlow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  filter: blur(7px);
+  opacity: 0.85;
+  transition: opacity 0.4s ease;
+}
+.rimGlow > span {
+  --glass-edge: 4px;
+  background: linear-gradient(118deg, rgb(var(--rim-a)) 0%, rgb(var(--rim-b)) 48%, rgb(var(--rim-c)) 100%);
+}
+.panel:hover .rimGlow {
+  opacity: 1;
+}
+
+/* The smaller card's rim is a hair finer. */
+.md .rim {
+  --glass-edge: 1.5px;
+}
+.md .rimGlow > span {
+  --glass-edge: 3px;
+}
+
+/* ---------------------------------------------------------------
+   Light streaks: short lengths of the rim that burn brighter, each a
+   hard white core over a soft coloured bloom. Placed on the straights,
+   clear of the rounded corners.
+   --------------------------------------------------------------- */
+.streak {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+  opacity: 0.85;
+  transition: opacity 0.4s ease;
+}
+.panel:hover .streak {
+  opacity: 1;
+}
+
+.streakTop {
+  top: -1px;
+  left: 14%;
+  width: 36%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.95) 45%, rgba(255, 255, 255, 0.95) 60%, transparent);
+  box-shadow:
+    0 0 10px 1px rgba(var(--rim-a), 0.9),
+    0 0 26px 3px rgba(var(--rim-b), 0.45);
+}
+
+.streakLeft {
+  left: -1px;
+  top: 18%;
+  width: 2px;
+  height: 30%;
+  background: linear-gradient(180deg, transparent, rgba(255, 230, 255, 0.9) 50%, transparent);
+  box-shadow: 0 0 12px 1px rgba(var(--rim-a), 0.85);
+}
+
+.streakBottom {
+  bottom: -1px;
+  right: 12%;
+  width: 34%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(225, 240, 255, 0.9) 50%, transparent);
+  box-shadow:
+    0 0 10px 1px rgba(var(--rim-c), 0.9),
+    0 0 24px 3px rgba(var(--rim-c), 0.4);
+}
+
+/* ---------------------------------------------------------------
+   Inset well (NeonInset): a darker recess inside a panel, holding a
+   form row. A thin line of light runs along its top edge.
+   --------------------------------------------------------------- */
+.inset {
+  background:
+    radial-gradient(420px 160px at 30% 0%, rgba(var(--rim-b), 0.1), transparent 70%),
+    linear-gradient(180deg, rgba(3, 5, 22, 0.62), rgba(5, 7, 28, 0.5));
+  border: 1px solid rgba(var(--rim-b), 0.26);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 12px 30px -18px rgba(0, 0, 0, 0.8);
+}
+.insetLine {
+  position: absolute;
+  top: -1px;
+  left: 22%;
+  width: 30%;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(var(--rim-a), 0.95), transparent);
+  box-shadow: 0 0 8px rgba(var(--rim-a), 0.8);
+}
+
+/* ---------------------------------------------------------------
+   Light mode hides the video and paints the page near-white. The
+   pane turns to frosted white with dark text; the rim stays as a
+   quieter coloured line and the glows mostly go.
+   --------------------------------------------------------------- */
+:global(body.light-mode) .panel {
+  background:
+    radial-gradient(560px 340px at 0% 0%, rgba(var(--rim-a), 0.07), transparent 70%),
+    radial-gradient(620px 380px at 100% 100%, rgba(var(--rim-c), 0.07), transparent 70%),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 248, 255, 0.9) 100%);
+  box-shadow:
+    0 18px 44px -26px rgba(var(--rim-b), 0.45),
+    0 2px 6px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 #fff;
+}
+:global(body.light-mode) .panel:hover {
+  box-shadow:
+    0 22px 50px -24px rgba(var(--rim-b), 0.55),
+    0 2px 6px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 #fff;
+}
+:global(body.light-mode) .rim {
+  opacity: 0.6;
+}
+:global(body.light-mode) .rimGlow {
+  opacity: 0.18;
+}
+:global(body.light-mode) .streak {
+  opacity: 0.35;
+}
+:global(body.light-mode) .inset {
+  background: rgba(248, 250, 255, 0.85);
+  border-color: rgba(var(--rim-b), 0.25);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
+}

@@ -1,0 +1,613 @@
+/* ==================================================================
+   Banned & Kicked Vault holograms (VaultScenes.tsx, banned-parts.tsx).
+
+   Each scene's root takes its position and size from the caller's
+   Tailwind classes, so nothing here sets display, position or size on
+   it (these rules are unlayered and would beat the caller's). The root
+   is a size container; inside it, .fit is the largest box of the
+   scene's own aspect ratio (--fit) that fits, centred, and is itself a
+   size container. Everything is laid out in % and cqw of that box, so a
+   scene keeps its composition at any size the caller gives it.
+
+   Only transform and opacity animate. Standalone translate/rotate/scale
+   are dropped by this pipeline, so every offset is inside `transform`.
+   Colours come from --holo-a/b/c/hot (paletteVars on the root).
+   ================================================================== */
+
+.root {
+  container-type: size;
+  isolation: isolate;
+  pointer-events: none;
+}
+
+.fit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(100cqw, calc(100cqh * var(--fit)));
+  height: min(100cqh, calc(100cqw / var(--fit)));
+  transform: translate(-50%, -50%);
+  container-type: size;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* A pool of light behind the object, as if it lit the panel. Static. */
+.halo {
+  position: absolute;
+  left: 50%;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--holo-b) / 0.4),
+    rgb(var(--holo-c) / 0.16) 48%,
+    rgb(var(--holo-a) / 0.05) 72%,
+    transparent
+  );
+}
+
+/* The floating object's box; its child bobs. */
+.object {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.bob {
+  position: relative;
+  animation: vault-bob 6.5s ease-in-out infinite;
+}
+
+/* ---- Shield: the vault's banned-user emblem ------------------------ */
+
+.shieldFit {
+  --fit: 0.96;
+}
+.shieldHalo {
+  bottom: 14cqh;
+  width: 112cqw;
+  height: 88cqh;
+}
+.shieldPedestal {
+  position: absolute;
+  left: 50%;
+  bottom: 1cqh;
+  width: 94cqw;
+  transform: translateX(-50%);
+}
+/* The shield's tip rests on the pedestal's top face: 44% up its box,
+   which is half as tall as it is wide. */
+.shieldObject {
+  bottom: calc(1cqh + 17cqw);
+  width: 58cqw;
+}
+
+/* ---- Lock: the vault cube ---------------------------------------- */
+
+.lockFit {
+  --fit: 1.3333;
+}
+.lockHalo {
+  bottom: 12cqh;
+  width: 100cqw;
+  height: 96cqh;
+}
+.lockPedestal {
+  position: absolute;
+  left: 50%;
+  bottom: 2cqh;
+  width: 66cqw;
+  transform: translateX(-50%);
+}
+/* The cube fills 58% of its box, so the box starts below the top face
+   for the cube's lowest corner to meet it. */
+.lockObject {
+  bottom: calc(2cqh + 6cqw);
+  width: 60cqw;
+}
+
+/* ---- Globe: blocked devices and networks ------------------------- */
+
+.globeFit {
+  --fit: 2.2353;
+}
+/* The globe's canvas: wider than the sphere, so its own rings and
+   chips turn inside it. Its centre is at (39.5cqw, 54cqh), radius 36cqh. */
+.globe {
+  position: absolute;
+  top: 0;
+  left: 10.4%;
+  width: 58.2%;
+  height: 100%;
+}
+
+/* A lit glass sphere under the globe's lattice: the canvas draws only
+   points and hairlines, which read dark on the navy panel, where the
+   mockup's globe glows electric blue. Static, painted once. */
+.sphere {
+  position: absolute;
+  left: calc(39.5cqw - 36cqh);
+  top: 18cqh;
+  width: 72cqh;
+  height: 72cqh;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 28%, rgb(224 238 255 / 0.75), rgb(147 197 253 / 0.28) 16%, transparent 36%),
+    radial-gradient(circle at 42% 40%, rgb(59 130 246 / 0.55), rgb(49 72 214 / 0.42) 55%, rgb(67 56 202 / 0.5) 82%, rgb(139 92 246 / 0.55));
+  box-shadow:
+    0 0 5cqh rgb(59 130 246 / 0.55),
+    0 0 16cqh rgb(99 102 241 / 0.35),
+    inset -3cqh -4cqh 9cqh rgb(30 20 110 / 0.55),
+    inset 1.5cqh 1.5cqh 5cqh rgb(147 197 253 / 0.45);
+}
+
+/* The sphere's wireframe (see GlobeGraticule): faint sky-blue lines with
+   a little glow on the dark panel, under the globe's own lattice. */
+.graticule {
+  filter: drop-shadow(0 0 1.2cqh rgb(96 165 250 / 0.8));
+}
+.graticule g {
+  stroke: rgb(147 197 253 / 0.3);
+}
+
+/* ---- Orbits ------------------------------------------------------ */
+
+/* The far halves sit behind glass and the object: dimmer. */
+.orbitBack {
+  opacity: 0.55;
+}
+
+.orbitBloom {
+  opacity: 0.75;
+}
+
+/* A circle the ring's width, squashed and tilted into the ellipse by
+   its inline transform; the clip keeps the half this layer draws. The
+   negative insets leave room for the bead's glow outside the circle. */
+.beadRing {
+  position: absolute;
+  transform-origin: 50% 50%;
+}
+.clipBack {
+  clip-path: inset(-30% -30% 50% -30%);
+}
+.clipFront {
+  clip-path: inset(50% -30% -30% -30%);
+}
+
+.beadSpin {
+  position: absolute;
+  inset: 0;
+  animation: orbit-spin var(--lap) linear infinite;
+  animation-delay: var(--lap-at);
+}
+
+/* On the rim at the top; spins back as its parent spins on, and undoes
+   the squash, so it stays a round bead. */
+.bead {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 2.6cqw;
+  aspect-ratio: 1;
+  margin: -1.3cqw 0 0 -1.3cqw;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #fff 0 24%, rgb(var(--bead)) 46%, rgb(var(--bead) / 0.35) 70%, transparent);
+  animation: orbit-bead var(--lap) linear infinite;
+  animation-delay: var(--lap-at);
+}
+
+/* ---- Glints ------------------------------------------------------ */
+
+/* A four-point star: two crossed streaks and a hot core. */
+.glint {
+  position: absolute;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) scale(0.4);
+  opacity: 0;
+  background: radial-gradient(closest-side, #fff 0 10%, rgb(var(--holo-hot) / 0.85) 20%, rgb(var(--holo-a) / 0.3) 42%, transparent 70%);
+  border-radius: 50%;
+  animation: glint-twinkle 4.6s ease-in-out infinite;
+}
+.glint::before,
+.glint::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, transparent, rgb(var(--holo-hot) / 0.95) 50%, transparent) 50% 50% / 100% 9% no-repeat;
+}
+.glint::after {
+  transform: rotate(90deg);
+}
+
+/* A soft round mote that rises a little and fades. */
+.mote {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(var(--holo-hot)) 0 25%, rgb(var(--holo-b) / 0.6) 55%, transparent);
+  opacity: 0;
+  animation: mote-rise 7s ease-in-out infinite;
+}
+
+/* ---- Router ------------------------------------------------------ */
+
+/* Its faces are sized in cqw of this box (a container); its perspective
+   is in cqw of the scene. Tucked against the globe and up off the
+   scene's lower-right corner, which the panel keeps for its button. */
+.router {
+  position: absolute;
+  left: 52%;
+  top: 30%;
+  width: 31%;
+  aspect-ratio: 100 / 50;
+  container-type: inline-size;
+  perspective: 220cqw;
+}
+
+/* The light it throws on the floor. */
+.routerShadow {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  top: 40%;
+  height: 90%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgb(var(--holo-b) / 0.55), rgb(var(--holo-c) / 0.18) 55%, transparent);
+}
+
+.routerLean,
+.routerIdle {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+.routerLean {
+  transform: rotateY(calc(var(--hx, 0) * 16deg)) rotateX(calc(var(--hy, 0) * -9deg));
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.routerIdle {
+  animation: router-idle 7s ease-in-out infinite;
+}
+
+/* A point at the box's centre that the faces are built round:
+   78 wide, 40 deep, 15 tall (cqw), seen from above and to the right. */
+.routerBody {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(-30deg) rotateY(-24deg);
+}
+
+.rFace {
+  position: absolute;
+  border-radius: 2cqw;
+  border: 1px solid rgb(var(--holo-hot) / 0.55);
+}
+.rTop {
+  left: -39cqw;
+  top: -20cqw;
+  width: 78cqw;
+  height: 40cqw;
+  transform: rotateX(90deg) translateZ(7.5cqw);
+  background: linear-gradient(160deg, rgb(196 190 255), rgb(128 116 244) 45%, rgb(84 74 214));
+  box-shadow:
+    inset 0 0 4cqw rgb(255 255 255 / 0.35),
+    0 0 5cqw rgb(var(--holo-b) / 0.6);
+}
+.rFront {
+  left: -39cqw;
+  top: -7.5cqw;
+  width: 78cqw;
+  height: 15cqw;
+  transform: translateZ(20cqw);
+  background: linear-gradient(180deg, rgb(98 88 226), rgb(58 50 170) 60%, rgb(42 36 136));
+  box-shadow: 0 0 4cqw rgb(var(--holo-c) / 0.55);
+}
+.rSide {
+  left: -20cqw;
+  top: -7.5cqw;
+  width: 40cqw;
+  height: 15cqw;
+  transform: rotateY(90deg) translateZ(39cqw);
+  background: linear-gradient(180deg, rgb(116 104 236), rgb(70 60 190));
+}
+
+/* Vent slots and a status badge on the lid; ports on the side. */
+.rVents {
+  position: absolute;
+  left: 58%;
+  right: 8%;
+  top: 22%;
+  bottom: 22%;
+  background: repeating-linear-gradient(90deg, rgb(40 34 130 / 0.55) 0 1.2cqw, transparent 1.2cqw 3.2cqw);
+  border-radius: 1cqw;
+}
+.rBadge {
+  position: absolute;
+  left: 10%;
+  top: 38%;
+  width: 14%;
+  height: 24%;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.5);
+  box-shadow: 0 0 2cqw rgb(255 255 255 / 0.6);
+}
+.rPorts {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 38%;
+  height: 30%;
+  background: repeating-linear-gradient(90deg, rgb(20 18 70 / 0.85) 0 5cqw, transparent 5cqw 8cqw);
+  border-radius: 0.6cqw;
+}
+
+.rLeds {
+  position: absolute;
+  left: 9%;
+  right: 22%;
+  top: 50%;
+  display: flex;
+  justify-content: space-between;
+  transform: translateY(-50%);
+}
+.led {
+  width: 4cqw;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, #fff 0 30%, rgb(var(--led)) 62%, rgb(var(--led) / 0.4));
+  box-shadow:
+    0 0 2cqw rgb(var(--led)),
+    0 0 5cqw rgb(var(--led) / 0.6);
+  animation: led-blink 2s steps(1, end) infinite;
+}
+
+/* ---- Wifi -------------------------------------------------------- */
+
+.wifi {
+  position: absolute;
+  left: 61%;
+  top: -3%;
+  width: 16%;
+  aspect-ratio: 48 / 40;
+  animation: wifi-float 5.2s ease-in-out infinite;
+}
+.wifiArc {
+  animation: wifi-wave 2.4s ease-in-out infinite;
+}
+
+/* ---- Circuit floor ----------------------------------------------- */
+
+.circuit {
+  -webkit-mask: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+  mask: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+}
+
+/* A short streak of light, turned onto its leg and slid along it. */
+.pulse {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  transform: rotate(var(--angle));
+  animation: trace-run 3s linear infinite;
+}
+.pulse::before {
+  content: "";
+  position: absolute;
+  left: -2.4cqw;
+  top: -0.45cqw;
+  width: 4.8cqw;
+  height: 0.9cqw;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgb(var(--pulse)) 60%, #fff);
+  box-shadow: 0 0 1.4cqw rgb(var(--pulse));
+}
+
+/* ---- Light mode -------------------------------------------------- */
+
+/* On the frosted panel, additive glows turn to haze: keep the lines and
+   colours, drop most of the bloom, and give the router pale glass. */
+:global(body.light-mode) .halo,
+:global(body.light-mode) .routerShadow {
+  opacity: 0.4;
+}
+:global(body.light-mode) .sphere {
+  background:
+    radial-gradient(circle at 34% 28%, rgb(255 255 255 / 0.7), transparent 34%),
+    radial-gradient(circle at 42% 40%, rgb(147 197 253 / 0.55), rgb(129 140 248 / 0.45) 60%, rgb(167 139 250 / 0.55));
+  box-shadow:
+    0 0 5cqh rgb(99 102 241 / 0.3),
+    inset 0 0 0 1px rgb(99 102 241 / 0.4);
+}
+:global(body.light-mode) .graticule {
+  filter: none;
+}
+:global(body.light-mode) .graticule g {
+  stroke: rgb(99 102 241 / 0.42);
+}
+:global(body.light-mode) .orbitBloom {
+  opacity: 0.25;
+}
+:global(body.light-mode) .orbitCore {
+  display: none;
+}
+:global(body.light-mode) .orbitBack {
+  opacity: 0.7;
+}
+:global(body.light-mode) .glint {
+  background: radial-gradient(closest-side, rgb(var(--holo-b)) 0 14%, rgb(var(--holo-a) / 0.35) 40%, transparent 70%);
+}
+:global(body.light-mode) .glint::before,
+:global(body.light-mode) .glint::after {
+  background: linear-gradient(90deg, transparent, rgb(var(--holo-b) / 0.9) 50%, transparent) 50% 50% / 100% 9% no-repeat;
+}
+:global(body.light-mode) .mote {
+  background: radial-gradient(closest-side, rgb(var(--holo-b)) 0 25%, rgb(var(--holo-a) / 0.4) 55%, transparent);
+}
+:global(body.light-mode) .rTop {
+  background: linear-gradient(160deg, rgb(237 233 254), rgb(196 181 253) 55%, rgb(167 139 250));
+  box-shadow: inset 0 0 4cqw rgb(255 255 255 / 0.5);
+  border-color: rgb(124 58 237 / 0.55);
+}
+:global(body.light-mode) .rFront {
+  background: linear-gradient(180deg, rgb(129 140 248), rgb(99 102 241));
+  box-shadow: none;
+  border-color: rgb(79 70 229 / 0.6);
+}
+:global(body.light-mode) .rSide {
+  background: linear-gradient(180deg, rgb(165 180 252), rgb(129 140 248));
+  border-color: rgb(79 70 229 / 0.6);
+}
+
+/* ---- Motion ------------------------------------------------------ */
+
+@keyframes vault-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes orbit-bead {
+  from {
+    transform: rotate(0deg) scaleY(var(--unsquash));
+  }
+  to {
+    transform: rotate(-360deg) scaleY(var(--unsquash));
+  }
+}
+
+@keyframes glint-twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.35) rotate(0deg);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(25deg);
+  }
+  70% {
+    opacity: 0.25;
+    transform: translate(-50%, -50%) scale(0.55) rotate(40deg);
+  }
+}
+
+@keyframes mote-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 30%);
+  }
+  30%,
+  60% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -260%);
+  }
+}
+
+@keyframes router-idle {
+  0%,
+  100% {
+    transform: translateY(0) rotateY(0deg);
+  }
+  50% {
+    transform: translateY(-4%) rotateY(-5deg);
+  }
+}
+
+@keyframes led-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.35;
+  }
+  42% {
+    opacity: 1;
+  }
+  74% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes wifi-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8%);
+  }
+}
+
+@keyframes wifi-wave {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  35% {
+    opacity: 1;
+  }
+}
+
+@keyframes trace-run {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(0);
+  }
+  15%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateX(var(--run));
+  }
+}
+
+/* Off screen or in a hidden tab (see usePauseWhenHidden), and for
+   reduced motion: every loop holds where its delay put it, so the
+   beads stay spread round their rings and the glints half lit. Last,
+   so it wins at equal specificity. */
+.root[data-holo-paused] *,
+.root[data-holo-paused] *::before,
+.root[data-holo-paused] *::after {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .root *,
+  .root *::before,
+  .root *::after {
+    animation-play-state: paused;
+  }
+  .routerLean {
+    transition: none;
+  }
+}

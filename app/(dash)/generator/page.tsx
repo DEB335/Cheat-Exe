@@ -2,14 +2,28 @@
 
 import { useMemo, useState } from "react";
 
-import { CopyIcon, KeyIcon } from "@/components/icons";
-import { CopyButton, PrimaryButton } from "@/components/ui/buttons";
-import { Card, CardHeader } from "@/components/ui/Card";
-import { FormLabel, HelpText, Input, PackageCard } from "@/components/ui/form";
+import { GeneratedKeysPanel } from "@/components/generator/GeneratedKeysPanel";
+import { PackageTile } from "@/components/generator/PackageTile";
+import { CalendarIcon, KeyIcon, UsersIcon } from "@/components/icons";
+import {
+  AlertTriangleIcon,
+  CubeIcon,
+  IconTile,
+  NeonCta,
+  NeonInput,
+  NeonPanel,
+  PanelHeader,
+} from "@/components/neon";
 import { useToast } from "@/components/ui/Toast";
 import { postJson } from "@/lib/client-api";
 import { keysRemaining } from "@/lib/reseller";
 import { useDashboard, useMyPackages } from "@/lib/store";
+import { cn } from "@/lib/utils";
+
+// The mockup's fields carry a glyph at the right end, where the browser
+// would otherwise draw its spinner. The arrow keys still step the value.
+const NO_SPINNER =
+  "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
 export default function GeneratorPage() {
   const toast = useToast();
@@ -108,36 +122,57 @@ export default function GeneratorPage() {
   const consoleText = log.length > 0 ? log.join("\n") : "No keys generated yet.";
 
   return (
-    <div className="grid items-start gap-[30px] xl:grid-cols-[3fr_2fr]">
-      <Card>
-        <CardHeader
+    // Both panels stretch to the taller one on desktop, so the hologram
+    // under the console fills whatever height the package grid gives.
+    <div className="grid gap-[30px] xl:grid-cols-[3fr_2fr]">
+      <NeonPanel rim="aurora" className="flex flex-col">
+        <PanelHeader
+          icon={<CubeIcon />}
+          iconTone="blue"
+          iconTone2="violet"
           title="Generate License Keys"
           subtitle="Create keys through your connected API."
           actions={
-            // Original .stat-icon here has no fill or border -- just the
-            // 32x32 box inheriting the card text colour.
-            <div className="flex size-8 items-center justify-center rounded-xl text-fg">
-              <KeyIcon className="size-4" />
-            </div>
+            // Decoration, as it always was -- there is nothing for it to
+            // do, so it is a tile and not a button. Dropped on phones,
+            // where it would wrap onto a row of its own.
+            <IconTile
+              tone="blue"
+              variant="glass"
+              size="md"
+              className="max-sm:hidden [&>svg]:size-[22px]"
+            >
+              <KeyIcon />
+            </IconTile>
           }
         />
 
-        <label className="mb-2.5 block text-[12px] text-[#94a3b8]">
+        <p
+          id="genPackages"
+          className="mb-3.5 text-[15px] font-semibold text-[#d5ddff] lt:text-slate-700"
+        >
           {isOwner ? "Select License Package" : "Your License Packages"}
-        </label>
+        </p>
 
         {/* Only what this account may actually generate.
             Rendering the rest greyed out told a reseller what they are
             missing and left them clicking dead cards; the owner still
             sees everything because everything is theirs. */}
         {allowed.length === 0 ? (
-          <div className="mb-6 rounded-xl border border-[rgba(245,158,11,0.25)] bg-[rgba(245,158,11,0.08)] px-4 py-3.5 text-[13px] text-orange">
+          <div className="mb-7 flex items-start gap-3 rounded-[14px] border border-[rgba(245,165,36,0.45)] bg-[rgba(245,165,36,0.1)] px-4 py-3.5 text-[14px] leading-snug text-[#fdd680] shadow-[0_0_18px_-8px_rgba(245,165,36,0.8)] lt:border-amber-300 lt:bg-amber-50 lt:text-amber-800 lt:shadow-none">
+            <AlertTriangleIcon aria-hidden className="mt-px size-[18px] shrink-0" />
             No packages are assigned to your account yet. Ask the owner to grant you one.
           </div>
         ) : (
-          <div className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-3">
+          // auto-fill, not auto-fit: a reseller with two packages gets two
+          // tiles, not two slabs stretched across the whole panel.
+          <div
+            role="group"
+            aria-labelledby="genPackages"
+            className="mb-7 grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-3.5"
+          >
             {allowed.map((pkg) => (
-              <PackageCard
+              <PackageTile
                 key={pkg.id}
                 name={pkg.name}
                 description={pkg.description}
@@ -148,30 +183,40 @@ export default function GeneratorPage() {
           </div>
         )}
 
-        <div className="mb-5 grid gap-5 sm:grid-cols-2">
-          <div>
-            <FormLabel htmlFor="genDays">Validity (days)</FormLabel>
-            <Input
-              id="genDays"
-              type="number"
-              min={0}
-              step={1}
-              value={days}
-              onChange={(event) => setDays(event.target.value)}
-            />
-            <HelpText>Use 0 for a lifetime key.</HelpText>
-            {/* Sent as `days`, the name the provider reads. It went out as
-                `duration` until 28/08/2026 -- a name the provider ignores, so
-                it applied its own default and a key asked for as 10 days
-                arrived in their portal as 30. Confirmed honoured now: keys
-                sent 7 and 45 came back as 7 and 45. Their key_info still
-                reports every unused key as lifetime, so the portal, not the
-                API, is what agrees with this box. */}
-          </div>
-          <div>
-            <FormLabel htmlFor="genCount">Count</FormLabel>
-            <Input
+        {/* my-auto: when the keys panel beside this one is the taller of
+            the two (one row of packages), the spare height splits above
+            and below the fields, so tiles, fields and button stay evenly
+            spaced and the button keeps to the panel's floor, as in the
+            mockup, instead of one dead band opening over it. */}
+        <div className="my-auto grid gap-x-8 gap-y-5 sm:grid-cols-2">
+          {/* Sent as `days`, the name the provider reads. It went out as
+              `duration` until 28/08/2026 -- a name the provider ignores, so
+              it applied its own default and a key asked for as 10 days
+              arrived in their portal as 30. Confirmed honoured now: keys
+              sent 7 and 45 came back as 7 and 45. Their key_info still
+              reports every unused key as lifetime, so the portal, not the
+              API, is what agrees with this box. */}
+          <NeonInput
+            id="genDays"
+            label="Validity (days)"
+            help="Use 0 for a lifetime key."
+            tone="blue"
+            rightIcon={<CalendarIcon />}
+            inputClassName={NO_SPINNER}
+            type="number"
+            min={0}
+            step={1}
+            value={days}
+            onChange={(event) => setDays(event.target.value)}
+          />
+          <div className="min-w-0">
+            <NeonInput
               id="genCount"
+              label="Count"
+              help="Maximum 100 per request."
+              tone="blue"
+              rightIcon={<UsersIcon />}
+              inputClassName={NO_SPINNER}
               type="number"
               min={1}
               max={100}
@@ -179,88 +224,48 @@ export default function GeneratorPage() {
               value={count}
               onChange={(event) => setCount(event.target.value)}
             />
-            <HelpText>Maximum 100 per request.</HelpText>
             {quota && (
-              <span
-                className={
+              <p
+                className={cn(
+                  "mt-1.5 text-[12.5px] font-semibold",
                   quota.left === 0
-                    ? "mt-1.5 block text-[11px] font-semibold text-[#ef4444]"
-                    : "mt-1.5 block text-[11px] font-semibold text-green"
-                }
+                    ? "text-[#ff8aa0] lt:text-rose-600"
+                    : "text-[#6ef3a5] lt:text-emerald-700",
+                )}
               >
                 {quota.left === 0
                   ? `Allowance used up (${quota.used}/${quota.limit}). Ask the owner to raise it.`
                   : `${quota.left} of ${quota.limit} keys left on your allowance.`}
-              </span>
+              </p>
             )}
           </div>
         </div>
 
-        <div className="mt-4 flex w-full justify-center">
-          <PrimaryButton onClick={generate} disabled={busy || quota?.left === 0}>
-            <KeyIcon className="size-4" strokeWidth={2.5} />
-            {busy ? "GENERATING..." : "GENERATE KEYS"}
-          </PrimaryButton>
+        <div className="relative flex justify-center pt-10 pb-2">
+          {/* The lit floor the button stands on: a flat ellipse of light
+              across the panel, brightest where the pill touches it. */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-[2%] -bottom-3 h-[46px] rounded-[50%] border-t border-[rgba(165,180,252,0.34)] bg-[radial-gradient(46%_100%_at_50%_0%,rgba(168,85,247,0.42),rgba(59,130,246,0.14)_50%,transparent_80%)] lt:opacity-40"
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-[16%] bottom-[5px] h-[2px] rounded-full bg-[linear-gradient(90deg,transparent,#a5b4fc_20%,#ffffff_50%,#f0abfc_80%,transparent)] shadow-[0_0_14px_2px_rgba(192,132,252,0.75)] lt:opacity-40"
+          />
+          <NeonCta
+            icon={<KeyIcon />}
+            chevron
+            loading={busy}
+            disabled={quota?.left === 0}
+            onClick={generate}
+            className="w-full max-w-[460px]"
+          >
+            {busy ? "Generating..." : "Generate Keys"}
+          </NeonCta>
         </div>
-      </Card>
+      </NeonPanel>
 
-      <Card flat>
-        <CardHeader
-          title="Generated Keys"
-          subtitle="API response appears here."
-          actions={
-            <CopyButton onClick={() => copy(consoleText, "Copied to clipboard!")}>
-              Copy All
-            </CopyButton>
-          }
-        />
-
-        {keys.length > 0 && (
-          <div className="mb-4 rounded-lg border border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.05)] p-4">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <span className="text-[11px] font-extrabold tracking-[1.2px] text-[#10b981] uppercase">
-                {keys.length} key{keys.length === 1 ? "" : "s"}
-              </span>
-              {/* shrink-0: the key list beside it used to take the whole row
-                  and push this button out through the side of the card. */}
-              <CopyButton
-                className="shrink-0 whitespace-nowrap"
-                onClick={() => copy(keys.join("\n"), "Key copied to clipboard!")}
-              >
-                <CopyIcon className="size-3" />
-                Copy all
-              </CopyButton>
-            </div>
-
-            {/* One row per key, and capped so a batch of 100 scrolls inside
-                the card instead of stretching the whole page. The old
-                markup put keys.join("\n") in a plain span, where the
-                newlines collapsed to spaces and break-all then chopped
-                each key across lines mid-token. */}
-            <ul className="max-h-[168px] space-y-1 overflow-y-auto pr-1">
-              {keys.map((key) => (
-                <li key={key} className="flex items-center justify-between gap-2">
-                  <span className="truncate font-mono text-[13.5px] font-semibold text-[#10b981]">
-                    {key}
-                  </span>
-                  <button
-                    type="button"
-                    title="Copy this key"
-                    onClick={() => copy(key, "Key copied to clipboard!")}
-                    className="shrink-0 rounded-md p-1 text-[#10b981]/60 transition-colors hover:text-[#10b981]"
-                  >
-                    <CopyIcon className="size-3.5" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="scanlines relative h-[310px] min-h-[180px] overflow-y-auto rounded-[14px] border border-line border-l-[3px] border-l-green bg-[rgba(1,1,3,0.4)] p-5 font-mono text-[13px] whitespace-pre-wrap text-green shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)] backdrop-blur-[12px] lt:border-l-accent lt:bg-slate-50 lt:text-slate-900">
-          {consoleText}
-        </div>
-      </Card>
+      <GeneratedKeysPanel consoleText={consoleText} keys={keys} onCopy={copy} />
     </div>
   );
 }

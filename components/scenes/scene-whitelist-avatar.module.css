@@ -1,0 +1,158 @@
+/* ==================================================================
+   Whitelist entry avatar (whitelist-avatar.tsx): the glowing glass
+   user glyph at the right of every whitelist entry card.
+
+   One sits on every card, so it is plain SVG and CSS -- no canvas, no
+   pointer tracking. The figure is static SVG, painted once; the float
+   is a transform on its <svg> box and the base glow only breathes, so
+   the compositor does all the moving.
+
+   Its colours are the enclosing NeonPanel's rim (--rim-a/b/c, "r, g, b"
+   triplets), so each card's avatar is lit in that card's colourway;
+   outside a panel it falls back to the aurora rim.
+   ================================================================== */
+
+.avatar {
+  --av-a: var(--rim-a, 255, 61, 242);
+  --av-b: var(--rim-b, 139, 92, 246);
+  --av-c: var(--rim-c, 59, 130, 246);
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The light the figure throws on the card under it. */
+.glow {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  bottom: 0;
+  height: 38%;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgba(var(--av-b), 0.6),
+    rgba(var(--av-c), 0.22) 58%,
+    transparent
+  );
+  animation: av-breathe 5s ease-in-out infinite;
+}
+
+.figure {
+  animation: av-float 5.4s ease-in-out infinite;
+}
+
+/* A different period per glyph, so a row of cards does not bob in step. */
+.group .figure {
+  animation-duration: 6.2s;
+}
+.add .figure {
+  animation-duration: 4.8s;
+}
+
+/* Gradient stops take the rim colours by class: a stop-color can read
+   a custom property from CSS, not from an attribute. */
+.stopA {
+  stop-color: rgb(var(--av-a));
+}
+.stopB {
+  stop-color: rgb(var(--av-b));
+}
+.stopC {
+  stop-color: rgb(var(--av-c));
+}
+
+.bloomFill {
+  fill: rgb(var(--av-b));
+  stroke: rgb(var(--av-a));
+}
+
+.paneLine {
+  stroke: rgba(var(--av-b), 0.4);
+}
+.paneEdge {
+  stroke: rgba(var(--av-a), 0.24);
+}
+.ring {
+  stroke: rgba(var(--av-a), 0.6);
+  fill: rgba(var(--av-b), 0.1);
+}
+.ringInner {
+  stroke: rgba(var(--av-c), 0.7);
+}
+
+/* Dark glass under the tinted fill: it keeps the neon edge crisp on
+   the dark card and lets the front figure of the group hide the two
+   behind it. */
+.base {
+  fill: #0a0e34;
+  fill-opacity: 0.82;
+}
+
+/* The same glass as a stroke, cut round the plus where it crosses the bust. */
+.gap {
+  fill: none;
+  stroke: #0a0e34;
+  stroke-opacity: 0.9;
+}
+
+/* ---- Light mode -------------------------------------------------- */
+
+/* The white-hot edge would vanish on the pale card: ink it in the
+   rim's deepest colour and let the glow fade to a tint. */
+:global(body.light-mode) .base {
+  fill: #fff;
+  fill-opacity: 0.9;
+}
+:global(body.light-mode) .gap {
+  stroke: #fff;
+}
+:global(body.light-mode) .edge {
+  stroke: rgb(var(--av-c));
+}
+:global(body.light-mode) .bloom {
+  opacity: 0.3;
+}
+:global(body.light-mode) .glow {
+  opacity: 0.45;
+  animation: none;
+}
+
+/* ---- Motion ------------------------------------------------------ */
+
+@keyframes av-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5%);
+  }
+}
+
+@keyframes av-breathe {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Off screen or in a hidden tab (usePauseWhenHidden). */
+.avatar[data-holo-paused] * {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow,
+  .figure {
+    animation: none;
+  }
+}
