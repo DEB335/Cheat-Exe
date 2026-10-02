@@ -1,8 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-
-import { usePauseWhenHidden, useSvgIds } from "@/components/holo";
+import { useSvgIds } from "@/components/holo";
 import { cn } from "@/lib/utils";
 
 import styles from "./scene-whitelist-avatar.module.css";
@@ -56,27 +54,20 @@ const PLUS = "M60 46 V64 M51 55 H69";
  * The glowing glass user at the right of a whitelist entry card: one
  * figure ("user"), a group of three ("group") or a figure with a plus
  * ("add"), standing on a small lit platform in front of a faint glass
- * prism, floating gently over a soft base glow.
+ * prism, over a soft base glow. Still: one sits on every entry card.
  *
  * Lit in the colours of the NeonPanel it sits in (its rim vars). Around
  * 64-80px; the caller positions and sizes it (default 72px square).
  * Decorative only: hidden from assistive tech, never takes the pointer.
  */
 export function EntryAvatar({ variant, className }: { variant: EntryAvatarVariant; className?: string }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  usePauseWhenHidden(rootRef);
   const ids = useSvgIds("wl-av");
   const { id, url } = ids;
 
   return (
     <div
-      ref={rootRef}
       aria-hidden
-      // Only "group" and "add" have their own rules, so the plain user
-      // has no variant class and is filtered out rather than printed.
-      className={[styles.avatar, styles[variant], cn("pointer-events-none relative aspect-square w-[72px]", className)]
-        .filter(Boolean)
-        .join(" ")}
+      className={`${styles.avatar} ${cn("pointer-events-none relative aspect-square w-[72px]", className)}`}
     >
       <span className={styles.glow} />
       <svg className={styles.layer} viewBox="0 0 80 80">
@@ -93,54 +84,49 @@ export function EntryAvatar({ variant, className }: { variant: EntryAvatarVarian
         <ellipse cx="40" cy="66" rx="27" ry="6.4" className={styles.ring} strokeWidth="0.9" />
         <ellipse cx="40" cy="66" rx="17" ry="3.9" fill="none" className={styles.ringInner} strokeWidth="0.7" />
       </svg>
-      {/* The float moves this HTML box, not the <svg>: Chrome will not
-          hand an <svg>'s transform to the compositor, so it would tick
-          on the main thread every frame. */}
-      <div className={styles.figure}>
-        <svg className={styles.layer} viewBox="0 0 80 80">
-          <defs>
-            <linearGradient id={id("glass")} x1="0" y1="0" x2="0.7" y2="1">
-              <stop offset="0" className={styles.stopA} stopOpacity="0.95" />
-              <stop offset="0.5" className={styles.stopB} stopOpacity="0.9" />
-              <stop offset="1" className={styles.stopC} stopOpacity="0.95" />
-            </linearGradient>
-            <radialGradient id={id("orb")} cx="0.34" cy="0.26" r="0.78">
-              <stop offset="0" stopColor="#fff" stopOpacity="0.85" />
-              <stop offset="0.32" stopColor="#fff" stopOpacity="0.22" />
-              <stop offset="0.8" stopColor="#fff" stopOpacity="0" />
-            </radialGradient>
-            {/* The edge burns near-white, cooling into the rim colour at the far corner. */}
-            <linearGradient id={id("edge")} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#fff" />
-              <stop offset="0.5" stopColor="#fff" stopOpacity="0.9" />
-              <stop offset="1" className={styles.stopA} />
-            </linearGradient>
-            <filter id={id("bloom")} x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur stdDeviation="1.6" />
-            </filter>
-          </defs>
-          {variant === "group" ? (
-            <>
-              <g opacity="0.62">
-                {GROUP_BACK.map((p) => (
-                  <Figure key={p.cx} person={p} ids={ids} />
-                ))}
-              </g>
-              <Figure person={GROUP_FRONT} ids={ids} />
-            </>
-          ) : variant === "add" ? (
-            <>
-              <Figure person={ADDER} ids={ids} />
-              {/* A dark gap round the plus parts it from the bust it overlaps. */}
-              <path d={PLUS} className={styles.gap} strokeWidth="9" strokeLinecap="round" />
-              <path d={PLUS} className={`${styles.bloom} ${styles.bloomFill}`} strokeWidth="5.5" strokeLinecap="round" filter={url("bloom")} />
-              <path d={PLUS} className={styles.edge} stroke={url("edge")} strokeWidth="4.2" strokeLinecap="round" />
-            </>
-          ) : (
-            <Figure person={SOLO} ids={ids} />
-          )}
-        </svg>
-      </div>
+      <svg className={styles.layer} viewBox="0 0 80 80">
+        <defs>
+          <linearGradient id={id("glass")} x1="0" y1="0" x2="0.7" y2="1">
+            <stop offset="0" className={styles.stopA} stopOpacity="0.95" />
+            <stop offset="0.5" className={styles.stopB} stopOpacity="0.9" />
+            <stop offset="1" className={styles.stopC} stopOpacity="0.95" />
+          </linearGradient>
+          <radialGradient id={id("orb")} cx="0.34" cy="0.26" r="0.78">
+            <stop offset="0" stopColor="#fff" stopOpacity="0.85" />
+            <stop offset="0.32" stopColor="#fff" stopOpacity="0.22" />
+            <stop offset="0.8" stopColor="#fff" stopOpacity="0" />
+          </radialGradient>
+          {/* The edge burns near-white, cooling into the rim colour at the far corner. */}
+          <linearGradient id={id("edge")} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#fff" />
+            <stop offset="0.5" stopColor="#fff" stopOpacity="0.9" />
+            <stop offset="1" className={styles.stopA} />
+          </linearGradient>
+          <filter id={id("bloom")} x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="1.6" />
+          </filter>
+        </defs>
+        {variant === "group" ? (
+          <>
+            <g opacity="0.62">
+              {GROUP_BACK.map((p) => (
+                <Figure key={p.cx} person={p} ids={ids} />
+              ))}
+            </g>
+            <Figure person={GROUP_FRONT} ids={ids} />
+          </>
+        ) : variant === "add" ? (
+          <>
+            <Figure person={ADDER} ids={ids} />
+            {/* A dark gap round the plus parts it from the bust it overlaps. */}
+            <path d={PLUS} className={styles.gap} strokeWidth="9" strokeLinecap="round" />
+            <path d={PLUS} className={`${styles.bloom} ${styles.bloomFill}`} strokeWidth="5.5" strokeLinecap="round" filter={url("bloom")} />
+            <path d={PLUS} className={styles.edge} stroke={url("edge")} strokeWidth="4.2" strokeLinecap="round" />
+          </>
+        ) : (
+          <Figure person={SOLO} ids={ids} />
+        )}
+      </svg>
     </div>
   );
 }

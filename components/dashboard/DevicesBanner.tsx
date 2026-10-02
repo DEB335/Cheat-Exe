@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
 import { Laptop3D } from "@/components/dashboard/Laptop3D";
 import { ParticleGlobe } from "@/components/effects/ParticleGlobe";
 import { ArrowRightIcon } from "@/components/icons";
@@ -18,45 +16,11 @@ import { cn } from "@/lib/utils";
  * than the table can show.
  */
 export function DevicesBanner({ online, onViewAll }: { online: number; onViewAll: () => void }) {
-  const hostRef = useRef<HTMLDivElement>(null);
-  const pointer = useRef({ x: 0, y: 0, frame: 0 });
-
-  useEffect(() => {
-    const state = pointer.current;
-    return () => cancelAnimationFrame(state.frame);
-  }, []);
-
-  // The laptop leans toward the pointer through two custom properties on
-  // this element. Written straight to the style, at most once a frame, so
-  // a mouse sweeping across the banner never re-renders React.
-  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const state = pointer.current;
-    state.x = event.clientX;
-    state.y = event.clientY;
-    if (state.frame) return;
-    state.frame = requestAnimationFrame(() => {
-      state.frame = 0;
-      const el = hostRef.current;
-      if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      const rect = el.getBoundingClientRect();
-      el.style.setProperty("--btx", (((state.x - rect.left) / rect.width) * 2 - 1).toFixed(3));
-      el.style.setProperty("--bty", (((state.y - rect.top) / rect.height) * 2 - 1).toFixed(3));
-    });
-  };
-
-  const onPointerLeave = () => {
-    const state = pointer.current;
-    cancelAnimationFrame(state.frame);
-    state.frame = 0;
-    hostRef.current?.style.removeProperty("--btx");
-    hostRef.current?.style.removeProperty("--bty");
-  };
-
+  // Nothing here follows the pointer: the laptop holds one pose, and
+  // hovering the band only swings its lid open a little and brightens
+  // the screen.
   return (
     <div
-      ref={hostRef}
-      onPointerMove={onPointerMove}
-      onPointerLeave={onPointerLeave}
       className={cn(
         "group/banner relative isolate overflow-hidden border-b border-[rgba(59,76,160,0.28)]",
         "bg-[#021026] shadow-[inset_0_1px_0_rgba(148,163,255,0.08)]",
@@ -88,7 +52,7 @@ export function DevicesBanner({ online, onViewAll }: { online: number; onViewAll
           "-right-[150px] opacity-55 xl:right-[92px] xl:opacity-100 lt:opacity-70",
         )}
       >
-        <ParticleGlobe hostRef={hostRef} cx={0.5} cy={1.1} radius={0.92} />
+        <ParticleGlobe cx={0.5} cy={1.1} radius={0.92} />
       </div>
 
       <div

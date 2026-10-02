@@ -8,7 +8,6 @@ import {
   ParticleField,
   resolvePalette,
   usePauseWhenHidden,
-  usePointerLean,
   type RGB,
 } from "@/components/holo";
 import { cn } from "@/lib/utils";
@@ -55,20 +54,19 @@ const step = (v: number) => Math.round(v * 10) / 10;
 /**
  * The quiet backdrop behind the key history panel's header and stat
  * row: soft violet and blue light pooling, a faint perspective grid
- * floor with a slow scan of light over it, and a sparse, slowly turning
- * column of 3D specks, glints and bokeh across the whole width.
+ * floor under a horizon line, and a sparse, slowly turning column of 3D
+ * specks, glints and bokeh across the whole width.
  *
  * Meant for the full panel width and ~300px tall; the caller positions
  * and sizes the root. Everything is dim and fades out toward the bottom
  * and sides, so the stat tiles and text over it stay crisp. One particle
  * canvas.
  *
- * Decorative: aria-hidden, no pointer events, CSS animations paused off
- * screen and stopped under reduced motion (the field freezes itself).
+ * Decorative: aria-hidden, no pointer events. A still frame apart from
+ * the particle field, which stops off screen and under reduced motion.
  */
 export function KeyHistoryAmbient({ className }: { className?: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
-  usePauseWhenHidden(rootRef);
   const size = useBoxSize(rootRef);
 
   // The field is a turning column whose radius is a share of the box's
@@ -90,9 +88,7 @@ export function KeyHistoryAmbient({ className }: { className?: string }) {
     >
       <div className={styles.pools} />
       {size ? <HistoryFloor w={size.w} h={size.h} /> : null}
-      <div className={styles.horizon}>
-        <span />
-      </div>
+      <div className={styles.horizon} />
       {field ? (
         <ParticleField
           palette={SPECKS}
@@ -100,7 +96,6 @@ export function KeyHistoryAmbient({ className }: { className?: string }) {
           radius={field.radius}
           density={field.density}
           speed={0.45}
-          lean={0.25}
           seed={0x6b657973}
           className={styles.ambField}
         />
@@ -109,32 +104,29 @@ export function KeyHistoryAmbient({ className }: { className?: string }) {
   );
 }
 
-/** Seconds per lap of the emblem's ring (the CSS's 7s). */
-const LAP = 7;
-
 /**
- * Three sparkles riding the emblem's orbit ring. `d` offsets each one's
- * lap (s, negative so they start spread round it), `s` scales it. The
- * arms share one turning wrapper, so each arm is just held at its
- * offset's angle -- the same place a lap `d` seconds ahead would put it.
+ * Three sparkles resting on the emblem's orbit ring: `a` is the angle
+ * round it (clockwise from the right, so 0-180 is the near half), `s`
+ * the size, `o` the brightness -- the one on the far side is dimmer, as
+ * the ring's back half is.
  */
 const SPARKS = [
-  { d: 0, s: 1 },
-  { d: -3.1, s: 0.7 },
-  { d: -6.4, s: 0.85 },
-].map((p) => ({ ...p, a: (-p.d / LAP) * 360 }));
+  { a: 24, s: 1, o: 1 },
+  { a: 150, s: 0.7, o: 0.9 },
+  { a: 322, s: 0.85, o: 0.5 },
+];
 
 /**
  * The key history panel's header emblem: a glass hex shield bearing a
  * neon key, floating over a small projector pad in violet and blue,
  * with a tipped orbit ring passing behind and in front of it, sparkles
- * riding the ring and a small cloud of 3D specks round the lot.
+ * on the ring and a small cloud of 3D specks round the lot.
  *
  * Designed for ~220 x 130. The caller positions and sizes the root
  * (both dimensions); everything is drawn in a 22:13 rig centred in it
  * as large as fits, so the box's shape never stretches the hologram.
- * One particle canvas. The shield leans toward the pointer over the
- * panel.
+ * One particle canvas. Only the shield moves, floating slowly; the
+ * ring, its comet and the sparkles are a still frame.
  *
  * Decorative: aria-hidden, no pointer events, CSS animations paused off
  * screen and stopped under reduced motion.
@@ -142,7 +134,6 @@ const SPARKS = [
 export function KeyHistoryEmblem({ className }: { className?: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
   usePauseWhenHidden(rootRef);
-  usePointerLean(rootRef);
 
   return (
     <div
@@ -180,15 +171,13 @@ export function KeyHistoryEmblem({ className }: { className?: string }) {
           <span />
         </div>
         <div className={styles.sparks}>
-          <div className={styles.lap}>
-            {SPARKS.map((p) => (
-              <div key={p.d} className={styles.arm} style={{ "--d": `${p.d}s`, "--a": `${p.a.toFixed(2)}deg` } as CSSProperties}>
-                <span className={styles.spark} style={{ "--s": p.s } as CSSProperties}>
-                  <i />
-                </span>
-              </div>
-            ))}
-          </div>
+          {SPARKS.map((p) => (
+            <div key={p.a} className={styles.arm} style={{ "--a": `${p.a}deg` } as CSSProperties}>
+              <span className={styles.spark} style={{ "--s": p.s, opacity: p.o } as CSSProperties}>
+                <i />
+              </span>
+            </div>
+          ))}
         </div>
       </div>
     </div>

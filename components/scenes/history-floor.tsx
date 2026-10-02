@@ -45,35 +45,26 @@ function floorPath(w: number, h: number) {
 
 /**
  * The ambience's holographic floor: a faint violet-to-blue perspective
- * grid, plus a brighter copy of it seen only through a soft band that
- * slides across, so a slow scan of light runs over the lines. The band
- * moves one way and the grid inside it the other by the same amount,
- * so the lines stay put and only the light travels -- two transforms,
- * no repaint.
+ * grid. Static, so it is painted once.
  */
 export function HistoryFloor({ w, h }: { w: number; h: number }) {
   const { id, url } = useSvgIds("khf");
   const d = useMemo(() => floorPath(w, h), [w, h]);
 
-  const grid = (bright: boolean) => (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden className={styles.floorSvg}>
-      <defs>
-        <linearGradient id={id(bright ? "scan" : "across")} x1="0" y1="0" x2={w} y2="0" gradientUnits="userSpaceOnUse">
-          {/* Inline style, not the stopColor attribute: attributes do not resolve var(). */}
-          <stop offset="0" style={{ stopColor: "rgb(var(--holo-a))" }} />
-          <stop offset="0.5" style={{ stopColor: "rgb(var(--holo-b))" }} />
-          <stop offset="1" style={{ stopColor: "rgb(var(--holo-c))" }} />
-        </linearGradient>
-      </defs>
-      <path d={d} fill="none" stroke={url(bright ? "scan" : "across")} strokeWidth={bright ? 1.4 : 1} />
-    </svg>
-  );
-
   return (
     <div className={styles.floor}>
-      <div className={styles.floorBase}>{grid(false)}</div>
-      <div className={styles.scan}>
-        <div className={styles.scanInner}>{grid(true)}</div>
+      <div className={styles.floorBase}>
+        <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden className={styles.floorSvg}>
+          <defs>
+            <linearGradient id={id("across")} x1="0" y1="0" x2={w} y2="0" gradientUnits="userSpaceOnUse">
+              {/* Inline style, not the stopColor attribute: attributes do not resolve var(). */}
+              <stop offset="0" style={{ stopColor: "rgb(var(--holo-a))" }} />
+              <stop offset="0.5" style={{ stopColor: "rgb(var(--holo-b))" }} />
+              <stop offset="1" style={{ stopColor: "rgb(var(--holo-c))" }} />
+            </linearGradient>
+          </defs>
+          <path d={d} fill="none" stroke={url("across")} strokeWidth={1} />
+        </svg>
       </div>
     </div>
   );

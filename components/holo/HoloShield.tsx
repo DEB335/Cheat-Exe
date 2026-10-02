@@ -50,9 +50,8 @@ export interface HoloShieldProps {
  * face is a glass gradient with a shaded right facet, a reflection and
  * an inset second rim, and the edge is a crisp gradient rim over a
  * blurred bloom. The glyph floats in front of the glass on its own
- * plane, so it parallaxes as the shield rocks and leans.
- *
- * Leans toward the pointer through --hx/--hy when inside a HoloStage.
+ * plane, so it parallaxes as the shield rocks (and bobs too, inside a
+ * HoloStage).
  */
 export function HoloShield({ tone = "aurora", glyph = "user", shape = "heater", halo = true, className }: HoloShieldProps) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -71,69 +70,67 @@ export function HoloShield({ tone = "aurora", glyph = "user", shape = "heater", 
     >
       <div className={styles.scene}>
         {halo ? <div className={styles.halo} /> : null}
-        <div className={styles.lean}>
-          <div className={styles.idle}>
-            <svg className={`${styles.layer} ${styles.plateBack}`} viewBox="0 0 100 112">
-              <path d={s.outline} fill={rgb(p.c, 0.22)} stroke={rgb(p.b, 0.55)} strokeWidth="1.6" strokeLinejoin="round" />
+        <div className={styles.idle}>
+          <svg className={`${styles.layer} ${styles.plateBack}`} viewBox="0 0 100 112">
+            <path d={s.outline} fill={rgb(p.c, 0.22)} stroke={rgb(p.b, 0.55)} strokeWidth="1.6" strokeLinejoin="round" />
+          </svg>
+          <svg className={`${styles.layer} ${styles.plateMid}`} viewBox="0 0 100 112">
+            <path d={s.outline} fill={rgb(p.c, 0.08)} stroke={rgb(p.a, 0.5)} strokeWidth="1.3" strokeLinejoin="round" />
+          </svg>
+          <svg className={styles.layer} viewBox="0 0 100 112">
+            <defs>
+              <linearGradient id={id("body")} x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor={rgb(p.hot)} stopOpacity="0.36" />
+                <stop offset="0.42" stopColor={rgb(p.b)} stopOpacity="0.2" />
+                <stop offset="1" stopColor={rgb(p.c)} stopOpacity="0.42" />
+              </linearGradient>
+              {/* The rim runs c on the left through b to a on the right, like the mockups. */}
+              <linearGradient id={id("rim")} x1="0" y1="0.15" x2="1" y2="0.85">
+                <stop offset="0" stopColor={rgb(p.c)} />
+                <stop offset="0.28" stopColor={rgb(p.hot)} />
+                <stop offset="0.55" stopColor={rgb(p.b)} />
+                <stop offset="1" stopColor={rgb(p.a)} />
+              </linearGradient>
+              <linearGradient id={id("sheen")} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#fff" stopOpacity="0.8" />
+                <stop offset="1" stopColor="#fff" stopOpacity="0" />
+              </linearGradient>
+              <radialGradient id={id("core")}>
+                <stop offset="0" stopColor={rgb(p.a)} stopOpacity="0.17" />
+                <stop offset="0.6" stopColor={rgb(p.b)} stopOpacity="0.06" />
+                <stop offset="1" stopColor={rgb(p.b)} stopOpacity="0" />
+              </radialGradient>
+              <filter id={id("bloom")} x="-25%" y="-25%" width="150%" height="150%">
+                <feGaussianBlur stdDeviation="1.8" />
+              </filter>
+            </defs>
+            <path d={s.outline} fill="#0b0f3a" fillOpacity="0.55" className={styles.darkFill} />
+            <path d={s.outline} fill={url("body")} />
+            <path d={s.right} fill="#1b1660" fillOpacity="0.3" className={styles.darkFill} />
+            <ellipse cx="50" cy="56" rx="36" ry="40" fill={url("core")} />
+            <path d="M50 8 V104" stroke={rgb(p.hot)} strokeOpacity="0.16" strokeWidth="0.8" />
+            <path d={s.sheen} fill={url("sheen")} opacity="0.5" />
+            <path
+              d={s.outline}
+              transform="translate(50 57) scale(0.84) translate(-50 -57)"
+              fill="none"
+              stroke={rgb(p.hot)}
+              strokeOpacity="0.5"
+              strokeWidth="1.1"
+              strokeLinejoin="round"
+            />
+            <path d={s.outline} fill="none" stroke={url("rim")} strokeOpacity="0.48" strokeWidth="6" filter={url("bloom")} />
+            <path d={s.outline} fill="none" stroke={url("rim")} strokeWidth="2.2" strokeLinejoin="round" />
+            <path d={s.outline} fill="none" stroke="#fff" strokeOpacity="0.4" strokeWidth="0.6" strokeLinejoin="round" />
+          </svg>
+          <div className={styles.glyphGlow} />
+          {named ? (
+            <svg className={`${styles.layer} ${styles.glyph}`} viewBox="0 0 100 112">
+              <HoloGlyph glyph={glyph} p={p} id={id} url={url} {...s.glyph} />
             </svg>
-            <svg className={`${styles.layer} ${styles.plateMid}`} viewBox="0 0 100 112">
-              <path d={s.outline} fill={rgb(p.c, 0.08)} stroke={rgb(p.a, 0.5)} strokeWidth="1.3" strokeLinejoin="round" />
-            </svg>
-            <svg className={styles.layer} viewBox="0 0 100 112">
-              <defs>
-                <linearGradient id={id("body")} x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0" stopColor={rgb(p.hot)} stopOpacity="0.36" />
-                  <stop offset="0.42" stopColor={rgb(p.b)} stopOpacity="0.2" />
-                  <stop offset="1" stopColor={rgb(p.c)} stopOpacity="0.42" />
-                </linearGradient>
-                {/* The rim runs c on the left through b to a on the right, like the mockups. */}
-                <linearGradient id={id("rim")} x1="0" y1="0.15" x2="1" y2="0.85">
-                  <stop offset="0" stopColor={rgb(p.c)} />
-                  <stop offset="0.28" stopColor={rgb(p.hot)} />
-                  <stop offset="0.55" stopColor={rgb(p.b)} />
-                  <stop offset="1" stopColor={rgb(p.a)} />
-                </linearGradient>
-                <linearGradient id={id("sheen")} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="#fff" stopOpacity="0.8" />
-                  <stop offset="1" stopColor="#fff" stopOpacity="0" />
-                </linearGradient>
-                <radialGradient id={id("core")}>
-                  <stop offset="0" stopColor={rgb(p.a)} stopOpacity="0.17" />
-                  <stop offset="0.6" stopColor={rgb(p.b)} stopOpacity="0.06" />
-                  <stop offset="1" stopColor={rgb(p.b)} stopOpacity="0" />
-                </radialGradient>
-                <filter id={id("bloom")} x="-25%" y="-25%" width="150%" height="150%">
-                  <feGaussianBlur stdDeviation="1.8" />
-                </filter>
-              </defs>
-              <path d={s.outline} fill="#0b0f3a" fillOpacity="0.55" className={styles.darkFill} />
-              <path d={s.outline} fill={url("body")} />
-              <path d={s.right} fill="#1b1660" fillOpacity="0.3" className={styles.darkFill} />
-              <ellipse cx="50" cy="56" rx="36" ry="40" fill={url("core")} />
-              <path d="M50 8 V104" stroke={rgb(p.hot)} strokeOpacity="0.16" strokeWidth="0.8" />
-              <path d={s.sheen} fill={url("sheen")} opacity="0.5" />
-              <path
-                d={s.outline}
-                transform="translate(50 57) scale(0.84) translate(-50 -57)"
-                fill="none"
-                stroke={rgb(p.hot)}
-                strokeOpacity="0.5"
-                strokeWidth="1.1"
-                strokeLinejoin="round"
-              />
-              <path d={s.outline} fill="none" stroke={url("rim")} strokeOpacity="0.48" strokeWidth="6" filter={url("bloom")} />
-              <path d={s.outline} fill="none" stroke={url("rim")} strokeWidth="2.2" strokeLinejoin="round" />
-              <path d={s.outline} fill="none" stroke="#fff" strokeOpacity="0.4" strokeWidth="0.6" strokeLinejoin="round" />
-            </svg>
-            <div className={styles.glyphGlow} />
-            {named ? (
-              <svg className={`${styles.layer} ${styles.glyph}`} viewBox="0 0 100 112">
-                <HoloGlyph glyph={glyph} p={p} id={id} url={url} {...s.glyph} />
-              </svg>
-            ) : glyph ? (
-              <div className={styles.glyphSlot}>{glyph}</div>
-            ) : null}
-          </div>
+          ) : glyph ? (
+            <div className={styles.glyphSlot}>{glyph}</div>
+          ) : null}
         </div>
       </div>
     </div>

@@ -12,20 +12,19 @@ import styles from "./scene-resellers.module.css";
 /**
  * Thin shafts of light rising off the floor behind the hologram, as in
  * the mockup: x and the foot's height are % of the rig, the colour is a
- * palette slot, and a few carry a glint climbing them. Each pulses on its
- * own period, so they never flash together. None stands between 27 and
- * 73: the shield covers that band, and a beam there was never seen but
- * still cost an animation every frame.
+ * palette slot, and each has its own brightness `o`, so the still set
+ * reads as a flicker caught mid-way rather than a row of equal bars.
+ * None stands between 27 and 73: the shield covers that band.
  */
-const BEAMS: { x: number; foot: number; h: number; tone: "a" | "b" | "c"; s: number; glint?: boolean }[] = [
-  { x: 6, foot: 22, h: 44, tone: "c", s: 7.2 },
-  { x: 12.5, foot: 30, h: 52, tone: "c", s: 5.6, glint: true },
-  { x: 19, foot: 36, h: 38, tone: "b", s: 8.4 },
-  { x: 26, foot: 42, h: 46, tone: "c", s: 6.3 },
-  { x: 74, foot: 41, h: 48, tone: "a", s: 5.9, glint: true },
-  { x: 81, foot: 35, h: 40, tone: "a", s: 8.8 },
-  { x: 88, foot: 28, h: 54, tone: "b", s: 6.6 },
-  { x: 94.5, foot: 21, h: 40, tone: "a", s: 7.9, glint: true },
+const BEAMS: { x: number; foot: number; h: number; tone: "a" | "b" | "c"; o: number }[] = [
+  { x: 6, foot: 22, h: 44, tone: "c", o: 0.55 },
+  { x: 12.5, foot: 30, h: 52, tone: "c", o: 0.95 },
+  { x: 19, foot: 36, h: 38, tone: "b", o: 0.45 },
+  { x: 26, foot: 42, h: 46, tone: "c", o: 0.8 },
+  { x: 74, foot: 41, h: 48, tone: "a", o: 0.9 },
+  { x: 81, foot: 35, h: 40, tone: "a", o: 0.5 },
+  { x: 88, foot: 28, h: 54, tone: "b", o: 0.75 },
+  { x: 94.5, foot: 21, h: 40, tone: "a", o: 1 },
 ];
 
 /**
@@ -40,9 +39,9 @@ const BEAMS: { x: number; foot: number; h: number; tone: "a" | "b" | "c"; s: num
  * nothing leaves the box. One particle stage (two canvases, back and
  * front of the shield).
  *
- * Decorative: aria-hidden, no pointer events (the shield still leans
- * toward the pointer over the panel), animations paused off screen and
- * stopped under reduced motion.
+ * Decorative: aria-hidden, no pointer events. The floor, its HUD rings
+ * and the beams are a still frame; what moves is the kit's stage
+ * (paused off screen, stopped under reduced motion).
  */
 export function ResellerScene({ className }: { className?: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -67,13 +66,11 @@ export function ResellerScene({ className }: { className?: string }) {
                 left: `${b.x}%`,
                 bottom: `${b.foot}%`,
                 height: `${b.h}%`,
+                opacity: b.o,
                 "--beam": `var(--holo-${b.tone})`,
-                "--beam-s": `${b.s}s`,
               } as CSSProperties
             }
-          >
-            {b.glint ? <span /> : null}
-          </span>
+          />
         ))}
         <HoloStage
           tone="aurora"

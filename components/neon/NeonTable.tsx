@@ -1,9 +1,12 @@
-import { Children } from "react";
+"use client";
+
+import { Children, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
 import { IconTile } from "./IconTile";
 import { toneVars, type NeonTone } from "./tones";
+import { useScrolling } from "./use-scrolling";
 
 export type NeonAlign = "left" | "center" | "right";
 
@@ -54,9 +57,12 @@ export function NeonTable({
   children?: React.ReactNode;
 }) {
   const hasRows = Children.toArray(children).length > 0;
+  const frame = useRef<HTMLDivElement>(null);
+  useScrolling(frame);
 
   return (
     <div
+      ref={frame}
       style={toneVars(tone)}
       className={cn(
         "relative min-w-0 rounded-[18px] border border-[rgba(110,118,245,0.32)] p-1.5 sm:p-2",
@@ -73,7 +79,10 @@ export function NeonTable({
             <span className="animate-panel-sweep absolute inset-y-0 left-0 w-1/5 bg-[linear-gradient(90deg,transparent,rgba(var(--tone-hi),0.2),transparent)] motion-reduce:hidden lt:bg-[linear-gradient(90deg,transparent,rgba(var(--tone),0.12),transparent)]" />
           </div>
 
-          <table className={cn("w-full border-separate border-spacing-0 text-left", tableClassName)}>
+          {/* isolate: the rows' hover layers sit at z -1, under the
+              cells but over the frame's glass, which they would drop
+              behind without a stacking context here. */}
+          <table className={cn("isolate w-full border-separate border-spacing-0 text-left", tableClassName)}>
             <thead>
               <tr>
                 {columns.map((column, i) => {
@@ -148,10 +157,12 @@ export function NeonRow({
         // Backwards fill only: once the entrance ends the row's own
         // transform applies again, which is what lets hover lift it.
         animated && "animate-device-row-in [animation-fill-mode:backwards]",
-        "transition-[translate,box-shadow] duration-300 ease-smooth hover:z-[1] hover:-translate-y-px",
+        // Transform only: the hover rim and its drop shadow live in the
+        // row's own layer (HOVER_LIT), so lifting needs no z-index.
+        "transition-[translate] duration-300 ease-smooth [&:not([data-scrolling]_*):hover]:-translate-y-px",
         // Faint rule under every row; the lit rim is drawn with inset
         // shadows on the cells, which follow the end cells' rounding.
-        "[&>td]:border-b [&>td]:border-[rgba(129,140,248,0.12)] [&>td]:transition-[background-color,box-shadow] [&>td]:duration-300",
+        "[&>td]:border-b [&>td]:border-[rgba(129,140,248,0.12)]",
         "[&>td:first-child]:rounded-l-[12px] [&>td:last-child]:rounded-r-[12px]",
         "lt:[&>td]:border-slate-100",
         highlight ? LIT : HOVER_LIT,
@@ -163,8 +174,8 @@ export function NeonRow({
   );
 }
 
-// The row's rim is four inset shadows split across its cells: top and
-// bottom on every cell, left on the first, right on the last.
+// The lit row's rim is four inset shadows split across its cells: top
+// and bottom on every cell, left on the first, right on the last.
 const LIT = cn(
   "[&>td]:bg-[rgba(var(--tone),0.12)]",
   "[&>td]:shadow-[inset_0_1px_0_rgba(var(--tone-hi),0.65),inset_0_-1px_0_rgba(var(--tone-hi),0.65)]",
@@ -174,13 +185,29 @@ const LIT = cn(
   "lt:[&>td]:bg-[rgba(var(--tone),0.07)] lt:shadow-none",
 );
 
+// The hover look, pre-painted once in a single layer per row -- tint,
+// rim, the first cell's inner glow and the drop shadow under the row --
+// that fades in with opacity alone. Transitioning background and
+// box-shadow on every cell instead repainted the whole row each frame.
+// It stops 1px short of the bottom so the faint row rule stays below
+// the rim, as it did when the rim was drawn inside the cells.
+//
+// The layer hangs off the first cell, not the row: Chrome wraps a
+// row's own ::before in an anonymous cell, which pushes every column
+// over by one. Positioned against the row (relative), it still spans
+// all of it, and z -1 in the table's stacking context keeps it under
+// every cell.
+//
+// [&:not([data-scrolling]_*):hover] is hover, except while the page
+// scrolls rows under a still pointer (useScrolling marks the table);
+// otherwise each row passing the pointer starts a fade of its own.
 const HOVER_LIT = cn(
-  "hover:[&>td]:bg-[rgba(var(--tone),0.1)]",
-  "hover:[&>td]:shadow-[inset_0_1px_0_rgba(var(--tone-hi),0.6),inset_0_-1px_0_rgba(var(--tone-hi),0.6)]",
-  "hover:[&>td:first-child]:shadow-[inset_1px_0_0_rgba(var(--tone-hi),0.6),inset_0_1px_0_rgba(var(--tone-hi),0.6),inset_0_-1px_0_rgba(var(--tone-hi),0.6),inset_14px_0_18px_-14px_rgba(var(--tone),0.35)]",
-  "hover:[&>td:last-child]:shadow-[inset_-1px_0_0_rgba(var(--tone-hi),0.6),inset_0_1px_0_rgba(var(--tone-hi),0.6),inset_0_-1px_0_rgba(var(--tone-hi),0.6)]",
-  "hover:shadow-[0_6px_16px_-7px_rgba(var(--tone),0.36)]",
-  "lt:hover:[&>td]:bg-[rgba(var(--tone),0.06)] lt:hover:shadow-[0_6px_14px_-8px_rgba(var(--tone),0.22)]",
+  "[&>td:first-child]:before:pointer-events-none [&>td:first-child]:before:absolute [&>td:first-child]:before:inset-x-0 [&>td:first-child]:before:top-0 [&>td:first-child]:before:bottom-px [&>td:first-child]:before:-z-1 [&>td:first-child]:before:rounded-[12px]",
+  "[&>td:first-child]:before:bg-[rgba(var(--tone),0.1)] lt:[&>td:first-child]:before:bg-[rgba(var(--tone),0.06)]",
+  "[&>td:first-child]:before:shadow-[inset_0_0_0_1px_rgba(var(--tone-hi),0.6),inset_14px_0_18px_-14px_rgba(var(--tone),0.35),0_6px_16px_-7px_rgba(var(--tone),0.36)]",
+  "lt:[&>td:first-child]:before:shadow-[inset_0_0_0_1px_rgba(var(--tone-hi),0.6),inset_14px_0_18px_-14px_rgba(var(--tone),0.35),0_6px_14px_-8px_rgba(var(--tone),0.22)]",
+  "[&>td:first-child]:before:opacity-0 [&>td:first-child]:before:transition-opacity [&>td:first-child]:before:duration-300",
+  "[&:not([data-scrolling]_*):hover>td:first-child]:before:opacity-100",
 );
 
 /**

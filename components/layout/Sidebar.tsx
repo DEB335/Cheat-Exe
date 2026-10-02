@@ -456,7 +456,9 @@ const NavLink = memo(function NavLink({
       style={{ "--tab": hexToRgbTriplet(item.color) } as React.CSSProperties}
       className={cn(
         "group/nav relative flex shrink-0 items-center overflow-hidden whitespace-nowrap",
-        "transition-all duration-300 ease-smooth",
+        // Only what hover and the active switch change: `transition-all`
+        // also tweened every row's height and padding through a collapse.
+        "transition-[color,background-color,border-color,box-shadow] duration-300 ease-smooth",
         collapsed
           ? [
               // Collapsed rail: circular icon buttons, one accent each.
@@ -479,8 +481,14 @@ const NavLink = memo(function NavLink({
               // a pixel off the column the others line up on.
               "mr-2.5 mb-0.5 ml-1 h-[50px] gap-[20px] rounded-[18px] border border-transparent pr-[13px] pl-[23px]",
               "text-[15px] font-medium",
-              "before:absolute before:inset-y-0 before:left-0 before:z-[1] before:w-0",
-              "before:rounded-[inherit] before:transition-[width] before:duration-500 before:content-['']",
+              // The hover wipe: a full-width bar parked one width off the
+              // left edge, slid in on hover. It used to grow from width 0,
+              // which re-laid out the row every frame of a sweep down the
+              // rail. Sliding keeps its rounded leading edge -- a scaleX
+              // squashed those corners -- and the row's own rounded
+              // overflow clip trims its left end the way it always looked.
+              "before:absolute before:inset-0 before:z-[1] before:-translate-x-full",
+              "before:rounded-[inherit] before:transition-transform before:duration-500 before:content-['']",
               active
                 ? [
                     // Magenta into indigo, edged in the same pink-to-violet
@@ -495,7 +503,7 @@ const NavLink = memo(function NavLink({
                     // Gradient wipe sliding in from the left edge.
                     "text-[#cfdefa] hover:text-accent lt:text-fg lt:hover:text-accent",
                     "before:bg-[linear-gradient(to_right,rgba(255,31,90,0.15)_0%,rgba(255,94,58,0.15)_100%)]",
-                    "hover:before:w-full",
+                    "hover:before:translate-x-0",
                   ],
             ],
         className,
@@ -503,7 +511,10 @@ const NavLink = memo(function NavLink({
     >
       <Icon
         className={cn(
-          "relative z-[2] shrink-0 transition-[transform,color] duration-[400ms] ease-back",
+          // `scale` as well as transform: Tailwind's scale-115 sets the
+          // standalone `scale` property, which a transform-only list let
+          // snap instead of popping.
+          "relative z-[2] shrink-0 transition-[transform,scale,color] duration-[400ms] ease-back",
           collapsed
             ? ["size-5", active ? "opacity-100" : "opacity-80"]
             : [
@@ -686,7 +697,7 @@ function CollapseToggle({
         "absolute top-[56%] z-[1001] hidden size-6 -translate-y-1/2 items-center justify-center",
         "rounded-full border border-[#1a2a52] bg-[#030a1e] text-[#8ea6d8]",
         "shadow-[0_4px_12px_rgba(0,0,0,0.45)]",
-        "transition-all duration-300 ease-smooth",
+        "transition-[color,border-color] duration-300 ease-smooth",
         "hover:border-[rgba(255,31,90,0.45)] hover:text-accent",
         "lt:border-black/10 lt:bg-white lt:text-muted",
         "lg:flex",

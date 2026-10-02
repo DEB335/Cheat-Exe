@@ -2,14 +2,15 @@
    Key history scenes (KeyHistoryScene.tsx, history-floor.tsx).
 
    The ambience sits behind the panel's header and stat row: light
-   pools, a perspective grid floor with a scan of light, a horizon line
-   and a sparse particle column. The emblem is a key-in-shield hologram
-   for the header, in a 22:13 rig centred in its box.
+   pools, a perspective grid floor, a horizon line and a sparse particle
+   column. The emblem is a key-in-shield hologram for the header, in a
+   22:13 rig centred in its box.
 
    The roots take position and size from the caller's Tailwind classes
    (these rules are unlayered and would beat them, so none of them sets
    position or size on a root). Colours are the kit's --holo-a/b/c/hot,
-   set on each root. Only transform and opacity animate, and standalone
+   set on each root. The only animation here is the shield's slow float
+   (transform); everything else is a still frame. Standalone
    translate/rotate/scale are not used: this pipeline drops them from
    CSS modules.
    ================================================================== */
@@ -42,7 +43,7 @@
     radial-gradient(30% 58% at 12% 28%, rgb(var(--holo-a) / 0.1), transparent 70%),
     radial-gradient(28% 62% at 88% 24%, rgb(var(--holo-c) / 0.085), transparent 70%),
     radial-gradient(42% 38% at 50% 80%, rgb(var(--holo-b) / 0.075), transparent 72%);
-  animation: pool-breathe 11s ease-in-out infinite;
+  opacity: 0.86;
 }
 
 /* The floor fades in from the horizon (42% down, HORIZON in
@@ -72,37 +73,14 @@
   height: 100%;
 }
 
-/* A soft band sliding across; the grid inside slides back by the same
-   amount, so the lines hold still and only the light moves. Both run
-   linearly over the same stretch of the same period, so they cancel
-   exactly; the rest of the period is a pause off the right edge. */
-.scan {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 30%;
-  height: 100%;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 50%, transparent);
-  mask-image: linear-gradient(90deg, transparent, #000 50%, transparent);
-  animation: scan-band 16s linear infinite;
-}
-
-.scanInner {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100cqw;
-  height: 100%;
-  animation: scan-grid 16s linear infinite;
-}
-
+/* 1.5px, not 1: under the desktop page zoom a 1px line is 0.75 device
+   px, which can snap to nothing. */
 .horizon {
   position: absolute;
   left: 6%;
   right: 6%;
   top: 42%;
-  height: 1px;
+  height: 1.5px;
   background: linear-gradient(
     90deg,
     transparent,
@@ -111,17 +89,6 @@
     rgb(var(--holo-c) / 0.5) 78%,
     transparent
   );
-}
-
-/* A glint running along the horizon with the floor's scan. */
-.horizon > span {
-  position: absolute;
-  left: 0;
-  top: -2px;
-  width: 12cqw;
-  height: 5px;
-  background: radial-gradient(closest-side, rgb(var(--holo-hot)), rgb(var(--holo-b) / 0.55) 45%, transparent);
-  animation: horizon-glint 16s linear infinite;
 }
 
 .ambField {
@@ -133,9 +100,6 @@
 @container (max-width: 640px) {
   .floorBase {
     opacity: 0.22;
-  }
-  .scan {
-    opacity: 0.6;
   }
 }
 
@@ -167,12 +131,12 @@
   background:
     radial-gradient(closest-side, rgb(var(--holo-b) / 0.16), rgb(var(--holo-c) / 0.06) 55%, transparent),
     radial-gradient(40% 30% at 50% 88%, rgb(var(--holo-c) / 0.14), transparent);
-  animation: pool-breathe 6s ease-in-out infinite;
+  opacity: 0.86;
 }
 
 /* The projector pad under the shield: a disc tipped into the floor
    (cos 76deg = 0.24, the kit pedestal's view) with a dashed HUD ring
-   turning round it. */
+   round it. */
 .pad {
   position: absolute;
   left: 50%;
@@ -193,7 +157,6 @@
   inset: -22%;
   border-radius: 50%;
   border: 1.5px dashed rgb(var(--holo-c) / 0.7);
-  animation: scene-spin 14s linear infinite;
 }
 
 /* Light rising off the pad to the shield. */
@@ -206,7 +169,7 @@
   transform: translateX(-50%);
   background: linear-gradient(to top, rgb(var(--holo-b) / 0.2), rgb(var(--holo-c) / 0.06) 60%, transparent);
   clip-path: polygon(34% 100%, 66% 100%, 100% 0, 0 0);
-  animation: pool-breathe 4.5s ease-in-out infinite;
+  opacity: 0.86;
 }
 
 .emblemField {
@@ -250,7 +213,8 @@
     inset 0 0 2.4cqw rgb(var(--holo-c) / 0.3);
 }
 
-/* A comet of light running round the ring. */
+/* A comet of light on the ring, held with its head on the near side,
+   lower right, and its tail running back up the right. */
 .ring > span {
   position: absolute;
   inset: -1px;
@@ -258,7 +222,7 @@
   background: conic-gradient(transparent 0 72%, rgb(var(--holo-c) / 0.6) 92%, rgb(var(--holo-hot)) 99%, transparent 100%);
   -webkit-mask-image: radial-gradient(closest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
   mask-image: radial-gradient(closest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-  animation: scene-spin 7s linear infinite;
+  transform: rotate(150deg);
 }
 
 .ringBack {
@@ -270,10 +234,11 @@
   clip-path: inset(50% 0 0 0);
 }
 
-/* Sparkles riding the ring. An ellipse is a circle squashed, so each
-   arm turns in a squashed box and the sparkle on its tip turns back and
-   unsquashes: it follows the ring and stays a round, upright star.
-   Same size, tilt and squash (0.242 = cos 76deg) as .ring. */
+/* Sparkles on the ring. An ellipse is a circle squashed, so each arm is
+   turned to its angle (--a) in a squashed box and the sparkle on its tip
+   turns back and unsquashes: it sits on the ring and stays a round,
+   upright star. Same size, tilt and squash (0.242 = cos 76deg, undone
+   by 4.13) as .ring. */
 .sparks {
   position: absolute;
   left: 50%;
@@ -281,15 +246,6 @@
   width: 78%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%) rotateZ(-9deg) scaleY(0.242);
-}
-
-/* One turning wrapper for all three arms; each arm holds its lap offset
-   as a fixed angle (--a, set inline from its --d), which on a linear
-   spin is the same place a per-arm delay would put it. */
-.lap {
-  position: absolute;
-  inset: 0;
-  animation: scene-spin 7s linear infinite;
 }
 
 .arm {
@@ -304,8 +260,7 @@
   top: 50%;
   width: 9cqw;
   height: 9cqw;
-  animation: spark-lap 7s linear infinite;
-  animation-delay: var(--d);
+  transform: translate(-50%, -50%) rotate(calc(-1 * var(--a, 0deg))) scaleY(4.13) scale(var(--s));
 }
 
 /* The four-point star: a hot core and two thin flares. */
@@ -340,22 +295,15 @@
 /* Coloured lines on pale glass: the glows go quiet, the shapes stay. */
 :global(body.light-mode) .pools {
   opacity: 0.5;
-  animation: none;
 }
 :global(body.light-mode) .floorBase {
   opacity: 0.2;
-}
-/* The light theme's stat tiles are see-through; keep the scan from
-   striping the text inside them. */
-:global(body.light-mode) .scan {
-  opacity: 0.5;
 }
 :global(body.light-mode) .ambField {
   opacity: 0.9;
 }
 :global(body.light-mode) .halo {
   opacity: 0.4;
-  animation: none;
 }
 :global(body.light-mode) .pad,
 :global(body.light-mode) .ring::before {
@@ -367,60 +315,6 @@
 
 /* ---- Motion ------------------------------------------------------ */
 
-@keyframes pool-breathe {
-  0%,
-  100% {
-    opacity: 0.72;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes scene-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes scan-band {
-  0% {
-    transform: translateX(-30cqw);
-  }
-  60%,
-  100% {
-    transform: translateX(100cqw);
-  }
-}
-
-@keyframes scan-grid {
-  0% {
-    transform: translateX(30cqw);
-  }
-  60%,
-  100% {
-    transform: translateX(-100cqw);
-  }
-}
-
-@keyframes horizon-glint {
-  0% {
-    transform: translateX(-12cqw);
-    opacity: 0;
-  }
-  8% {
-    opacity: 1;
-  }
-  52% {
-    opacity: 1;
-  }
-  60%,
-  100% {
-    transform: translateX(96cqw);
-    opacity: 0;
-  }
-}
-
 @keyframes emblem-bob {
   0%,
   100% {
@@ -431,49 +325,8 @@
   }
 }
 
-/* One animation per sparkle, for two jobs over the same linear lap:
-   - transform turns it back as its arm turns it (see .sparks), and
-     unsquashes it. The angle is -360deg x the keyframe's offset at every
-     stop, so with linear timing the turn is one steady counter-spin.
-   - opacity: clockwise from the right, the near side is the first half
-     of the lap, the far side the second, and round 75% the sparkle is
-     behind the shield, so it dims on the far side and vanishes there. */
-@keyframes spark-lap {
-  0% {
-    transform: translate(-50%, -50%) rotate(0deg) scaleY(4.13) scale(var(--s));
-    opacity: 1;
-  }
-  50% {
-    transform: translate(-50%, -50%) rotate(-180deg) scaleY(4.13) scale(var(--s));
-    opacity: 1;
-  }
-  62% {
-    transform: translate(-50%, -50%) rotate(-223.2deg) scaleY(4.13) scale(var(--s));
-    opacity: 0.4;
-  }
-  68% {
-    transform: translate(-50%, -50%) rotate(-244.8deg) scaleY(4.13) scale(var(--s));
-    opacity: 0;
-  }
-  82% {
-    transform: translate(-50%, -50%) rotate(-295.2deg) scaleY(4.13) scale(var(--s));
-    opacity: 0;
-  }
-  88% {
-    transform: translate(-50%, -50%) rotate(-316.8deg) scaleY(4.13) scale(var(--s));
-    opacity: 0.4;
-  }
-  100% {
-    transform: translate(-50%, -50%) rotate(-360deg) scaleY(4.13) scale(var(--s));
-    opacity: 1;
-  }
-}
-
 /* Off screen or in a hidden tab (usePauseWhenHidden). Last, so it wins
-   over the animations above at equal specificity. */
-.ambient[data-holo-paused] *,
-.ambient[data-holo-paused] *::before,
-.ambient[data-holo-paused] *::after,
+   over the animation above at equal specificity. */
 .emblem[data-holo-paused] *,
 .emblem[data-holo-paused] *::before,
 .emblem[data-holo-paused] *::after {
@@ -481,19 +334,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pools,
-  .halo,
-  .beam,
-  .bob,
-  .pad > span,
-  .ring > span,
-  .lap,
-  .spark {
+  .bob {
     animation: none;
-  }
-  /* A still scan band or glint would read as a smudge. */
-  .scan,
-  .horizon > span {
-    display: none;
   }
 }

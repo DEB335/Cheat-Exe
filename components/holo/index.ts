@@ -4,7 +4,7 @@ export { HoloKey, type HoloKeyProps } from "./HoloKey";
 export { HoloPedestal, type HoloPedestalProps } from "./HoloPedestal";
 export { HoloShield, type HoloShieldProps, type HoloShieldShape } from "./HoloShield";
 export { HoloStage, type HoloStageProps } from "./HoloStage";
-export { findPointerHost, usePauseWhenHidden, usePointerLean, useSvgIds } from "./hooks";
+export { usePauseWhenHidden, useSvgIds } from "./hooks";
 export {
   lighten,
   mix,

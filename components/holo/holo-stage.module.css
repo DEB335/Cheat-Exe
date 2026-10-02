@@ -2,11 +2,16 @@
    Hologram stage and pedestal (HoloStage.tsx, HoloPedestal.tsx).
 
    The pedestal is SVG drawn in fake perspective (ellipses at a fixed
-   ~14deg view), with the moving parts -- HUD rings, a comet running the
-   rim, the light beam -- as plain elements on top. The rings are
-   circles tipped into the disc's plane with rotateX and spun inside it,
-   so every animation here is a transform or an opacity: the compositor
-   runs them and nothing repaints.
+   ~14deg view), with the HUD rings, a comet on the rim and the light
+   beam as plain elements on top. The rings are circles tipped into the
+   disc's plane with rotateX and turned inside it.
+
+   One thing moves per pedestal: the HUD reticle on the top face, a slow
+   transform spin the compositor runs. The floor ticks, the comet, the
+   beam and the bloom are held at a fixed pose and brightness, and the
+   stage's object bobs inside its own sway (--holo-bob, see
+   holo-objects.module.css), so a staged hologram costs two animations.
+   Nothing follows the pointer.
 
    Colours come from --holo-a/b/c/hot (rgb triplets, see paletteVars),
    set on the root of each hologram.
@@ -82,9 +87,11 @@
   transform: translate(-50%, -50%);
 }
 
+/* The object's float: how far it rises at the middle of its sway. The
+   object's own sway animation applies it, so the bob costs nothing extra. */
 .float {
   position: relative;
-  animation: holo-bob 6.5s ease-in-out infinite;
+  --holo-bob: -7px;
 }
 
 /* The canvases sit above and below the object and pedestal. */
@@ -113,7 +120,8 @@
   overflow: visible;
 }
 
-/* Base bloom: the light the disc throws on the panel around it. */
+/* Base bloom: the light the disc throws on the panel around it. Held at
+   the middle of the brightness it used to breathe through. */
 .bloom {
   position: absolute;
   left: -14%;
@@ -128,7 +136,7 @@
     rgb(var(--holo-a) / 0.04) 70%,
     transparent
   );
-  animation: holo-breathe 5.5s ease-in-out infinite;
+  opacity: 0.86;
 }
 
 /* An optional grid floor the platform stands on, receding into the
@@ -148,7 +156,8 @@
   opacity: 0.7;
 }
 
-/* A cone of light rising off the top face, narrowing as it climbs. */
+/* A cone of light rising off the top face, narrowing as it climbs.
+   Steady, at the middle of the flicker it once had. */
 .beam {
   position: absolute;
   left: 50%;
@@ -166,7 +175,7 @@
   clip-path: polygon(4% 100%, 96% 100%, 70% 0, 30% 0);
   -webkit-mask: linear-gradient(90deg, transparent, #000 28%, #000 72%, transparent);
   mask: linear-gradient(90deg, transparent, #000 28%, #000 72%, transparent);
-  animation: holo-beam 4.8s ease-in-out infinite;
+  opacity: 0.85;
 }
 
 /* A ring in the disc's plane: the static tip into the plane lives on
@@ -184,7 +193,8 @@
   border-radius: 50%;
 }
 
-/* Arc segments on the top face, like a HUD reticle. */
+/* Arc segments on the top face, like a HUD reticle: the pedestal's one
+   moving part, a slow turn. */
 .hudTop {
   top: 55.8%;
   width: 52%;
@@ -205,7 +215,7 @@
   animation: holo-spin 16s linear infinite;
 }
 
-/* Tick marks round the floor, turning the other way. */
+/* Tick marks round the floor. Static. */
 .hudFloor {
   top: 75%;
   width: 94%;
@@ -217,10 +227,11 @@
     repeating-conic-gradient(rgb(var(--holo-b) / 0.8) 0deg 1.4deg, transparent 1.4deg 6deg);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6.5px) calc(100% - 0.5px), transparent);
   mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6.5px) calc(100% - 0.5px), transparent);
-  animation: holo-spin 42s linear infinite reverse;
 }
 
-/* A comet of light running round the disc's rim. */
+/* A comet of light on the disc's rim, held still with its head on the
+   front right, like a highlight off the glass. (Conic 0deg is the far
+   side once the plane tips back; the head is drawn at ~358deg.) */
 .comet {
   top: 55.8%;
   width: 60.5%;
@@ -236,7 +247,7 @@
   );
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5.5px) calc(100% - 0.5px), transparent);
   mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5.5px) calc(100% - 0.5px), transparent);
-  animation: holo-spin 6.5s linear infinite;
+  transform: rotate(118deg);
 }
 
 /* ---- Light mode -------------------------------------------------- */
@@ -257,43 +268,9 @@
 }
 :global(body.light-mode) .beam {
   opacity: 0.5;
-  animation: none;
 }
 
 /* ---- Motion ------------------------------------------------------ */
-
-@keyframes holo-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-7px);
-  }
-}
-
-@keyframes holo-breathe {
-  0%,
-  100% {
-    opacity: 0.72;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes holo-beam {
-  0%,
-  100% {
-    opacity: 0.7;
-  }
-  45% {
-    opacity: 1;
-  }
-  60% {
-    opacity: 0.85;
-  }
-}
 
 @keyframes holo-spin {
   to {
@@ -315,12 +292,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .float,
-  .bloom,
-  .beam,
-  .hudTop > span,
-  .hudFloor > span,
-  .comet > span {
+  .hudTop > span {
     animation: none;
   }
 }

@@ -4,15 +4,16 @@
 
    Real CSS 3D, no WebGL and no images: each object is a size container
    whose depth offsets are in cqw, so its glass keeps the same thickness
-   relative to its size at any width. Inside it, three wrappers stack
+   relative to its size at any width. Inside it, two wrappers stack
    their transforms:
 
      .scene  perspective (on a child of the container, so cqw resolves)
-     .lean   turns toward the pointer: --hx/--hy (-1..1, written by
-             HoloStage's usePointerLean), eased by a transition
-     .idle   the object's own slow sway (a keyframe animation)
+     .idle   the object's resting turn and its one slow sway (a keyframe
+             animation; inside a HoloStage it carries the stage's bob too)
 
-   Only transform and opacity animate. The SVG glass inside is static,
+   The sway is the only thing that moves: the halo and the glyph's glow
+   hold a fixed brightness, and nothing follows the pointer. Only
+   transform animates. The SVG glass inside is static,
    so it is painted once and the compositor moves it. Nothing here sets
    a CSS filter on an animated subtree, which would force a repaint of
    the whole object every frame.
@@ -36,16 +37,10 @@
   perspective: 320cqw;
 }
 
-.lean,
 .idle {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-}
-
-.lean {
-  transform: rotateY(calc(var(--hx, 0) * 20deg)) rotateX(calc(var(--hy, 0) * -13deg));
-  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .layer {
@@ -56,7 +51,8 @@
   overflow: visible;
 }
 
-/* A soft glow behind the object. Flat, painted once; it only breathes. */
+/* A soft glow behind the object. Flat and painted once, held at the
+   middle of the brightness it used to breathe through. */
 .halo {
   position: absolute;
   inset: -18% -22%;
@@ -67,7 +63,7 @@
     rgb(var(--holo-c) / 0.085) 55%,
     transparent
   );
-  animation: holo-breathe 5s ease-in-out infinite;
+  opacity: 0.85;
 }
 
 /* ---- Shield ------------------------------------------------------ */
@@ -99,7 +95,7 @@
   border-radius: 50%;
   background: radial-gradient(closest-side, rgb(var(--holo-a) / 0.24), rgb(var(--holo-b) / 0.1) 55%, transparent);
   transform: translateZ(4cqw);
-  animation: holo-breathe 3.6s ease-in-out infinite;
+  opacity: 0.85;
 }
 
 .glyph {
@@ -334,7 +330,6 @@
 /* Pale frosted glass with coloured edges: legible, not glowing. */
 :global(body.light-mode) .halo {
   opacity: 0.35;
-  animation: none;
 }
 :global(body.light-mode) .face {
   box-shadow: inset 0 0 4cqw rgb(var(--holo-b) / 0.12);
@@ -347,43 +342,37 @@
 
 /* ---- Motion ------------------------------------------------------ */
 
-@keyframes holo-breathe {
-  0%,
-  100% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
-}
+/* Each sway also rises by --holo-bob at its midpoint. HoloStage sets it,
+   so a staged object floats over its pedestal in this one animation
+   instead of a second one on a wrapper; anywhere else it is 0. */
 
 @keyframes shield-rock {
   0%,
   100% {
-    transform: rotateY(-20deg) rotateX(6deg);
+    transform: translateY(0) rotateY(-20deg) rotateX(6deg);
   }
   50% {
-    transform: rotateY(-2deg) rotateX(1deg);
+    transform: translateY(var(--holo-bob, 0px)) rotateY(-2deg) rotateX(1deg);
   }
 }
 
 @keyframes key-sway {
   0%,
   100% {
-    transform: rotateY(-24deg) rotateX(14deg);
+    transform: translateY(0) rotateY(-24deg) rotateX(14deg);
   }
   50% {
-    transform: rotateY(-8deg) rotateX(6deg);
+    transform: translateY(var(--holo-bob, 0px)) rotateY(-8deg) rotateX(6deg);
   }
 }
 
 @keyframes cube-sway {
   0%,
   100% {
-    transform: rotateX(-17deg) rotateY(-34deg);
+    transform: translateY(0) rotateX(-17deg) rotateY(-34deg);
   }
   50% {
-    transform: rotateX(-11deg) rotateY(-18deg);
+    transform: translateY(var(--holo-bob, 0px)) rotateX(-11deg) rotateY(-18deg);
   }
 }
 
@@ -396,14 +385,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .halo,
-  .glyphGlow,
   .shield .idle,
   .key .idle,
   .cube .idle {
     animation: none;
-  }
-  .lean {
-    transition: none;
   }
 }

@@ -1,17 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-
-import {
-  HoloKey,
-  HoloStage,
-  PALETTES,
-  paletteVars,
-  usePauseWhenHidden,
-  usePointerLean,
-  useSvgIds,
-  type RGB,
-} from "@/components/holo";
+import { HoloKey, HoloStage, PALETTES, paletteVars, useSvgIds, type RGB } from "@/components/holo";
 import { cn } from "@/lib/utils";
 
 import styles from "./scene-manager.module.css";
@@ -73,33 +62,24 @@ const FINE_TICKS = ticks(70, 72.5, 0, 357, 6);
 /**
  * The Manage Key hologram: a neon blue key standing on the diagonal
  * above a holographic pedestal, under a big translucent radar dome --
- * a glass shell with a sweeping radar beam, neon arcs and tick bands
- * turning at different speeds, dotted rings -- with wide dotted rings
- * on the floor, a few data streaks flicking out at pedestal height and
- * a volume of blue and violet sparkle round the key (the stage's one
- * particle field, half behind the key and half in front).
+ * a glass shell with a radar beam, neon arcs and tick bands, dotted
+ * rings -- with wide dotted rings on the floor, a few data streaks out
+ * at pedestal height and a volume of blue and violet sparkle round the
+ * key (the stage's one particle field, half behind the key and half in
+ * front).
  *
  * The caller positions and sizes it -- it needs a definite width and
  * height (designed round ~460 x 260; the dome shrinks to fit a shorter
  * box) -- and everything stays inside that box. Decorative only:
- * aria-hidden and pointer-events none throughout; the key and the dome
- * lean toward the pointer over the nearest panel, the animations pause
- * off screen or in a hidden tab, and reduced motion gets a still frame.
+ * aria-hidden and pointer-events none throughout. The dome, the floor
+ * and the streaks are a still HUD painted once; only the stage's key
+ * moves, and the stage pauses it off screen and under reduced motion.
  */
 export function ManageKeyScene({ className }: { className?: string }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  usePauseWhenHidden(rootRef);
-  // The stage leans the key on its own; this drives the dome's parallax.
-  usePointerLean(rootRef);
   const { id, url } = useSvgIds("mk");
 
   return (
-    <div
-      ref={rootRef}
-      aria-hidden
-      className={`${styles.root} ${cn("pointer-events-none relative", className)}`}
-      style={DOME}
-    >
+    <div aria-hidden className={`${styles.root} ${cn("pointer-events-none relative", className)}`} style={DOME}>
       <div className={styles.floor}>
         <span className={styles.floorDots} />
         <span className={styles.floorDash} />
@@ -111,32 +91,22 @@ export function ManageKeyScene({ className }: { className?: string }) {
           <span className={styles.shell} />
           <span className={styles.sweep} />
           <svg className={styles.layer} viewBox="0 0 200 200">
+            <defs>
+              <filter id={id("bloom")} x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="1.3" />
+              </filter>
+            </defs>
             <circle cx={C} cy={C} r="76" className={styles.dotted} />
             <circle cx={C} cy={C} r="99" className={styles.outline} />
             <path d={FINE_TICKS} className={styles.fine} />
+            <path d={TICK_BAND} className={styles.tickBand} />
+            <path d={TICK_BAND_2} className={styles.tickBand} />
+            <path d={INNER_ARC} className={styles.innerArc} />
+            <path d={MAIN_ARC} className={styles.arcBloom} filter={url("bloom")} />
+            <path d={MAIN_ARC} className={styles.arcMain} />
+            <path d={MAIN_ARC} className={styles.arcCore} />
+            <path d={ACCENT_ARC} className={styles.arcAccent} />
           </svg>
-          {/* The turning SVGs ride in HTML boxes: Chrome will not hand a
-              transform on an <svg> to the compositor, but will a div's. */}
-          <div className={`${styles.layer} ${styles.spinSlow}`}>
-            <svg className={styles.layer} viewBox="0 0 200 200">
-              <defs>
-                <filter id={id("bloom")} x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="1.3" />
-                </filter>
-              </defs>
-              <path d={MAIN_ARC} className={styles.arcBloom} filter={url("bloom")} />
-              <path d={MAIN_ARC} className={styles.arcMain} />
-              <path d={MAIN_ARC} className={styles.arcCore} />
-              <path d={ACCENT_ARC} className={styles.arcAccent} />
-            </svg>
-          </div>
-          <div className={`${styles.layer} ${styles.spinBack}`}>
-            <svg className={styles.layer} viewBox="0 0 200 200">
-              <path d={TICK_BAND} className={styles.tickBand} />
-              <path d={TICK_BAND_2} className={styles.tickBand} />
-              <path d={INNER_ARC} className={styles.innerArc} />
-            </svg>
-          </div>
         </div>
       </div>
 

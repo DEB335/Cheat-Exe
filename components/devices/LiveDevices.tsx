@@ -121,9 +121,8 @@ export function LiveDevices() {
  * The neon glass slab the table sits in.
  *
  * It tips back a few degrees and settles flat once, on mount; a highlight
- * sits along its top, a blue reflection pools underneath, and one band of
- * light runs along the top edge -- moved by transform alone, so it never
- * repaints the table under it.
+ * sits along its top and a blue reflection pools underneath. Nothing on
+ * it loops.
  */
 function GlassPanel({ className, children }: { className?: string; children: React.ReactNode }) {
   const [settled, setSettled] = useState(false);
@@ -172,20 +171,6 @@ function GlassPanel({ className, children }: { className?: string; children: Rea
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(125,170,255,0.1),transparent)] lt:bg-none lt:bg-transparent"
         />
-        {/* The travelling light along the top border. */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[2px] overflow-hidden">
-          <div
-            className={cn(
-              // Hidden, not frozen, under reduced motion: with the animation
-              // cut to one instant frame it would rest mid-border as a bar.
-              "animate-panel-sweep h-full w-1/4 motion-reduce:hidden",
-              "bg-[linear-gradient(90deg,transparent,rgba(125,211,252,0.95),transparent)]",
-              "shadow-[0_0_7px_rgba(56,189,248,0.4)]",
-              "lt:bg-none lt:bg-[rgba(59,130,246,0.55)] lt:shadow-none",
-            )}
-          />
-        </div>
-
         <div className="relative">{children}</div>
       </div>
     </div>

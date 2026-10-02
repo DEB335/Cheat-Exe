@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useRef, type CSSProperties, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
 import { HoloPedestal } from "./HoloPedestal";
-import { usePauseWhenHidden, usePointerLean } from "./hooks";
+import { usePauseWhenHidden } from "./hooks";
 import { paletteVars, resolvePalette, type PaletteInput } from "./palettes";
 import { ParticleField, type FieldShape } from "./ParticleField";
 import styles from "./holo-stage.module.css";
@@ -44,26 +44,23 @@ export interface HoloStageProps {
   className?: string;
   /** Sizes the object's box (width; its height follows the object). Default w-[40%]. */
   objectClassName?: string;
-  /** Element whose pointer drives the lean. Defaults to the nearest ancestor that takes the pointer (the panel). */
-  hostRef?: RefObject<HTMLElement | null>;
   style?: CSSProperties;
 }
 
 /**
  * A hero hologram: particles behind, the holographic pedestal, the
- * floating object, particles in front. The object bobs gently and leans
- * toward the pointer (--hx/--hy on this element, eased by the objects'
- * own CSS transitions), and the particle field turns toward it too.
+ * floating object, particles in front. The object sways and bobs gently
+ * in one animation (the stage sets --holo-bob for the object's sway) and
+ * rests at its own pose otherwise: nothing here follows the pointer.
  *
  * The caller sizes and places the stage (e.g. "absolute right-6 top-4
  * h-[300px] w-[420px]") and the object (objectClassName, a width).
  * Everything is inside that box: nothing is fixed to the viewport, and
  * the page's background video is never covered.
  *
- * Decorative only: aria-hidden, pointer-events none throughout (the
- * pointer is read from the host, so the panel's controls under it keep
- * working), CSS animations paused off screen, one still frame of
- * particles under reduced motion.
+ * Decorative only: aria-hidden, pointer-events none throughout (so the
+ * panel's controls under it keep working), CSS animations paused off
+ * screen, one still frame of particles under reduced motion.
  */
 export function HoloStage({
   tone = "aurora",
@@ -81,13 +78,11 @@ export function HoloStage({
   children,
   className,
   objectClassName,
-  hostRef,
   style,
 }: HoloStageProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const objectRef = useRef<HTMLDivElement>(null);
   usePauseWhenHidden(rootRef);
-  usePointerLean(rootRef, hostRef);
 
   const vars = {
     ...paletteVars(resolvePalette(tone)),
@@ -110,7 +105,6 @@ export function HoloStage({
         speed={speed}
         seed={fieldSeed}
         anchorRef={objectRef}
-        hostRef={hostRef}
         edgeFade
         className={layer === "back" ? styles.back : styles.front}
       />

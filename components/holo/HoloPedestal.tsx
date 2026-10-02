@@ -40,12 +40,12 @@ export interface HoloPedestalProps {
 /**
  * The glowing holographic platform the hero objects float over: a
  * two-step disc with concentric neon rings on its face, a HUD reticle
- * and a comet turning on it, tick marks turning the other way round the
- * floor, a soft cone of light rising off it, bloom underneath, and
- * optionally a grid floor receding round it.
+ * slowly turning on it, a comet of light on its rim, tick marks round
+ * the floor, a soft cone of light rising off it, bloom underneath, and
+ * optionally a grid floor receding round it. Only the reticle moves.
  *
  * Decorative: no pointer events, hidden from assistive tech, and its
- * animations pause off screen and stop under reduced motion.
+ * one animation pauses off screen and stops under reduced motion.
  */
 export function HoloPedestal({ tone = "aurora", size, beam = true, grid = false, className }: HoloPedestalProps) {
   const rootRef = useRef<HTMLDivElement>(null);

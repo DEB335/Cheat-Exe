@@ -15,8 +15,9 @@ import styles from "./scene-banned.module.css";
  * Every piece is laid out in its scene's "view": a fixed-aspect box
  * (see .fit in scene-banned.module.css) whose SVGs share one viewBox,
  * so an SVG line and an HTML element positioned in % of the same box
- * always meet. Only transform and opacity animate; the SVG is static,
- * painted once, and whatever moves over it is an HTML element.
+ * always meet. All of it holds still: the beads, glints, lights, wifi
+ * arcs and trace pulses are caught at one pose each, so the only motion
+ * in a vault scene is its hero object's (the holo kit's).
  */
 
 /** A scene's view box, in the units its orbits and traces are drawn in. */
@@ -40,8 +41,8 @@ export interface Orbit {
   from: RGB;
   to: RGB;
   width?: number;
-  /** Beads riding the ring: start angle (deg, 0 = the far side) and seconds per lap. */
-  beads?: readonly { at: number; lap: number; color: RGB }[];
+  /** Beads on the ring: where each sits (deg clockwise, 0 = the middle of the far side). */
+  beads?: readonly { at: number; color: RGB }[];
 }
 
 /**
@@ -49,12 +50,12 @@ export interface Orbit {
  * the object) or the near ones ("front", drawn after it), so a ring
  * visibly passes round the hologram rather than across it.
  *
- * A bead rides each ring with no per-frame work: a circle of the ring's
+ * A bead sits on its ring without any trig here: a circle of the ring's
  * width is squashed into the ellipse and tilted, and the bead on its rim
- * swings round the circle's centre, turning back and unsquashing as it
- * goes (one animation), which leaves it round and exactly on the
- * ellipse. Each half clips its copy of the bead to its own half, so one
- * bead goes behind the object and comes out the other side.
+ * is turned round the circle's centre to its angle, turned back and
+ * unsquashed, which leaves it round and exactly on the ellipse. Each
+ * half clips its copy of the bead to its own half, so a bead on the far
+ * side shows behind the object and one on the near side in front.
  */
 export function OrbitLayer({ orbits, half, view }: { orbits: readonly Orbit[]; half: "back" | "front"; view: View }) {
   const { id, url } = useSvgIds(`bo${half}`);
@@ -108,8 +109,7 @@ export function OrbitLayer({ orbits, half, view }: { orbits: readonly Orbit[]; h
                 width: pct(o.rx * 2, w),
                 height: pct(o.rx * 2, h),
                 transform: `rotate(${o.tilt}deg) scaleY(${round(o.ry / o.rx)})`,
-                "--lap": `${bead.lap}s`,
-                "--lap-at": `${round((-bead.at / 360) * bead.lap)}s`,
+                "--angle": `${bead.at}deg`,
                 "--unsquash": round(o.rx / o.ry),
                 // The circle's radius, from its rim down to its centre.
                 "--r": `${round((o.rx / h) * 100)}cqh`,
@@ -146,9 +146,9 @@ export interface Glint {
   y: number;
   /** Diameter in % of the view box's width. */
   size: number;
-  /** Seconds into the twinkle, so the glints never flash together. */
-  at: number;
-  /** A four-point star, or a soft round mote that drifts up. */
+  /** Opacity it holds at, so a set of glints never reads as one flat stamp. */
+  lit: number;
+  /** A four-point star, or a soft round mote. */
   kind?: "star" | "mote";
 }
 
@@ -164,14 +164,7 @@ export function SceneGlints({ glints }: { glints: readonly Glint[] }) {
         <span
           key={i}
           className={g.kind === "mote" ? styles.mote : styles.glint}
-          style={
-            {
-              left: `${g.x}%`,
-              top: `${g.y}%`,
-              width: `${g.size}cqw`,
-              animationDelay: `${-g.at}s`,
-            } as CSSProperties
-          }
+          style={{ left: `${g.x}%`, top: `${g.y}%`, width: `${g.size}cqw`, opacity: g.lit }}
         />
       ))}
     </div>
@@ -180,67 +173,55 @@ export function SceneGlints({ glints }: { glints: readonly Glint[] }) {
 
 // ---- Router and wifi --------------------------------------------------
 
-// Link and activity lights, left to right: the last one is the alert
-// pink the mockup ends the row with.
-const LEDS: readonly { color: string; blink: number; at: number }[] = [
-  { color: "226 238 255", blink: 2.6, at: 0.4 },
-  { color: "96 165 250", blink: 1.3, at: 0.9 },
-  { color: "226 238 255", blink: 3.4, at: 1.7 },
-  { color: "96 165 250", blink: 0.9, at: 0.2 },
-  { color: "192 132 252", blink: 2.1, at: 1.1 },
-  { color: "255 79 216", blink: 1.7, at: 0.6 },
+// Link and activity lights, left to right, each at its own brightness:
+// the last one is the alert pink the mockup ends the row with.
+const LEDS: readonly { color: string; lit: number }[] = [
+  { color: "226 238 255", lit: 1 },
+  { color: "96 165 250", lit: 0.55 },
+  { color: "226 238 255", lit: 0.9 },
+  { color: "96 165 250", lit: 0.4 },
+  { color: "192 132 252", lit: 0.8 },
+  { color: "255 79 216", lit: 1 },
 ];
 
 /**
  * A small network router in real CSS 3D: a lit lid, a front face with
- * a row of blinking lights, and a side with ports, turned to show three
- * faces and leaning toward the pointer (--hx/--hy on the scene root).
- * The faces are near-opaque, so only the three that face the viewer are
- * built.
+ * a row of status lights, and a side with ports, turned to show three
+ * faces. The faces are near-opaque, so only those three are built.
  */
 export function NetworkRouter() {
   return (
     <div className={styles.router}>
       <div className={styles.routerShadow} />
-      <div className={styles.routerLean}>
-        <div className={styles.routerIdle}>
-          <div className={styles.routerBody}>
-            <span className={`${styles.rFace} ${styles.rTop}`}>
-              <span className={styles.rVents} />
-              <span className={styles.rBadge} />
-            </span>
-            <span className={`${styles.rFace} ${styles.rFront}`}>
-              <span className={styles.rLeds}>
-                {LEDS.map((led, i) => (
-                  <i
-                    key={i}
-                    className={styles.led}
-                    style={
-                      {
-                        "--led": led.color,
-                        "--blink": `${led.blink}s`,
-                        animationDelay: `${-led.at}s`,
-                      } as CSSProperties
-                    }
-                  />
-                ))}
-              </span>
-            </span>
-            <span className={`${styles.rFace} ${styles.rSide}`}>
-              <span className={styles.rPorts} />
-            </span>
-          </div>
-        </div>
+      <div className={styles.routerBody}>
+        <span className={`${styles.rFace} ${styles.rTop}`}>
+          <span className={styles.rVents} />
+          <span className={styles.rBadge} />
+        </span>
+        <span className={`${styles.rFace} ${styles.rFront}`}>
+          <span className={styles.rLeds}>
+            {LEDS.map((led, i) => (
+              <i key={i} className={styles.led} style={{ "--led": led.color, opacity: led.lit } as CSSProperties} />
+            ))}
+          </span>
+        </span>
+        <span className={`${styles.rFace} ${styles.rSide}`}>
+          <span className={styles.rPorts} />
+        </span>
       </div>
     </div>
   );
 }
 
-/** Three neon arcs and a dot, lighting up from the dot outward. */
+/** Three neon arcs and a dot, brightest at the dot and fading outward. */
 export function WifiSignal() {
   const { id, url } = useSvgIds("bw");
   const p = resolvePalette("blue");
-  const arcs = [9, 16, 23];
+  const arcs = [
+    [9, 1],
+    [16, 0.85],
+    [23, 0.7],
+  ] as const;
   const arcPath = (r: number) => {
     const dx = r * Math.SQRT1_2;
     return `M${round(24 - dx)} ${round(34 - dx)} A${r} ${r} 0 0 1 ${round(24 + dx)} ${round(34 - dx)}`;
@@ -261,21 +242,13 @@ export function WifiSignal() {
         </defs>
         <circle cx="24" cy="34" r="3.4" fill={url("stroke")} />
         <circle cx="24" cy="34" r="4.6" fill={rgb(p.a)} filter={url("bloom")} className={styles.orbitBloom} />
+        {arcs.map(([r, lit]) => (
+          <g key={r} opacity={lit}>
+            <path d={arcPath(r)} fill="none" stroke={rgb(p.a)} strokeWidth="5.5" strokeLinecap="round" filter={url("bloom")} className={styles.orbitBloom} />
+            <path d={arcPath(r)} fill="none" stroke={url("stroke")} strokeWidth="3.6" strokeLinecap="round" />
+          </g>
+        ))}
       </svg>
-      {/* Each arc is its own layer so it can pulse on the compositor; the
-          negative delays keep them in step from the first frame. */}
-      {arcs.map((r, i) => (
-        <svg
-          key={r}
-          className={`${styles.layer} ${styles.wifiArc}`}
-          viewBox="0 0 48 40"
-          overflow="visible"
-          style={{ animationDelay: `${i * 0.28 - 2.4}s` }}
-        >
-          <path d={arcPath(r)} fill="none" stroke={rgb(p.a)} strokeWidth="5.5" strokeLinecap="round" filter={url("bloom")} className={styles.orbitBloom} />
-          <path d={arcPath(r)} fill="none" stroke={url("stroke")} strokeWidth="3.6" strokeLinecap="round" />
-        </svg>
-      ))}
     </div>
   );
 }
@@ -286,16 +259,15 @@ export interface Trace {
   /** Polyline in view units, from the platform outward. */
   points: readonly (readonly [number, number])[];
   color: RGB;
-  /** Seconds for a pulse to run the first segment; omit for no pulse. */
+  /** Where a pulse of light sits on the first leg (0 = its start, 1 = its end); omit for none. */
   pulse?: number;
-  at?: number;
 }
 
 /**
  * Circuit traces running out across the floor from the platform, fading
  * toward the scene's edges, with a node at every bend and a pulse of
- * light running the first leg of some. The traces are one static SVG;
- * the pulses are HTML, turned onto their leg and slid along it.
+ * light caught part-way along the first leg of some. The traces are one
+ * static SVG; the pulses are HTML, turned onto their leg and set along it.
  */
 export function CircuitFloor({ traces, view }: { traces: readonly Trace[]; view: View }) {
   const [w, h] = view;
@@ -318,7 +290,7 @@ export function CircuitFloor({ traces, view }: { traces: readonly Trace[]; view:
         ))}
       </svg>
       {traces.map((t, i) => {
-        if (!t.pulse) return null;
+        if (t.pulse === undefined) return null;
         const [[x1, y1], [x2, y2]] = t.points as [[number, number], [number, number]];
         return (
           <span
@@ -329,10 +301,8 @@ export function CircuitFloor({ traces, view }: { traces: readonly Trace[]; view:
                 left: pct(x1, w),
                 top: pct(y1, h),
                 "--angle": `${round((Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI)}deg`,
-                "--run": `${round((Math.hypot(x2 - x1, y2 - y1) / w) * 100)}cqw`,
+                "--along": `${round((Math.hypot(x2 - x1, y2 - y1) / w) * 100 * t.pulse)}cqw`,
                 "--pulse": t.color.join(" "),
-                "--run-time": `${t.pulse}s`,
-                animationDelay: `${-(t.at ?? 0)}s`,
               } as CSSProperties
             }
           />

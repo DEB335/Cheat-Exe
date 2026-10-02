@@ -10,24 +10,31 @@ import styles from "./scene-audit.module.css";
  * scene's .fit box, so they scale with whatever box the caller gives.
  */
 
-// Top slab first. Each has its own flicker offset, so the lit slots
-// never pulse in unison.
-const SLABS = [0, 1, 2, 3] as const;
+// Top slab first. Each holds its own light levels (lit slot, status
+// lights, side slot), so the slabs never look stamped from one mould.
+const SLABS = [
+  { slot: 1, leds: 1, side: 0.85 },
+  { slot: 0.75, leds: 0.45, side: 1 },
+  { slot: 0.95, leds: 0.85, side: 0.6 },
+  { slot: 0.65, leds: 0.6, side: 0.9 },
+] as const;
 
 /**
  * A glowing server tower: four stacked glass slabs with lit slots and
  * status lights, the lid carrying a ringed emblem. Turned to show its
- * front, right side and lid, and leaning toward the pointer (--hx/--hy
- * on the scene root). Only the three faces that can face the viewer are
- * built; the lean never turns far enough to show the others.
+ * front, right side and lid; only those three faces are built.
  */
 export function AuditTower() {
   return (
     <div className={styles.tower}>
-      <div className={styles.towerLean}>
+      <div className={styles.towerTurn}>
         <div className={styles.towerIdle}>
-          {SLABS.map((i) => (
-            <div key={i} className={styles.slab} style={{ "--i": i, "--at": `${-i * 1.3}s` } as CSSProperties}>
+          {SLABS.map((lit, i) => (
+            <div
+              key={i}
+              className={styles.slab}
+              style={{ "--i": i, "--slot": lit.slot, "--leds": lit.leds, "--side": lit.side } as CSSProperties}
+            >
               <div className={`${styles.face} ${styles.lid}`}>{i === 0 ? <span className={styles.emblem} /> : null}</div>
               <div className={`${styles.face} ${styles.front}`}>
                 <span className={styles.slot} />
@@ -62,18 +69,16 @@ interface Screen {
   far?: boolean;
   /** Magenta edge instead of the scene's cyan, as on the mockup's odd panel. */
   pink?: boolean;
-  /** Float phase, seconds. */
-  at: number;
 }
 
 // Round the tower at different depths, each turned toward it, like the
 // mockup's floating dashboards.
 const SCREENS: readonly Screen[] = [
-  { x: 15, y: 18, w: 14, h: 9.5, ry: 30, kind: "rows", at: 0 },
-  { x: 4, y: 47, w: 10, h: 7, ry: 34, kind: "bars", far: true, pink: true, at: 2.2 },
-  { x: 62, y: 3, w: 10, h: 7, ry: -26, kind: "lines", far: true, at: 1.1 },
-  { x: 79, y: 26, w: 12, h: 9, ry: -32, kind: "chart", at: 3.4 },
-  { x: 85, y: 55, w: 9, h: 6.5, ry: -36, kind: "rows", far: true, pink: true, at: 4.6 },
+  { x: 15, y: 18, w: 14, h: 9.5, ry: 30, kind: "rows" },
+  { x: 4, y: 47, w: 10, h: 7, ry: 34, kind: "bars", far: true, pink: true },
+  { x: 62, y: 3, w: 10, h: 7, ry: -26, kind: "lines", far: true },
+  { x: 79, y: 26, w: 12, h: 9, ry: -32, kind: "chart" },
+  { x: 85, y: 55, w: 9, h: 6.5, ry: -36, kind: "rows", far: true, pink: true },
 ];
 
 function ScreenContent({ kind }: { kind: ScreenKind }) {
@@ -112,7 +117,7 @@ function ScreenContent({ kind }: { kind: ScreenKind }) {
   }
 }
 
-/** The floating glass screens, each drifting on its own phase. */
+/** The floating glass screens, held still round the tower. */
 export function AuditScreens() {
   return (
     <>
@@ -127,7 +132,6 @@ export function AuditScreens() {
               width: `${s.w}cqw`,
               height: `${s.h}cqw`,
               "--ry": `${s.ry}deg`,
-              animationDelay: `${-s.at}s`,
             } as CSSProperties
           }
         >
@@ -142,30 +146,24 @@ interface Streak {
   x: number;
   /** Length, % of the scene height. */
   h: number;
-  dur: number;
-  at: number;
+  /** Opacity it holds at. */
+  lit: number;
 }
 
-// Faint data rising off the platform round the tower.
+// Faint data rising off the platform round the tower, held mid-rise.
 const STREAKS: readonly Streak[] = [
-  { x: 28, h: 22, dur: 3.8, at: 0.4 },
-  { x: 34, h: 30, dur: 4.6, at: 2.6 },
-  { x: 67, h: 26, dur: 4.2, at: 1.3 },
-  { x: 73, h: 18, dur: 3.4, at: 3.1 },
-  { x: 62, h: 34, dur: 5.2, at: 0.9 },
+  { x: 28, h: 22, lit: 0.55 },
+  { x: 34, h: 30, lit: 0.8 },
+  { x: 67, h: 26, lit: 0.65 },
+  { x: 73, h: 18, lit: 0.4 },
+  { x: 62, h: 34, lit: 0.75 },
 ];
 
 export function AuditStreaks() {
   return (
     <>
       {STREAKS.map((s, i) => (
-        <span
-          key={i}
-          className={styles.streak}
-          style={
-            { left: `${s.x}%`, height: `${s.h}%`, "--rise-time": `${s.dur}s`, animationDelay: `${-s.at}s` } as CSSProperties
-          }
-        />
+        <span key={i} className={styles.streak} style={{ left: `${s.x}%`, height: `${s.h}%`, opacity: s.lit }} />
       ))}
     </>
   );
@@ -176,17 +174,19 @@ interface Glint {
   y: number;
   /** cqw */
   size: number;
-  at: number;
+  /** Opacity it holds at, so the set never reads as one flat stamp. */
+  lit: number;
 }
 
-// Four-point star glints on the near side, flaring in turn.
+// Four-point star glints on the near side, each caught part-way through
+// a flare.
 const GLINTS: readonly Glint[] = [
-  { x: 24, y: 12, size: 4.2, at: 0.3 },
-  { x: 78, y: 16, size: 5, at: 2.4 },
-  { x: 88, y: 46, size: 3.2, at: 1.2 },
-  { x: 14, y: 66, size: 3.6, at: 3.6 },
-  { x: 57, y: 30, size: 2.6, at: 4.4 },
-  { x: 36, y: 8, size: 2.4, at: 1.8 },
+  { x: 24, y: 12, size: 4.2, lit: 0.85 },
+  { x: 78, y: 16, size: 5, lit: 0.7 },
+  { x: 88, y: 46, size: 3.2, lit: 0.55 },
+  { x: 14, y: 66, size: 3.6, lit: 0.75 },
+  { x: 57, y: 30, size: 2.6, lit: 0.5 },
+  { x: 36, y: 8, size: 2.4, lit: 0.65 },
 ];
 
 export function AuditGlints() {
@@ -196,7 +196,7 @@ export function AuditGlints() {
         <span
           key={i}
           className={styles.glint}
-          style={{ left: `${g.x}%`, top: `${g.y}%`, width: `${g.size}cqw`, animationDelay: `${-g.at}s` }}
+          style={{ left: `${g.x}%`, top: `${g.y}%`, width: `${g.size}cqw`, opacity: g.lit }}
         />
       ))}
     </>

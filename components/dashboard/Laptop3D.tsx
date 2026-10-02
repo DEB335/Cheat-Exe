@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 
 /*
  * Sizes in CSS px, on the floor plane. The laptop is a real CSS 3D model
- * rather than a picture of one, so the lid can swing on its hinge and the
- * whole thing can turn toward the pointer without a second drawing.
+ * rather than a picture of one, so the lid can swing on its hinge without
+ * a second drawing.
  */
 const PLATFORM = { w: 150, d: 94, t: 8 };
 const BASE = { w: 112, d: 66, t: 5 };
@@ -15,11 +15,10 @@ const LID = { w: 112, h: 66 };
 
 /**
  * The isometric view: a floor tilted away from the camera and turned so
- * the laptop faces down and to the right. The banner feeds --btx / --bty
- * (the pointer, -1..1 across it) and the model leans toward it.
+ * the laptop faces down and to the right. Fixed -- the model no longer
+ * leans toward the pointer.
  */
-const WORLD =
-  "rotateX(calc(61deg + var(--bty, 0) * 4deg)) rotateZ(calc(-36deg - var(--btx, 0) * 10deg))";
+const WORLD = "rotateX(61deg) rotateZ(-36deg)";
 
 const face = "absolute";
 
@@ -28,9 +27,8 @@ const face = "absolute";
  *
  * Idle, it is a still picture: nothing here animates on its own. Inside
  * an ancestor with `group/banner`, hovering that group swings the lid a
- * little further open and brightens the screen, and the --btx / --bty
- * custom properties (set on the same ancestor) turn it toward the
- * pointer. All of it is transform and opacity.
+ * little further open and brightens the screen -- transform and opacity
+ * only, and nothing that tracks the pointer.
  */
 export function Laptop3D({ className }: { className?: string }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
@@ -62,7 +60,7 @@ export function Laptop3D({ className }: { className?: string }) {
 
       {/* The world: a zero-size pivot the whole model hangs off. */}
       <div
-        className="absolute top-[75%] left-[55%] size-0 transition-transform duration-700 ease-smooth [transform-style:preserve-3d]"
+        className="absolute top-[75%] left-[55%] size-0 [transform-style:preserve-3d]"
         style={{ transform: WORLD }}
       >
         {/* Faint circuit floor, fading out toward its edges. */}

@@ -56,11 +56,12 @@ export function DeviceSummary({ stats, className }: { stats: DeviceSummaryStats;
   );
 }
 
-const MAX_TILT = 8;
-
-/** A glow layer the size of the tile's border box, faded at the tilt's pace. */
+/**
+ * A glow layer the size of the tile's border box, faded at the lift's
+ * pace: quick in on hover, slow settling back.
+ */
 const GLOW =
-  "pointer-events-none absolute -inset-px rounded-[inherit] transition-opacity [transition-duration:var(--tilt-ms,600ms)]";
+  "pointer-events-none absolute -inset-px rounded-[inherit] transition-opacity duration-[600ms] group-hover:duration-[120ms]";
 
 function Chip({
   label,
@@ -77,16 +78,13 @@ function Chip({
   Mark: IconComponent;
   value: number;
 }) {
-  const tilt = useTilt();
   const shown = useCountUp(value);
 
   return (
-    // The perspective lives on the parent so the tile itself can rotate
-    // inside it; on the tile, it would flatten its own children.
+    // The perspective lives on the parent, so the disc and mark standing
+    // forward of the glass keep their depth.
     <div style={{ "--chip": rgb, "--ink": ink } as React.CSSProperties} className="min-w-0 [perspective:900px]">
       <div
-        onPointerMove={tilt.move}
-        onPointerLeave={tilt.leave}
         className={cn(
           // No overflow-hidden here: it flattens preserve-3d, and the disc
           // and mark would lose their depth. The clipped glass is the first
@@ -101,11 +99,10 @@ function Chip({
           "shadow-[inset_0_0_30px_rgba(var(--chip),0.075),inset_0_1px_0_rgba(255,255,255,0.02)]",
           "lt:border-[rgba(var(--chip),0.45)] lt:bg-none lt:bg-white/85",
           "lt:shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]",
-          // Pointer-driven tilt: the handlers write the angles, the lift and
-          // the transition speed -- quick while following, slow settling back.
-          "[transform-style:preserve-3d]",
-          "[transform:translateY(var(--lift,0px))_rotateX(var(--rx,0deg))_rotateY(var(--ry,0deg))]",
-          "transition-[transform] ease-smooth [transition-duration:var(--tilt-ms,600ms)]",
+          // Hover lifts the tile a few px -- quick up, slow settling back.
+          // It no longer tilts toward the pointer.
+          "[transform-style:preserve-3d] [transform:translateY(0px)] motion-safe:hover:[transform:translateY(-3px)]",
+          "transition-[transform] duration-[600ms] ease-smooth hover:duration-[120ms]",
         )}
       >
         {/* The glow, pre-painted at rest and at hover strength; hover
@@ -139,24 +136,24 @@ function Chip({
           aria-hidden
           className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
         >
-          {/* Gloss that follows the pointer across the glass. */}
+          {/* Gloss across the top of the glass, faded in on hover. */}
           <span
             className={cn(
               "absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100",
-              "bg-[radial-gradient(180px_circle_at_var(--mx,50%)_var(--my,0%),rgba(255,255,255,0.16),transparent_60%)]",
-              "lt:bg-[radial-gradient(180px_circle_at_var(--mx,50%)_var(--my,0%),rgba(var(--chip),0.12),transparent_60%)]",
+              "bg-[radial-gradient(180px_circle_at_50%_0%,rgba(255,255,255,0.16),transparent_60%)]",
+              "lt:bg-[radial-gradient(180px_circle_at_50%_0%,rgba(var(--chip),0.12),transparent_60%)]",
             )}
           />
           {/* Hairline sheen along the top edge. */}
           <span className="absolute inset-x-4 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.45),transparent)] lt:opacity-0" />
         </span>
 
-        {/* The disc stands forward of the glass; the float runs on the
-            inner element so it never fights the depth transform. */}
+        {/* The disc stands forward of the glass. Still: a bob on four
+            small discs was decoration the page paid for every frame. */}
         <div className="shrink-0 [transform:translateZ(26px)]">
           <div
             className={cn(
-              "animate-float-y flex size-9 items-center justify-center rounded-full border sm:size-10",
+              "flex size-9 items-center justify-center rounded-full border sm:size-10",
               "border-[rgba(var(--chip),0.8)] text-white",
               "bg-[radial-gradient(circle_at_34%_28%,rgba(255,255,255,0.35)_0%,rgba(var(--chip),0.75)_28%,rgba(var(--chip),0.28)_62%,rgba(4,8,30,0.95)_100%)]",
               "shadow-[0_0_0_3px_rgba(var(--chip),0.14),0_0_10px_rgba(var(--chip),0.27),0_8px_14px_-6px_rgba(0,0,0,0.7),inset_0_-5px_8px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]",
@@ -192,47 +189,6 @@ function Chip({
       </div>
     </div>
   );
-}
-
-/**
- * Tilts the tile toward the pointer. Writes CSS variables straight onto
- * the element, so following the cursor re-renders nothing and no frame
- * loop runs while it is idle. Off for reduced motion and touch screens.
- */
-function useTilt() {
-  const enabled = useRef(false);
-
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce), (pointer: coarse)");
-    const sync = () => {
-      enabled.current = !query.matches;
-    };
-    sync();
-    query.addEventListener("change", sync);
-    return () => query.removeEventListener("change", sync);
-  }, []);
-
-  const move = (event: React.PointerEvent<HTMLDivElement>) => {
-    const el = event.currentTarget;
-    if (!enabled.current || event.pointerType === "touch") return;
-    const rect = el.getBoundingClientRect();
-    const x = (event.clientX - rect.left) / rect.width;
-    const y = (event.clientY - rect.top) / rect.height;
-    el.style.setProperty("--ry", `${((x - 0.5) * 2 * MAX_TILT).toFixed(2)}deg`);
-    el.style.setProperty("--rx", `${((0.5 - y) * 2 * MAX_TILT).toFixed(2)}deg`);
-    el.style.setProperty("--mx", `${(x * 100).toFixed(1)}%`);
-    el.style.setProperty("--my", `${(y * 100).toFixed(1)}%`);
-    el.style.setProperty("--lift", "-3px");
-    el.style.setProperty("--tilt-ms", "120ms");
-  };
-
-  const leave = (event: React.PointerEvent<HTMLDivElement>) => {
-    const el = event.currentTarget;
-    for (const name of ["--ry", "--rx", "--lift"]) el.style.removeProperty(name);
-    el.style.setProperty("--tilt-ms", "600ms");
-  };
-
-  return { move, leave };
 }
 
 /**

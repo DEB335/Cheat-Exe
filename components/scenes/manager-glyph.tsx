@@ -1,8 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-
-import { paletteVars, PALETTES, rgb, usePauseWhenHidden, useSvgIds, type PaletteName } from "@/components/holo";
+import { paletteVars, PALETTES, rgb, useSvgIds, type PaletteName } from "@/components/holo";
 import { cn } from "@/lib/utils";
 
 import styles from "./scene-manager-glyph.module.css";
@@ -67,27 +65,22 @@ const GLASS: Partial<Record<ActionGlyphKind, string>> = {
 /**
  * The glowing icon on a mini pedestal at the left of each Manage Key
  * action card: a neon line icon (a coloured tube with a white-hot core
- * over a soft bloom) bobbing above a small elliptical disc of light in
- * the same tone, with a faint beam between them and a ring of light
- * pulsing off the disc. SVG and CSS only -- no particle canvas, as it
- * appears four times on the page.
+ * over a soft bloom) hovering above a small elliptical disc of light in
+ * the same tone, with a faint beam between them. SVG and CSS only, and
+ * still -- it appears four times on the page.
  *
  * The caller positions and sizes it (designed round 72 x 88; it keeps
  * its proportions inside any box). Brightens and lifts while the card
  * it sits in (a Tailwind `group`) is hovered. Decorative only:
- * aria-hidden, pointer-events none, paused off screen, still under
- * reduced motion.
+ * aria-hidden, pointer-events none.
  */
 export function ActionGlyph({ kind, className }: { kind: ActionGlyphKind; className?: string }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  usePauseWhenHidden(rootRef);
   const { id, url } = useSvgIds(`ag${kind}`);
   const p = PALETTES[TONE[kind]];
   const glass = GLASS[kind];
 
   return (
     <div
-      ref={rootRef}
       aria-hidden
       className={`${styles.root} ${cn("pointer-events-none relative aspect-[72/88]", className)}`}
       style={paletteVars(p)}
@@ -113,39 +106,36 @@ export function ActionGlyph({ kind, className }: { kind: ActionGlyphKind; classN
           <ellipse cx="36" cy="15" rx="19" ry="3.9" className={styles.rim} />
           <ellipse cx="36" cy="14.6" rx="11" ry="1.5" className={styles.hotspot} />
         </svg>
-        <span className={styles.pulse} />
         <span className={styles.beam} />
 
         <div className={styles.lift}>
-          <div className={styles.bob}>
-            <svg className={styles.icon} viewBox="0 0 48 48">
-              <defs>
-                <linearGradient id={id("tube")} gradientUnits="userSpaceOnUse" x1="10" y1="6" x2="38" y2="42">
-                  <stop offset="0" stopColor={rgb(p.a)} />
-                  <stop offset="1" stopColor={rgb(p.b)} />
-                </linearGradient>
-                <filter id={id("bloom")} x="-40%" y="-40%" width="180%" height="180%">
-                  <feGaussianBlur stdDeviation="1.4" />
-                </filter>
-              </defs>
-              {glass ? <path d={glass} className={styles.glass} /> : null}
-              <g className={styles.bloom} filter={url("bloom")}>
-                {ICON[kind].map((d) => (
-                  <path key={d} d={d} />
-                ))}
-              </g>
-              <g className={styles.tube} stroke={url("tube")}>
-                {ICON[kind].map((d) => (
-                  <path key={d} d={d} />
-                ))}
-              </g>
-              <g className={styles.core}>
-                {ICON[kind].map((d) => (
-                  <path key={d} d={d} />
-                ))}
-              </g>
-            </svg>
-          </div>
+          <svg className={styles.icon} viewBox="0 0 48 48">
+            <defs>
+              <linearGradient id={id("tube")} gradientUnits="userSpaceOnUse" x1="10" y1="6" x2="38" y2="42">
+                <stop offset="0" stopColor={rgb(p.a)} />
+                <stop offset="1" stopColor={rgb(p.b)} />
+              </linearGradient>
+              <filter id={id("bloom")} x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="1.4" />
+              </filter>
+            </defs>
+            {glass ? <path d={glass} className={styles.glass} /> : null}
+            <g className={styles.bloom} filter={url("bloom")}>
+              {ICON[kind].map((d) => (
+                <path key={d} d={d} />
+              ))}
+            </g>
+            <g className={styles.tube} stroke={url("tube")}>
+              {ICON[kind].map((d) => (
+                <path key={d} d={d} />
+              ))}
+            </g>
+            <g className={styles.core}>
+              {ICON[kind].map((d) => (
+                <path key={d} d={d} />
+              ))}
+            </g>
+          </svg>
         </div>
       </div>
     </div>

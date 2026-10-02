@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type RefObject } from "react";
+import { useEffect, useRef } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -10,15 +10,14 @@ import { cn } from "@/lib/utils";
  * Everything is laid out on one flat "world" plane that is tipped back
  * and turned 45deg, so a plain div becomes a floor tile and translateZ is
  * height above that floor. Each box is only the three faces the camera
- * can ever see (top, front-left, front-right) -- the tilt never turns far
- * enough to show the others, so they would be DOM for nothing.
+ * can ever see (top, front-left, front-right) -- the view is fixed, so
+ * the others would be DOM for nothing.
  *
  * Motion budget: nothing here repaints while idle. The bob is one
  * transform animation (compositor only) that pauses off screen, in a
- * hidden tab, and never starts under reduced motion. The hover tilt
- * writes two custom properties at most once per frame, and only while
- * the pointer is actually moving over the card; CSS transitions do the
- * easing, so there is no rAF loop to keep alive.
+ * hidden tab, and never starts under reduced motion. The view itself is
+ * fixed -- it no longer leans toward the pointer -- so hovering the card
+ * only flips --spread, and CSS transitions lift the slabs apart.
  */
 
 /** Plane px. The world is ~56deg off vertical, so heights read at ~0.83x on screen. */
@@ -182,24 +181,14 @@ const slabFaces = (i: number) => ({
   },
 });
 
-export function ServerStack3D({
-  hostRef,
-  className,
-}: {
-  /** Element whose pointer movement steers the tilt (the whole card). */
-  hostRef: RefObject<HTMLElement | null>;
-  className?: string;
-}) {
+export function ServerStack3D({ className }: { className?: string }) {
   const sceneRef = useRef<HTMLDivElement>(null);
-  const worldRef = useRef<HTMLDivElement>(null);
   const floatRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const host = hostRef.current;
     const scene = sceneRef.current;
-    const world = worldRef.current;
     const float = floatRef.current;
-    if (!host || !scene || !world || !float) return;
+    if (!scene || !float) return;
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
     if (reduce.matches) return;
@@ -221,56 +210,19 @@ export function ServerStack3D({
     io.observe(scene);
     document.addEventListener("visibilitychange", sync);
 
-    // Hover tilt: lean toward the pointer. Reads layout once per frame at
-    // most, and only while the pointer is moving over the card.
-    let raf = 0;
-    let cx = 0;
-    let cy = 0;
-    let inside = false;
-    const write = () => {
-      raf = 0;
-      let tx = 0;
-      let ty = 0;
-      if (inside) {
-        // The world is a zero-size box, so its rect is the stack's centre.
-        const card = host.getBoundingClientRect();
-        const origin = world.getBoundingClientRect();
-        tx = Math.max(-1, Math.min(1, (cx - origin.left) / (card.width * 0.5)));
-        ty = Math.max(-1, Math.min(1, (cy - origin.top) / (card.height * 0.9)));
-      }
-      scene.style.setProperty("--tilt-x", tx.toFixed(3));
-      scene.style.setProperty("--tilt-y", ty.toFixed(3));
-    };
-    const onMove = (event: PointerEvent) => {
-      if (event.pointerType === "touch") return;
-      inside = true;
-      cx = event.clientX;
-      cy = event.clientY;
-      if (!raf) raf = requestAnimationFrame(write);
-    };
-    const onLeave = () => {
-      inside = false;
-      if (!raf) raf = requestAnimationFrame(write);
-    };
-    host.addEventListener("pointermove", onMove);
-    host.addEventListener("pointerleave", onLeave);
-
     return () => {
       bob.cancel();
       io.disconnect();
       document.removeEventListener("visibilitychange", sync);
-      host.removeEventListener("pointermove", onMove);
-      host.removeEventListener("pointerleave", onLeave);
-      cancelAnimationFrame(raf);
     };
-  }, [hostRef]);
+  }, []);
 
   return (
     <div
       ref={sceneRef}
       aria-hidden
       className={cn(
-        "pointer-events-none absolute inset-0 [--spread:0] [--tilt-x:0] [--tilt-y:0]",
+        "pointer-events-none absolute inset-0 [--spread:0]",
         "[perspective:1600px] [perspective-origin:calc(100%-128px)_176px]",
         "group-hover/perf:[--spread:1] motion-reduce:group-hover/perf:[--spread:0]",
         "lt:opacity-80",
@@ -288,11 +240,9 @@ export function ServerStack3D({
       />
 
       <div
-        ref={worldRef}
         className={cn(
           "absolute top-[176px] right-[128px] size-0 [transform-style:preserve-3d]",
-          "transition-transform duration-700 ease-smooth",
-          "[transform:rotateX(calc(56deg-var(--tilt-y)*7deg))_rotateZ(calc(45deg+var(--tilt-x)*10deg))]",
+          "[transform:rotateX(56deg)_rotateZ(45deg)]",
         )}
       >
         {/* Floor grid, fading out from the stack. */}

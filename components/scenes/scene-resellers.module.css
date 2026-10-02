@@ -9,9 +9,11 @@
    % of the rig or in its SVG viewBox, so the scene scales as one piece
    and a wider or taller box never stretches it.
 
-   Colours are the kit's --holo-a/b/c/hot (set on the root). Only
-   transform and opacity animate, and standalone translate/rotate/scale
-   are not used: this pipeline drops them from CSS modules.
+   Colours are the kit's --holo-a/b/c/hot (set on the root). Nothing in
+   this file animates: the floor, HUD rings and beams are a still frame
+   round the kit's stage, which does the moving. Standalone
+   translate/rotate/scale are not used: this pipeline drops them from
+   CSS modules.
    ================================================================== */
 
 .root {
@@ -59,8 +61,7 @@
 }
 
 /* A ring tipped into the floor (the kit pedestal's view, cos 76deg =
-   0.24); the tip lives here and the spin on the child, so the spin
-   needs no 3D. */
+   0.24), drawn by its child. */
 .floorPlane {
   position: absolute;
   left: 50%;
@@ -74,7 +75,7 @@
   border-radius: 50%;
 }
 
-/* Fine dashes round the outside, turning slowly. */
+/* Fine dashes round the outside. */
 .hudDashes {
   width: 97%;
   opacity: 0.6;
@@ -83,10 +84,9 @@
   background: repeating-conic-gradient(rgb(var(--holo-hot) / 0.9) 0deg 1.3deg, transparent 1.3deg 4.5deg);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4.5px) calc(100% - 0.5px), transparent);
   mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4.5px) calc(100% - 0.5px), transparent);
-  animation: scene-spin 70s linear infinite;
 }
 
-/* Long magenta and blue arcs just outside the pad, turning the other way. */
+/* Long magenta and blue arcs just outside the pad. */
 .hudArcs {
   width: 86%;
 }
@@ -104,12 +104,12 @@
   );
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px) calc(100% - 0.5px), transparent);
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px) calc(100% - 0.5px), transparent);
-  animation: scene-spin 28s linear infinite reverse;
 }
 
 /* ---- Light beams ------------------------------------------------- */
 
-/* Position, height and colour come inline (BEAMS in ResellerScene). */
+/* Position, height, colour and brightness come inline (BEAMS in
+   ResellerScene). */
 .beam {
   position: absolute;
   width: max(1px, 0.3%);
@@ -121,18 +121,6 @@
     rgb(var(--beam) / calc(0.28 * var(--beam-a))) 48%,
     transparent
   );
-  animation: beam-pulse var(--beam-s) ease-in-out infinite;
-}
-
-/* A glint climbing the beam: a bright slip at the foot of a copy of the
-   beam, slid up it. Invisible at rest, so it simply is not there under
-   reduced motion. */
-.beam > span {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, transparent, rgb(var(--holo-hot) / 0.95) 5%, transparent 11%);
-  opacity: 0;
-  animation: beam-climb calc(var(--beam-s) * 0.9) linear infinite;
 }
 
 /* ---- Glass user -------------------------------------------------- */
@@ -176,52 +164,11 @@
 
 /* ---- Motion ------------------------------------------------------ */
 
-@keyframes scene-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes beam-pulse {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes beam-climb {
-  0% {
-    transform: translateY(0);
-    opacity: 0;
-  }
-  12% {
-    opacity: 1;
-  }
-  70% {
-    opacity: 0.8;
-  }
-  100% {
-    transform: translateY(-88%);
-    opacity: 0;
-  }
-}
-
-/* Off screen or in a hidden tab (usePauseWhenHidden), pseudo-elements
-   included. Important, so no later rule restarts one. */
+/* Off screen or in a hidden tab (usePauseWhenHidden), the kit's stage
+   inside included, pseudo-elements too. Important, so no later rule
+   restarts one. */
 .root[data-holo-paused] *,
 .root[data-holo-paused] *::before,
 .root[data-holo-paused] *::after {
   animation-play-state: paused !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .beam,
-  .beam > span,
-  .hudDashes > span,
-  .hudArcs > span {
-    animation: none;
-  }
 }

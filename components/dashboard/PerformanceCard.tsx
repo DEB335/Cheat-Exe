@@ -10,12 +10,11 @@ import { cn } from "@/lib/utils";
 
 /**
  * The overview's headline card: real tile counts as a glowing line, the
- * live FPS/ping pills, and a decorative 3D server stack that leans toward
- * the pointer. The shared Card still owns the hover lift and the conic
+ * live FPS/ping pills, and a decorative 3D server stack whose slabs lift
+ * apart on hover. The shared Card still owns the hover lift and the conic
  * ring; everything here sits inside it.
  */
 export function PerformanceCard({ values, labels }: { values: number[]; labels: string[] }) {
-  const rootRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLDivElement>(null);
   const pillsRef = useRef<HTMLDivElement>(null);
   // useId can contain characters that break a url(#...) reference.
@@ -28,7 +27,7 @@ export function PerformanceCard({ values, labels }: { values: number[]; labels: 
         "lt:border-line",
       )}
     >
-      <div ref={rootRef} className="relative">
+      <div className="relative">
         {/* Fill and glows on their own layer: the shared card-surface
             gradient is too translucent for the background video behind
             this one, and the stack's floor needs clipping to the corners. */}
@@ -43,7 +42,7 @@ export function PerformanceCard({ values, labels }: { values: number[]; labels: 
         >
           {/* Thin highlight along the top edge, like light catching the rim. */}
           <span className="absolute top-0 left-[38%] h-px w-[34%] bg-[linear-gradient(90deg,transparent,rgba(190,110,255,0.55),rgba(90,120,255,0.4),transparent)]" />
-          <ServerStack3D hostRef={rootRef} className="hidden lg:block" />
+          <ServerStack3D className="hidden lg:block" />
         </div>
 
         <div className="relative z-[2] flex flex-wrap items-start justify-between gap-4 pt-[22px] pr-[33px] pl-[23px] max-sm:pr-[23px]">

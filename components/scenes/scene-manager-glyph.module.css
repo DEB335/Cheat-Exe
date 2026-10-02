@@ -1,5 +1,5 @@
 /* ==================================================================
-   Manage Key action glyph (manager-glyph.tsx): a neon icon bobbing
+   Manage Key action glyph (manager-glyph.tsx): a neon icon hovering
    over a small disc of light, at the left of each action card.
 
    The root is an inline-size container and everything is laid out in
@@ -7,8 +7,9 @@
    gives it (designed round 72 x 88). The disc's centre sits 23.8cqw up
    from the bottom (the disc SVG is 72 x 30, 3cqw off the floor).
 
-   Animations are transform/opacity only; standalone translate/rotate/
-   scale are dropped from CSS modules here, so offsets use `transform`.
+   Still at rest; only the card's hover lifts and brightens it, with
+   transform/opacity transitions. Standalone translate/rotate/scale are
+   dropped from CSS modules here, so offsets use `transform`.
    ================================================================== */
 
 .root {
@@ -54,21 +55,6 @@
   fill: rgb(var(--holo-hot));
 }
 
-/* A ring of light swelling off the disc and fading, over and over. */
-.pulse {
-  position: absolute;
-  left: 50%;
-  bottom: var(--disc-y);
-  width: 42cqw;
-  height: 8.6cqw;
-  margin-bottom: -4.3cqw;
-  border-radius: 50%;
-  border: 1.5px solid rgb(var(--holo-a) / 0.85);
-  box-shadow: 0 0 4px rgb(var(--holo-a) / 0.28);
-  opacity: 0;
-  animation: ag-pulse 3s ease-out infinite;
-}
-
 /* The soft cone of light rising off the disc toward the icon. */
 .beam {
   position: absolute;
@@ -81,7 +67,7 @@
   background: linear-gradient(to top, rgb(var(--holo-b) / 0.17), rgb(var(--holo-a) / 0.04) 60%, transparent);
   -webkit-mask-image: radial-gradient(ellipse 60% 100% at 50% 100%, #000 40%, transparent);
   mask-image: radial-gradient(ellipse 60% 100% at 50% 100%, #000 40%, transparent);
-  animation: ag-breathe 4.2s ease-in-out infinite;
+  opacity: 0.8;
   transition: opacity 0.3s ease;
 }
 
@@ -97,12 +83,6 @@
   aspect-ratio: 1;
   transform: translateX(-50%);
   transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.bob {
-  width: 100%;
-  height: 100%;
-  animation: ag-bob 4.8s ease-in-out infinite;
 }
 
 .icon {
@@ -150,7 +130,6 @@
 }
 :global(:is(button, a, .group, .group\/action):not(:disabled)):hover .beam {
   opacity: 1;
-  animation-play-state: paused;
 }
 
 /* ---- Light mode -------------------------------------------------- */
@@ -177,55 +156,9 @@
 }
 :global(body.light-mode) .beam {
   opacity: 0.5;
-  animation: none;
-}
-
-/* ---- Motion ------------------------------------------------------ */
-
-@keyframes ag-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-3.5cqw);
-  }
-}
-
-@keyframes ag-breathe {
-  0%,
-  100% {
-    opacity: 0.65;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes ag-pulse {
-  0% {
-    opacity: 0.9;
-    transform: translateX(-50%) scale(0.55);
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(-50%) scale(1.55);
-  }
-}
-
-/* Off screen or in a hidden tab (see usePauseWhenHidden). */
-.root[data-holo-paused] *,
-.root[data-holo-paused] *::before,
-.root[data-holo-paused] *::after {
-  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bob,
-  .beam,
-  .pulse {
-    animation: none;
-  }
   .lift {
     transition: none;
   }

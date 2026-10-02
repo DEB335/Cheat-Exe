@@ -8,7 +8,6 @@ import {
   ParticleField,
   resolvePalette,
   usePauseWhenHidden,
-  usePointerLean,
   useSvgIds,
   type RGB,
 } from "@/components/holo";
@@ -35,15 +34,19 @@ const CLOUD_SPARKS: readonly RGB[] = [SKY, BLUE, CYAN, INDIGO, VIOLET, PURPLE];
 /** The cloud's platform: violet on the right fading to sky on the left, as the rim gradient runs c -> a. */
 const CLOUD_PLATFORM: readonly RGB[] = [PURPLE, INDIGO, SKY];
 
-/** Streaks flying off the medallion: angle (0 = right, clockwise), delay, and warm or cool. */
-const STREAKS: readonly { a: number; d: number; warm: boolean }[] = [
-  { a: 196, d: 0, warm: true },
-  { a: 168, d: 1.5, warm: true },
-  { a: 218, d: 2.7, warm: true },
-  { a: 244, d: 0.9, warm: false },
-  { a: 318, d: 0.4, warm: false },
-  { a: 340, d: 2.1, warm: false },
-  { a: 12, d: 3.3, warm: false },
+/**
+ * Streaks off the medallion: angle (0 = right, clockwise), how far out
+ * along its path each one rests (0..1), and warm or cool. Staggered, so
+ * the still set reads as a burst rather than a ring.
+ */
+const STREAKS: readonly { a: number; p: number; warm: boolean }[] = [
+  { a: 196, p: 0.42, warm: true },
+  { a: 168, p: 0.28, warm: true },
+  { a: 218, p: 0.6, warm: true },
+  { a: 244, p: 0.36, warm: false },
+  { a: 318, p: 0.52, warm: false },
+  { a: 340, p: 0.24, warm: false },
+  { a: 12, p: 0.46, warm: false },
 ];
 
 // Module classes are joined by hand, never through cn(): tailwind-merge
@@ -62,8 +65,9 @@ const join = (...parts: (string | false | undefined)[]) => parts.filter(Boolean)
  *
  * The caller sizes and places it (about 320 x 230); the scene is fitted
  * inside that box at its own ratio. Decorative: aria-hidden, no pointer
- * events (it leans toward the pointer read from the panel), animations
- * paused off screen, one particle canvas.
+ * events. Of its own pieces only the medallion's slow sway moves
+ * (paused off screen); the streaks, glows, crown and the ring's comet
+ * are a still frame. One particle canvas.
  */
 export function ProfileAvatarStage({
   src,
@@ -78,7 +82,6 @@ export function ProfileAvatarStage({
   const rootRef = useRef<HTMLDivElement>(null);
   const medallionRef = useRef<HTMLDivElement>(null);
   usePauseWhenHidden(rootRef);
-  usePointerLean(rootRef);
   const isOwner = useDashboard((s) => s.user?.role === "OWNER");
 
   return (
@@ -90,7 +93,7 @@ export function ProfileAvatarStage({
             <span
               key={s.a}
               className={join(styles.streak, s.warm ? styles.warm : styles.cool)}
-              style={{ "--a": `${s.a}deg`, "--d": `${-s.d}s` } as CSSProperties}
+              style={{ "--a": `${s.a}deg`, "--p": s.p } as CSSProperties}
             />
           ))}
         </div>
@@ -105,18 +108,16 @@ export function ProfileAvatarStage({
           className={styles.avatarParticles}
         />
         <div ref={medallionRef} className={styles.medallion}>
-          <div className={styles.lean}>
-            <div className={styles.idle}>
-              <div className={styles.ringBloom} />
-              <MedallionRing back />
-              {/* Keyed on the address, so a new URL gets a fresh try
-                  rather than inheriting the last one's failure. */}
-              <AvatarFace key={src} src={src} />
-              <div className={styles.faceGlass} />
-              <MedallionRing />
-              <div className={styles.comet} />
-              {(crown ?? isOwner) && <Crown />}
-            </div>
+          <div className={styles.idle}>
+            <div className={styles.ringBloom} />
+            <MedallionRing back />
+            {/* Keyed on the address, so a new URL gets a fresh try
+                rather than inheriting the last one's failure. */}
+            <AvatarFace key={src} src={src} />
+            <div className={styles.faceGlass} />
+            <MedallionRing />
+            <div className={styles.comet} />
+            {(crown ?? isOwner) && <Crown />}
           </div>
         </div>
       </div>
@@ -292,31 +293,35 @@ const TOWER: Box = [220, 37, 29, 8, 54, 5];
 /** How far down each slot row sits from the lid's side corners. */
 const slotRows = (h: number, slots: number) => Array.from({ length: slots }, (_, i) => (h * (i + 1)) / (slots + 1));
 
-/** A box's status lights, one by each slot on its left face, with their blink offsets (s). */
-const boxLeds = ([cx, ty, w, k, h, slots]: Box, blink: number) =>
-  slotRows(h, slots).map((s) => ({ x: cx - w * 0.2, y: ty + 1.8 * k + s, d: blink + s * 0.07 }));
+/** Status-light brightness, cycled through so a still row looks busy rather than flat. */
+const LED_GLOW = [1, 0.35, 0.85, 0.5, 0.95, 0.3, 0.7];
 
-const RACK_LEDS = RACKS.flatMap((box, i) => boxLeds(box, i * 0.6));
-const TOWER_LEDS = boxLeds(TOWER, 0.3);
-/** Packets on the links; `rest` is how far along a still frame shows each one. */
-const PACKETS: readonly { x: number; d: number; inbound: boolean; rest: number }[] = [
-  { x: 16, d: 0, inbound: true, rest: 0.17 },
-  { x: 16, d: 1.1, inbound: true, rest: 0.5 },
-  { x: 16, d: 2.2, inbound: true, rest: 0.83 },
-  { x: 424, d: 0.55, inbound: false, rest: 0.17 },
-  { x: 424, d: 1.65, inbound: false, rest: 0.5 },
-  { x: 424, d: 2.75, inbound: false, rest: 0.83 },
+/** A box's status lights, one by each slot on its left face; `start` offsets its run of LED_GLOW. */
+const boxLeds = ([cx, ty, w, k, h, slots]: Box, start: number) =>
+  slotRows(h, slots).map((s, i) => ({ x: cx - w * 0.2, y: ty + 1.8 * k + s, o: LED_GLOW[(start + i) % LED_GLOW.length] }));
+
+const RACK_LEDS = RACKS.flatMap((box, i) => boxLeds(box, i * 3));
+const TOWER_LEDS = boxLeds(TOWER, 2);
+/** Packets on the links; `rest` is how far along its link each one sits. */
+const PACKETS: readonly { x: number; inbound: boolean; rest: number }[] = [
+  { x: 16, inbound: true, rest: 0.17 },
+  { x: 16, inbound: true, rest: 0.5 },
+  { x: 16, inbound: true, rest: 0.83 },
+  { x: 424, inbound: false, rest: 0.17 },
+  { x: 424, inbound: false, rest: 0.5 },
+  { x: 424, inbound: false, rest: 0.83 },
 ];
 
 /**
  * The Account Details header's decoration: a glassy blue-violet cloud
  * with a server tower before it, resting on a small holographic
  * platform, linked by dotted data lines to server racks either side,
- * with packets riding the links in and blue sparkles circling the cloud.
+ * with packets on the links and blue sparkles circling the cloud.
  *
  * The caller sizes and places it (about 440 x 140); the scene is fitted
  * inside that box at its own ratio. Decorative: aria-hidden, no pointer
- * events, animations paused off screen, one particle canvas.
+ * events. A still frame apart from the platform and the particle
+ * canvas, both paused off screen.
  */
 export function CloudScene({ className }: { className?: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -330,8 +335,7 @@ export function CloudScene({ className }: { className?: string }) {
         <div className={styles.cloudGlow} />
 
         {/* Behind the platform: the links, the packets on them, the racks.
-            Anything that moves is an HTML element over the still SVG
-            (CSS motion on an SVG child runs on the main thread), layered
+            The packets and status lights are HTML over the SVG, layered
             in the drawing's order: links, packets, end points and racks,
             then the racks' status lights. */}
         <svg className={styles.layer} viewBox="0 0 440 140">
@@ -368,9 +372,9 @@ export function CloudScene({ className }: { className?: string }) {
         <div className={styles.layer}>
           {PACKETS.map((p) => (
             <span
-              key={`${p.x}-${p.d}`}
+              key={`${p.x}-${p.rest}`}
               className={join(styles.packet, p.inbound ? styles.packetIn : styles.packetOut)}
-              style={{ ...at(p.x, LINK_Y), "--d": `${-p.d}s`, "--p": p.rest } as CSSProperties}
+              style={{ ...at(p.x, LINK_Y), "--p": p.rest } as CSSProperties}
             >
               <svg viewBox="-3.2 -3.2 6.4 6.4">
                 <circle r="3.2" fill={url("packet")} />
@@ -485,15 +489,14 @@ function BoxGradients({ id }: { id: (name: string) => string }) {
 const at = (x: number, y: number) => ({ left: `${x / 4.4}%`, top: `${y / 1.4}%` });
 
 /**
- * The boxes' blinking status lights, as HTML dots over the drawing so
- * the compositor runs the blink. Each keeps its own offset: the stagger
- * is the look.
+ * The boxes' status lights, as HTML dots over the drawing. Still, each
+ * at its own brightness: the stagger is the look.
  */
-function StatusLeds({ leds, className }: { leds: readonly { x: number; y: number; d: number }[]; className?: string }) {
+function StatusLeds({ leds, className }: { leds: readonly { x: number; y: number; o: number }[]; className?: string }) {
   return (
     <div className={join(styles.layer, className)}>
       {leds.map((l) => (
-        <span key={`${l.x}-${l.y}`} className={styles.led} style={{ ...at(l.x, l.y), "--d": `${-l.d}s` } as CSSProperties} />
+        <span key={`${l.x}-${l.y}`} className={styles.led} style={{ ...at(l.x, l.y), opacity: l.o }} />
       ))}
     </div>
   );

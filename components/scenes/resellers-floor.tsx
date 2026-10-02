@@ -63,11 +63,10 @@ const p = PALETTES.aurora;
 /**
  * The floor the reseller hologram stands on: a perspective grid fading
  * into the dark, rings round the pedestal (blue on the left, magenta on
- * the right, like the mockup), and HUD dashes turning on the floor.
+ * the right, like the mockup), and HUD dashes and arcs on the floor.
  *
- * The SVG is static and painted once; the HUD rings are planes tipped
- * into the floor with a transform and spun inside it, so the only
- * motion is compositor work.
+ * All static, painted once; the HUD rings are planes tipped into the
+ * floor with a transform.
  */
 export function ResellerFloor() {
   const { id, url } = useSvgIds("rf");

@@ -1,8 +1,8 @@
 "use client";
 
-import { useRef, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 
-import { HoloShield, HoloStage, paletteVars, resolvePalette, usePauseWhenHidden, useSvgIds, type RGB } from "@/components/holo";
+import { HoloShield, HoloStage, paletteVars, resolvePalette, useSvgIds, type RGB } from "@/components/holo";
 import { cn } from "@/lib/utils";
 
 import styles from "./scene-whitelist.module.css";
@@ -24,19 +24,20 @@ const TONE: readonly RGB[] = [
 const PALETTE = resolvePalette(TONE);
 
 // The streaks of the light curtain: where each stands (% across the
-// curtain), how high it reaches (% of it) and where its flicker starts.
-// Fixed, so the curtain looks the same on every mount.
+// curtain), how high it reaches (% of it) and how bright it burns, so
+// the still curtain is uneven rather than a flat row. Fixed, so it
+// looks the same on every mount.
 const STREAKS = [
-  { x: 2, h: 52, d: -0.4 },
-  { x: 11, h: 84, d: -2.2 },
-  { x: 20, h: 44, d: -3.8 },
-  { x: 29, h: 72, d: -1.3 },
-  { x: 41, h: 96, d: -4.6 },
-  { x: 59, h: 90, d: -2.9 },
-  { x: 71, h: 76, d: -0.9 },
-  { x: 80, h: 48, d: -3.3 },
-  { x: 89, h: 88, d: -1.8 },
-  { x: 98, h: 58, d: -5.1 },
+  { x: 2, h: 52, o: 0.5 },
+  { x: 11, h: 84, o: 0.8 },
+  { x: 20, h: 44, o: 0.4 },
+  { x: 29, h: 72, o: 0.65 },
+  { x: 41, h: 96, o: 0.9 },
+  { x: 59, h: 90, o: 0.75 },
+  { x: 71, h: 76, o: 0.55 },
+  { x: 80, h: 48, o: 0.4 },
+  { x: 89, h: 88, o: 0.7 },
+  { x: 98, h: 58, o: 0.45 },
 ] as const;
 
 // Lifts the shield clear of the pedestal, so the cards have room to
@@ -53,23 +54,16 @@ const STAGE_VARS = { "--lift": "7cqw", "--ped-bottom": "5cqw" } as CSSProperties
  * Designed for a ~340px square. The caller positions and sizes the root
  * (it needs both a width and a height); the scene is the largest square
  * that fits in it. Decorative only: hidden from assistive tech and
- * never takes the pointer -- the lean reads the pointer off the panel.
+ * never takes the pointer. The curtain and the cards are still; they
+ * ride the stage's float with the shield, which is all that moves.
  */
 export function WhitelistScene({ className }: { className?: string }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  usePauseWhenHidden(rootRef);
-
   return (
-    <div
-      ref={rootRef}
-      aria-hidden
-      className={`${styles.root} ${cn("pointer-events-none relative", className)}`}
-      style={paletteVars(PALETTE)}
-    >
+    <div aria-hidden className={`${styles.root} ${cn("pointer-events-none relative", className)}`} style={paletteVars(PALETTE)}>
       <div className={styles.square}>
         <div className={styles.curtain}>
           {STREAKS.map((s) => (
-            <span key={s.x} style={{ left: `${s.x}%`, height: `${s.h}%`, animationDelay: `${s.d}s` }} />
+            <span key={s.x} style={{ left: `${s.x}%`, height: `${s.h}%`, opacity: s.o }} />
           ))}
         </div>
         <HoloStage
@@ -85,21 +79,15 @@ export function WhitelistScene({ className }: { className?: string }) {
         >
           <HoloShield tone={TONE} glyph="user" />
           <div className={styles.props}>
-            <div className={styles.propsLean}>
-              <div className={`${styles.card} ${styles.idCard}`}>
-                <div className={styles.drift}>
-                  <span className={styles.glassBack} />
-                  <span className={styles.glass} />
-                  <IdPrint />
-                </div>
-              </div>
-              <div className={`${styles.card} ${styles.uidCard}`}>
-                <div className={styles.drift}>
-                  <span className={styles.glassBack} />
-                  <span className={styles.glass} />
-                  <span className={styles.uidText}>UID</span>
-                </div>
-              </div>
+            <div className={`${styles.card} ${styles.idCard}`}>
+              <span className={styles.glassBack} />
+              <span className={styles.glass} />
+              <IdPrint />
+            </div>
+            <div className={`${styles.card} ${styles.uidCard}`}>
+              <span className={styles.glassBack} />
+              <span className={styles.glass} />
+              <span className={styles.uidText}>UID</span>
             </div>
           </div>
         </HoloStage>

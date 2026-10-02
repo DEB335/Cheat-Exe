@@ -31,8 +31,8 @@ export interface HoloCubeProps {
  * A glass cube hologram: six translucent faces in real CSS 3D, with a
  * neon edge and inner glow on each, light trapped at its heart, vents on
  * the side and a slot on the lid, and a glowing glyph on the front face
- * (a padlock for the vault, a key for the generator). It sways slowly,
- * and leans toward the pointer through --hx/--hy inside a HoloStage.
+ * (a padlock for the vault, a key for the generator). It sways slowly
+ * (and bobs too, inside a HoloStage).
  *
  * The cube takes 58% of its box, so its corners and glow stay inside
  * however it turns.
@@ -67,36 +67,34 @@ export function HoloCube({
       <div className={styles.scene}>
         {halo ? <div className={styles.halo} /> : null}
         {ring ? <div className={`${styles.orbit} ${styles.orbitBack}`} /> : null}
-        <div className={styles.lean}>
-          <div className={styles.idle}>
-            <div className={styles.cubeBody}>
-              <div className={`${styles.face} ${styles.back}`} />
-              <div className={`${styles.face} ${styles.left}`} />
-              <div className={`${styles.face} ${styles.bottom}`} />
-              <div className={styles.core} />
-              <div className={`${styles.face} ${styles.right}`}>
-                <span className={styles.vents} />
-              </div>
-              <div className={`${styles.face} ${styles.top}`}>
-                <span className={styles.slot} />
-              </div>
-              <div className={`${styles.face} ${styles.front}`}>
-                {brackets ? (
-                  <>
-                    <span className={styles.bracket} />
-                    <span className={styles.bracket} />
-                    <span className={styles.bracket} />
-                    <span className={styles.bracket} />
-                  </>
-                ) : null}
-                {isGlyphName(glyph) ? (
-                  <svg className={styles.faceGlyph} viewBox="0 0 40 40">
-                    <HoloGlyph glyph={glyph} p={p} id={id} url={url} x={0} y={0} size={40} />
-                  </svg>
-                ) : glyph ? (
-                  <div className={`${styles.faceGlyph} grid place-items-center`}>{glyph}</div>
-                ) : null}
-              </div>
+        <div className={styles.idle}>
+          <div className={styles.cubeBody}>
+            <div className={`${styles.face} ${styles.back}`} />
+            <div className={`${styles.face} ${styles.left}`} />
+            <div className={`${styles.face} ${styles.bottom}`} />
+            <div className={styles.core} />
+            <div className={`${styles.face} ${styles.right}`}>
+              <span className={styles.vents} />
+            </div>
+            <div className={`${styles.face} ${styles.top}`}>
+              <span className={styles.slot} />
+            </div>
+            <div className={`${styles.face} ${styles.front}`}>
+              {brackets ? (
+                <>
+                  <span className={styles.bracket} />
+                  <span className={styles.bracket} />
+                  <span className={styles.bracket} />
+                  <span className={styles.bracket} />
+                </>
+              ) : null}
+              {isGlyphName(glyph) ? (
+                <svg className={styles.faceGlyph} viewBox="0 0 40 40">
+                  <HoloGlyph glyph={glyph} p={p} id={id} url={url} x={0} y={0} size={40} />
+                </svg>
+              ) : glyph ? (
+                <div className={`${styles.faceGlyph} grid place-items-center`}>{glyph}</div>
+              ) : null}
             </div>
           </div>
         </div>

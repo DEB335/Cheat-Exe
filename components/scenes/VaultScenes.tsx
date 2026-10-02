@@ -1,10 +1,9 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useRef } from "react";
 
 import { ParticleGlobe } from "@/components/effects/ParticleGlobe";
 import {
-  findPointerHost,
   HoloCube,
   HoloPedestal,
   HoloShield,
@@ -12,7 +11,6 @@ import {
   ParticleField,
   resolvePalette,
   usePauseWhenHidden,
-  usePointerLean,
   type RGB,
 } from "@/components/holo";
 import { cn } from "@/lib/utils";
@@ -44,9 +42,14 @@ import styles from "./scene-banned.module.css";
  * the near side -- two canvases for the vault panel together. The
  * network scene is the existing ParticleGlobe plus CSS and SVG.
  *
- * Decorative only: aria-hidden, no pointer events (the pointer is read
- * from the panel, so its controls under a scene keep working), every
- * loop paused off screen and held still for reduced motion.
+ * Motion: only each hero object moves (the holo kit's slow sway, which
+ * also carries the float, and its pedestal's reticle) plus the canvases;
+ * the orbits, glints, router and wifi hold still, and nothing follows
+ * the pointer.
+ *
+ * Decorative only: aria-hidden, no pointer events (so the panel's
+ * controls under a scene keep working), every loop paused off screen
+ * and held still for reduced motion.
  */
 
 const AURORA = resolvePalette("aurora");
@@ -62,11 +65,10 @@ const INDIGO: RGB = [99, 102, 241];
 const PINK: RGB = [255, 79, 216];
 const WHITE: RGB = [240, 236, 255];
 
-/** The shared root: a size container that leans its objects toward the pointer and rests off screen. */
+/** The shared root: a size container that rests off screen. */
 function useSceneRoot() {
   const ref = useRef<HTMLDivElement>(null);
   usePauseWhenHidden(ref);
-  usePointerLean(ref);
   return ref;
 }
 
@@ -75,13 +77,13 @@ const rootClass = (className?: string) => `${styles.root} ${cn("pointer-events-n
 // ---- Shield ---------------------------------------------------------------
 
 const SHIELD_GLINTS: readonly Glint[] = [
-  { x: 14, y: 26, size: 9, at: 0.4 },
-  { x: 86, y: 18, size: 11, at: 2.1 },
-  { x: 84, y: 56, size: 6, at: 3.3 },
-  { x: 11, y: 60, size: 6, at: 1.4 },
-  { x: 60, y: 6, size: 5, at: 3.9 },
-  { x: 28, y: 48, size: 3, at: 0.8, kind: "mote" },
-  { x: 74, y: 70, size: 3, at: 4.2, kind: "mote" },
+  { x: 14, y: 26, size: 9, lit: 0.8 },
+  { x: 86, y: 18, size: 11, lit: 0.6 },
+  { x: 84, y: 56, size: 6, lit: 0.9 },
+  { x: 11, y: 60, size: 6, lit: 0.55 },
+  { x: 60, y: 6, size: 5, lit: 0.7 },
+  { x: 28, y: 48, size: 3, lit: 0.65, kind: "mote" },
+  { x: 74, y: 70, size: 3, lit: 0.5, kind: "mote" },
 ];
 
 /**
@@ -100,9 +102,7 @@ export function VaultShieldScene({ className }: { className?: string }) {
         <div className={`${styles.halo} ${styles.shieldHalo}`} />
         <HoloPedestal tone="aurora" className={styles.shieldPedestal} />
         <div ref={objectRef} className={`${styles.object} ${styles.shieldObject}`}>
-          <div className={styles.bob}>
-            <HoloShield tone="aurora" glyph="x" />
-          </div>
+          <HoloShield tone="aurora" glyph="x" />
         </div>
         <SceneGlints glints={SHIELD_GLINTS} />
       </div>
@@ -133,8 +133,8 @@ const LOCK_ORBITS: readonly Orbit[] = [
     to: VIOLET,
     width: 1.4,
     beads: [
-      { at: 60, lap: 9, color: SKY },
-      { at: 250, lap: 9, color: MAGENTA },
+      { at: 60, color: SKY },
+      { at: 250, color: MAGENTA },
     ],
   },
   {
@@ -146,30 +146,30 @@ const LOCK_ORBITS: readonly Orbit[] = [
     from: VIOLET,
     to: BLUE,
     width: 0.9,
-    beads: [{ at: 140, lap: 14, color: WHITE }],
+    beads: [{ at: 140, color: WHITE }],
   },
 ];
 
 // Out from the platform's floor ring, bending away toward the edges; the
 // left ones stop short, for that same strip.
 const LOCK_TRACES: readonly Trace[] = [
-  { points: [[74, 258], [56, 258], [48, 250], [42, 250]], color: SKY, pulse: 1.6, at: 0.3 },
+  { points: [[74, 258], [56, 258], [48, 250], [42, 250]], color: SKY, pulse: 0.55 },
   { points: [[92, 280], [74, 294], [44, 294]], color: VIOLET },
-  { points: [[70, 270], [50, 270], [42, 278]], color: BLUE, pulse: 1.8, at: 1.2 },
-  { points: [[326, 258], [360, 258], [378, 240], [400, 240]], color: CYAN, pulse: 3.2, at: 1.1 },
-  { points: [[308, 280], [334, 296], [392, 296]], color: PINK, pulse: 2.4, at: 1.6 },
+  { points: [[70, 270], [50, 270], [42, 278]], color: BLUE, pulse: 0.7 },
+  { points: [[326, 258], [360, 258], [378, 240], [400, 240]], color: CYAN, pulse: 0.45 },
+  { points: [[308, 280], [334, 296], [392, 296]], color: PINK, pulse: 0.6 },
   { points: [[330, 270], [372, 270], [390, 288]], color: INDIGO },
 ];
 
 // None in the top-right corner, where the hero's Search user button sits.
 const LOCK_GLINTS: readonly Glint[] = [
-  { x: 17, y: 20, size: 5.5, at: 1.2 },
-  { x: 64, y: 12, size: 7, at: 3.1 },
-  { x: 90, y: 50, size: 4.5, at: 0.3 },
-  { x: 15, y: 58, size: 4, at: 2.4 },
-  { x: 40, y: 6, size: 3.5, at: 4 },
-  { x: 30, y: 40, size: 2.2, at: 1.9, kind: "mote" },
-  { x: 76, y: 62, size: 2.2, at: 5.1, kind: "mote" },
+  { x: 17, y: 20, size: 5.5, lit: 0.75 },
+  { x: 64, y: 12, size: 7, lit: 0.6 },
+  { x: 90, y: 50, size: 4.5, lit: 0.9 },
+  { x: 15, y: 58, size: 4, lit: 0.5 },
+  { x: 40, y: 6, size: 3.5, lit: 0.7 },
+  { x: 30, y: 40, size: 2.2, lit: 0.6, kind: "mote" },
+  { x: 76, y: 62, size: 2.2, lit: 0.45, kind: "mote" },
 ];
 
 /**
@@ -191,9 +191,7 @@ export function VaultLockScene({ className }: { className?: string }) {
         <OrbitLayer orbits={LOCK_ORBITS} half="back" view={LOCK_VIEW} />
         <HoloPedestal tone="aurora" className={styles.lockPedestal} />
         <div ref={objectRef} className={`${styles.object} ${styles.lockObject}`}>
-          <div className={styles.bob}>
-            <HoloCube tone={LOCK_CUBE} glyph={<VaultLockFace tone={LOCK_CUBE} />} />
-          </div>
+          <HoloCube tone={LOCK_CUBE} glyph={<VaultLockFace tone={LOCK_CUBE} />} />
         </div>
         <OrbitLayer orbits={LOCK_ORBITS} half="front" view={LOCK_VIEW} />
         <SceneGlints glints={LOCK_GLINTS} />
@@ -220,37 +218,32 @@ const GLOBE_ORBITS: readonly Orbit[] = [
     to: MAGENTA,
     width: 1.3,
     beads: [
-      { at: 75, lap: 16, color: MAGENTA },
-      { at: 230, lap: 16, color: SKY },
+      { at: 75, color: MAGENTA },
+      { at: 230, color: SKY },
     ],
   },
 ];
 
 const GLOBE_GLINTS: readonly Glint[] = [
-  { x: 8, y: 22, size: 3.2, at: 0.9 },
-  { x: 95, y: 30, size: 3.6, at: 2.6 },
-  { x: 52, y: 8, size: 2.4, at: 3.8 },
-  { x: 62, y: 88, size: 2.6, at: 1.7 },
-  { x: 20, y: 80, size: 1.2, at: 2.2, kind: "mote" },
+  { x: 8, y: 22, size: 3.2, lit: 0.7 },
+  { x: 95, y: 30, size: 3.6, lit: 0.85 },
+  { x: 52, y: 8, size: 2.4, lit: 0.55 },
+  { x: 62, y: 88, size: 2.6, lit: 0.65 },
+  { x: 20, y: 80, size: 1.2, lit: 0.5, kind: "mote" },
 ];
 
 /**
  * Blocked devices and networks, top-right of their panel: the particle
- * globe with a small router beside it, its lights blinking and a wifi
- * signal over it, and one tilted ring round the pair. Drawn at about
- * 380 x 170, with its lower-right corner (below y 120 of the view, right
- * of x 270) left empty for the button the panel puts there.
+ * globe with a small router beside it, its lights lit and a wifi signal
+ * over it, and one tilted ring round the pair. Drawn at about 380 x 170,
+ * with its lower-right corner (below y 120 of the view, right of x 270)
+ * left empty for the button the panel puts there.
  */
 export function NetworkGlobeScene({ className }: { className?: string }) {
   const rootRef = useSceneRoot();
-  // The globe listens for the pointer on its host, and this scene takes
-  // none: hand it the panel. Set before the globe's own effect reads it,
-  // since layout effects all run before any passive one.
-  const hostRef = useRef<HTMLElement | null>(null);
-  useLayoutEffect(() => {
-    if (rootRef.current) hostRef.current = findPointerHost(rootRef.current);
-  }, [rootRef]);
 
+  // The globe gets no pointer host: inside this pointer-events: none
+  // scene it hears no pointer, so it holds its resting view.
   return (
     <div
       ref={rootRef}
@@ -264,7 +257,7 @@ export function NetworkGlobeScene({ className }: { className?: string }) {
           <GlobeGraticule />
         </div>
         <div className={styles.globe}>
-          <ParticleGlobe hostRef={hostRef} cy={0.54} radius={0.36} />
+          <ParticleGlobe cy={0.54} radius={0.36} />
         </div>
         <OrbitLayer orbits={GLOBE_ORBITS} half="front" view={GLOBE_VIEW} />
         {/* On the ring's near side, so the ring passes behind it. */}

@@ -9,7 +9,6 @@ import {
   ParticleField,
   resolvePalette,
   usePauseWhenHidden,
-  usePointerLean,
   type RGB,
 } from "@/components/holo";
 import { cn } from "@/lib/utils";
@@ -30,10 +29,10 @@ import styles from "./scene-audit.module.css";
  * Particle budget: one ParticleField split into a back and a front layer
  * at the tower (one field, like a HoloStage's), plus CSS glints.
  *
- * Decorative only: aria-hidden, no pointer events (the pointer is read
- * from the panel, so its buttons under the scene keep working), every
- * loop paused off screen or in a hidden tab and held still for reduced
- * motion.
+ * Decorative only: aria-hidden, no pointer events (so the panel's
+ * buttons under the scene keep working), still to the pointer. The only
+ * loops are the tower's sway and the kit's shield and pedestal, paused off
+ * screen or in a hidden tab and held still for reduced motion.
  */
 
 const CYAN = resolvePalette("cyan");
@@ -56,7 +55,6 @@ export function AuditScene({ className }: { className?: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
   usePauseWhenHidden(rootRef);
-  usePointerLean(rootRef);
 
   const field = (layer: "back" | "front") => (
     <ParticleField
@@ -87,7 +85,7 @@ export function AuditScene({ className }: { className?: string }) {
         <div ref={anchorRef} className={styles.anchor} />
         <AuditTower />
         <div className={styles.shield}>
-          <div className={styles.bob}>
+          <div className={styles.float}>
             <HoloShield tone="cyan" glyph="lock" />
           </div>
         </div>

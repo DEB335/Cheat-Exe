@@ -8,9 +8,9 @@
    The frame is a size container and every length inside it is cqw of
    the frame, the same as the holo kit's objects.
 
-   Only transform and opacity animate. The SVG glass is static, so it is
-   painted once; anything that moves (streaks, the ring's comet, packets,
-   LEDs) carries no filter, which would repaint it every frame.
+   Of these files' own pieces only the medallion's slow sway animates
+   (transform only); the streaks, glows, comet, crown, packets and LEDs
+   are a still frame. The SVG glass is static, so it is painted once.
    Standalone translate/rotate/scale are dropped by this pipeline, so
    every offset is inside `transform`.
    ================================================================== */
@@ -63,12 +63,13 @@
   background:
     radial-gradient(closest-side at 34% 58%, rgb(255 122 26 / 0.17), rgb(255 79 216 / 0.05) 60%, transparent),
     radial-gradient(closest-side at 68% 42%, rgb(168 85 247 / 0.21), rgb(99 102 241 / 0.06) 62%, transparent);
-  animation: profile-breathe 5.5s ease-in-out infinite;
+  opacity: 0.9;
 }
 
 /* Light streaks flying out from the medallion, like the mockup's
    warp lines: each starts at the face's centre, turned to its own
-   angle (--a), and slides outward along it as it fades. */
+   angle (--a), and rests part-way (--p, 0..1) along a path from 21cqw
+   to 44cqw out, longer and fainter the farther it has gone. */
 .streaks {
   position: absolute;
   left: 50%;
@@ -85,9 +86,8 @@
   height: max(2px, 0.7cqw);
   border-radius: 999px;
   transform-origin: 0 50%;
-  opacity: 0;
-  animation: profile-streak 4.2s cubic-bezier(0.5, 0, 0.9, 0.6) infinite;
-  animation-delay: var(--d);
+  transform: rotate(var(--a)) translateX(calc(21cqw + 23cqw * var(--p))) scaleX(calc(0.4 + 0.6 * var(--p)));
+  opacity: calc(1.05 - 0.55 * var(--p));
 }
 
 .warm {
@@ -113,8 +113,7 @@
   z-index: 2;
 }
 
-/* The medallion: a CSS 3D group that leans toward the pointer
-   (--hx/--hy from usePointerLean) and sways on its own. */
+/* The medallion: a CSS 3D group that sways slowly on its own. */
 .medallion {
   position: absolute;
   left: 50%;
@@ -126,23 +125,14 @@
   z-index: 3;
 }
 
-.lean,
 .idle {
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-}
-
-.lean {
-  transform: rotateY(calc(var(--hx, 0) * 18deg)) rotateX(calc(var(--hy, 0) * -12deg));
-  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.idle {
   animation: profile-sway 10s ease-in-out infinite;
 }
 
-/* Bloom round the ring: flat, painted once, breathing. */
+/* Bloom round the ring: flat, painted once. */
 .ringBloom {
   position: absolute;
   inset: -16%;
@@ -154,7 +144,7 @@
     rgb(255 79 216 / 0.1) 78%,
     transparent
   );
-  animation: profile-breathe 4.4s ease-in-out infinite;
+  opacity: 0.9;
 }
 
 /* The medallion's back: a darker copy of the ring set behind it, so the
@@ -203,7 +193,8 @@
   transform: translateZ(0.6cqw);
 }
 
-/* A comet of light running round the ring. */
+/* A comet of light on the ring, held with its head at the upper left
+   and its tail down the ember side. */
 .comet {
   position: absolute;
   inset: 0;
@@ -217,8 +208,7 @@
   );
   -webkit-mask: radial-gradient(closest-side, transparent 90.5%, #000 92% 97.5%, transparent 99%);
   mask: radial-gradient(closest-side, transparent 90.5%, #000 92% 97.5%, transparent 99%);
-  transform: translateZ(0.8cqw);
-  animation: profile-spin 5.5s linear infinite;
+  transform: translateZ(0.8cqw) rotate(-50deg);
 }
 
 .ringFront {
@@ -226,7 +216,7 @@
 }
 
 /* The crown floats over the ring on its own plane, so it parallaxes
-   against the medallion as it leans. */
+   against the medallion as it sways. */
 .crown {
   position: absolute;
   left: 50%;
@@ -240,7 +230,7 @@
 .crownFloat {
   position: absolute;
   inset: 0;
-  animation: profile-bob 4.6s ease-in-out infinite;
+  transform: translateY(-2.5%);
 }
 
 /* ---- Cloud scene ------------------------------------------------- */
@@ -260,7 +250,7 @@
   background:
     radial-gradient(closest-side at 42% 50%, rgb(59 130 246 / 0.19), transparent),
     radial-gradient(closest-side at 60% 46%, rgb(168 85 247 / 0.16), transparent);
-  animation: profile-breathe 6s ease-in-out infinite;
+  opacity: 0.9;
 }
 
 /* The platform: centred, 210 units wide, its top face at y = 102
@@ -291,20 +281,19 @@
   height: 1px;
 }
 
-/* The moving bits of the cloud drawing are HTML over its SVG, placed at
-   a point of the drawing (left/top from the component) and sized in its
-   units: one unit is 100cqw / 440 of the frame. */
+/* The packets and status lights are HTML over the cloud drawing's SVG,
+   placed at a point of the drawing (left/top from the component) and
+   sized in its units: one unit is 100cqw / 440 of the frame. */
 
-/* Data packets riding the dotted links toward the cloud: 132 units of
-   travel, 6.4 across. */
+/* Data packets on the dotted links toward the cloud: each rests --p of
+   the way along its 132 units of link, 6.4 across. */
 .packet {
   position: absolute;
   width: calc(100cqw * 6.4 / 440);
   aspect-ratio: 1;
   margin: calc(100cqw * -3.2 / 440) 0 0 calc(100cqw * -3.2 / 440);
-  opacity: 0;
-  animation: profile-packet 3.3s linear infinite;
-  animation-delay: var(--d);
+  opacity: 0.9;
+  transform: translateX(calc(var(--travel) * var(--p, 0.5)));
 }
 
 .packet > svg {
@@ -322,7 +311,8 @@
   --travel: -30cqw;
 }
 
-/* A status light by each slot: 1.8 units across. */
+/* A status light by each slot: 1.8 units across (its brightness is set
+   inline). */
 .led {
   position: absolute;
   width: calc(100cqw * 1.8 / 440);
@@ -330,8 +320,6 @@
   margin: calc(100cqw * -0.9 / 440) 0 0 calc(100cqw * -0.9 / 440);
   border-radius: 50%;
   background: #67e8f9;
-  animation: profile-blink 2.4s steps(2, jump-none) infinite;
-  animation-delay: var(--d);
 }
 
 /* ---- Light mode -------------------------------------------------- */
@@ -344,7 +332,6 @@
 :global(body.light-mode) .cloudGlow,
 :global(body.light-mode) .ringBloom {
   opacity: 0.5;
-  animation: none;
 }
 :global(body.light-mode) .warm {
   background: linear-gradient(90deg, transparent, rgb(234 88 12 / 0.7) 45%, #f97316);
@@ -357,33 +344,6 @@
 
 /* ---- Motion ------------------------------------------------------ */
 
-@keyframes profile-breathe {
-  0%,
-  100% {
-    opacity: 0.7;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-@keyframes profile-streak {
-  0% {
-    transform: rotate(var(--a)) translateX(21cqw) scaleX(0.4);
-    opacity: 0;
-  }
-  18% {
-    opacity: 1;
-  }
-  70% {
-    opacity: 0.85;
-  }
-  100% {
-    transform: rotate(var(--a)) translateX(44cqw) scaleX(1);
-    opacity: 0;
-  }
-}
-
 @keyframes profile-sway {
   0%,
   100% {
@@ -391,50 +351,6 @@
   }
   50% {
     transform: rotateY(7deg) rotateX(-2deg);
-  }
-}
-
-@keyframes profile-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5%);
-  }
-}
-
-@keyframes profile-spin {
-  from {
-    transform: translateZ(0.8cqw) rotate(0deg);
-  }
-  to {
-    transform: translateZ(0.8cqw) rotate(360deg);
-  }
-}
-
-@keyframes profile-packet {
-  0% {
-    transform: translateX(0);
-    opacity: 0;
-  }
-  12%,
-  80% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(var(--travel));
-    opacity: 0;
-  }
-}
-
-@keyframes profile-blink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.25;
   }
 }
 
@@ -446,25 +362,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .avatarGlow,
-  .streak,
-  .idle,
-  .ringBloom,
-  .comet,
-  .crownFloat,
-  .cloudGlow,
-  .packet,
-  .led {
+  .idle {
     animation: none;
-  }
-  /* A still frame of the lean-free pose, with the streaks and packets
-     resting part-way along their paths rather than hidden. */
-  .streak {
-    opacity: 0.8;
-    transform: rotate(var(--a)) translateX(30cqw);
-  }
-  .packet {
-    opacity: 0.9;
-    transform: translateX(calc(var(--travel) * var(--p, 0.5)));
   }
 }

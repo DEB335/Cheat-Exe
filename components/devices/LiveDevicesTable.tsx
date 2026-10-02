@@ -50,11 +50,6 @@ export function LiveDevicesTable({
     // into 360px.
     <div className="-mx-2 overflow-x-auto px-2 pb-1">
       <div className="relative min-w-[760px]">
-        {/* One band of light crossing the header, clipped to it. */}
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-11 overflow-hidden rounded-t-xl">
-          <span className="animate-panel-sweep absolute motion-reduce:hidden inset-y-0 left-0 w-1/5 bg-[linear-gradient(90deg,transparent,rgba(96,165,250,0.12),transparent)] lt:bg-[linear-gradient(90deg,transparent,rgba(59,130,246,0.08),transparent)]" />
-        </div>
-
         <table className="w-full border-separate border-spacing-0 text-left">
           <thead>
             <tr>
@@ -269,7 +264,11 @@ function DeviceRow({
   );
 }
 
-/** Glossy green pill; a ring keeps leaving the dot so the row reads as live. */
+/**
+ * Glossy green pill; a soft halo round the dot reads as live. The halo
+ * is the old ping ring held part-way out -- still, so ten rows cost no
+ * frames.
+ */
 function OnlinePill() {
   return (
     <span
@@ -283,7 +282,7 @@ function OnlinePill() {
       )}
     >
       <span className="relative flex size-2 shrink-0">
-        <span aria-hidden className="animate-status-ping absolute inset-0 rounded-full bg-[#34d399]" />
+        <span aria-hidden className="absolute inset-0 rounded-full bg-[#34d399] opacity-20 [transform:scale(1.55)]" />
         <span className="relative size-2 rounded-full bg-[#34d399] shadow-[0_0_5px_rgba(52,211,153,0.45)] lt:bg-emerald-500 lt:shadow-none" />
       </span>
       Online

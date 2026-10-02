@@ -2,7 +2,7 @@
 
 import { useRef, type CSSProperties } from "react";
 
-import { mix, PALETTES, ParticleField, usePauseWhenHidden, usePointerLean, useSvgIds, type RGB } from "@/components/holo";
+import { mix, PALETTES, ParticleField, usePauseWhenHidden, useSvgIds, type RGB } from "@/components/holo";
 import { cn } from "@/lib/utils";
 
 import styles from "./scene-generator.module.css";
@@ -38,11 +38,9 @@ interface Cube {
   size: number;
   c1: RGB;
   c2: RGB;
-  /** Roll in degrees, and seconds per turn, per bob and of head start. */
+  /** Roll and turn in degrees: the pose it rests in. */
   roll: number;
-  spin: number;
-  bob: number;
-  delay: number;
+  yaw: number;
   /** Near cubes sit in front of the particles, far ones behind. */
   near?: boolean;
 }
@@ -51,9 +49,9 @@ interface Cube {
 // a far one up to the left, a pink one up on the right, and a big near
 // one low on the left, in front of everything.
 const CUBES: readonly Cube[] = [
-  { x: 0.31, y: 0.2, size: 0.17, c1: CYAN, c2: VIOLET, roll: 12, spin: 34, bob: 7.5, delay: -3 },
-  { x: 0.9, y: 0.24, size: 0.2, c1: MAGENTA, c2: VIOLET, roll: -18, spin: 26, bob: 6.2, delay: -1.5 },
-  { x: 0.15, y: 0.66, size: 0.36, c1: CYAN, c2: MAGENTA, roll: 20, spin: 40, bob: 8.4, delay: -5, near: true },
+  { x: 0.31, y: 0.2, size: 0.17, c1: CYAN, c2: VIOLET, roll: 12, yaw: 32 },
+  { x: 0.9, y: 0.24, size: 0.2, c1: MAGENTA, c2: VIOLET, roll: -18, yaw: 21 },
+  { x: 0.15, y: 0.66, size: 0.36, c1: CYAN, c2: MAGENTA, roll: 20, yaw: 40, near: true },
 ];
 
 const pct = (v: number) => `${v * 100}%`;
@@ -63,22 +61,21 @@ const triplet = (c: RGB) => c.join(" ");
  * The Key Generator's hologram, for the space under the Generated Keys
  * console: a thick violet-blue glass tile with a glowing cyan key on its
  * face, tipped in 3D and floating inside a neon orbit ring with a comet
- * of light running round it, three small glass cubes drifting at
- * different depths, and a volume of sparkle particles circling the
- * tile, half behind it and half in front.
+ * of light on it, three small glass cubes held at different depths, and
+ * a volume of sparkle particles circling the tile, half behind it and
+ * half in front.
  *
  * The caller positions and sizes it -- it needs a definite width and
  * height (designed round ~480 x 260; anything within about 40% either
  * way keeps its proportions) -- and everything stays inside that box.
- * Decorative only: aria-hidden and pointer-events none throughout; the
- * tile leans toward the pointer over the nearest panel, the animations
- * pause off screen or in a hidden tab, and reduced motion gets one
+ * Decorative only: aria-hidden and pointer-events none throughout. Only
+ * the tile moves (a slow bob and sway, not toward the pointer); it
+ * pauses off screen or in a hidden tab, and reduced motion gets one
  * still frame.
  */
 export function KeygenScene({ className }: { className?: string }) {
   const rootRef = useRef<HTMLDivElement>(null);
   usePauseWhenHidden(rootRef);
-  usePointerLean(rootRef);
 
   const vars = { "--kg-x": pct(TILE_X), "--kg-y": pct(TILE_Y) } as CSSProperties;
 
@@ -176,22 +173,20 @@ function KeyTile() {
     <div className={styles.tile}>
       <div className={styles.tileFloat}>
         <div className={styles.tileScene}>
-          <div className={styles.tileLean}>
-            <div className={styles.tileIdle}>
-              <div className={styles.tilePose}>
-                <div className={`${styles.slab} ${styles.back}`} />
-                <div className={`${styles.slab} ${styles.rim} ${styles.backRim}`} />
-                {WALLS.map((w) => (
-                  <div key={w.key} className={styles.wall} style={w.style} />
-                ))}
-                <div className={`${styles.slab} ${styles.face}`}>
-                  <div className={styles.sheen} />
-                  <div className={styles.bevel} />
-                  <div className={`${styles.slab} ${styles.rim}`} />
-                </div>
-                <div className={styles.glyphGlow} />
-                <KeyGlyph />
+          <div className={styles.tileIdle}>
+            <div className={styles.tilePose}>
+              <div className={`${styles.slab} ${styles.back}`} />
+              <div className={`${styles.slab} ${styles.rim} ${styles.backRim}`} />
+              {WALLS.map((w) => (
+                <div key={w.key} className={styles.wall} style={w.style} />
+              ))}
+              <div className={`${styles.slab} ${styles.face}`}>
+                <div className={styles.sheen} />
+                <div className={styles.bevel} />
+                <div className={`${styles.slab} ${styles.rim}`} />
               </div>
+              <div className={styles.glyphGlow} />
+              <KeyGlyph />
             </div>
           </div>
         </div>
@@ -255,7 +250,7 @@ function KeyShape({ paint, grow }: { paint: string; grow: number }) {
 /**
  * One half of the orbit ring: a glass tube drawn as a flat SVG ellipse
  * (bloom, gradient body, hot core), magenta on the left running to
- * cyan on the right, and the comet turning in the same tipped plane.
+ * cyan on the right, and the comet lying in the same tipped plane.
  * The back half also carries the faint floor ring under the tile.
  */
 function Orbit({ half }: { half: "back" | "front" }) {
@@ -303,7 +298,7 @@ function Orbit({ half }: { half: "back" | "front" }) {
   );
 }
 
-/** A small glass die in real 3D, bobbing and turning on its own clock. */
+/** A small glass die in real 3D, held still in its own pose. */
 function GlassCube({ cube }: { cube: Cube }) {
   const style = {
     "--cx": pct(cube.x),
@@ -312,15 +307,13 @@ function GlassCube({ cube }: { cube: Cube }) {
     "--c1": triplet(cube.c1),
     "--c2": triplet(cube.c2),
     "--roll": `${cube.roll}deg`,
-    "--spin": `${cube.spin}s`,
-    "--bob": `${cube.bob}s`,
-    "--delay": `${cube.delay}s`,
+    "--yaw": `${cube.yaw}deg`,
     zIndex: cube.near ? 4 : 1,
   } as CSSProperties;
   return (
     <div className={styles.cube} style={style}>
-      <div className={styles.cubeFloat}>
-        <div className={styles.cubeSpin}>
+      <div className={styles.cubeScene}>
+        <div className={styles.cubePose}>
           <span className={styles.cubeFace} />
           <span className={styles.cubeFace} />
           <span className={styles.cubeFace} />

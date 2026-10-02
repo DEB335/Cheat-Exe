@@ -29,9 +29,8 @@ export interface HoloKeyProps {
  * A neon key hologram, like the Manage Key hero: a glowing glass tube
  * traced round the key's outline -- a coloured sheath with a white-hot
  * core over a wide bloom -- laid along the diagonal and tilted back in
- * 3D. Two dimmer copies behind it give the glass its depth as it sways.
- *
- * Leans toward the pointer through --hx/--hy when inside a HoloStage.
+ * 3D. Two dimmer copies behind it give the glass its depth as it sways
+ * (and bobs too, inside a HoloStage).
  */
 export function HoloKey({ tone = "blue", halo = true, className }: HoloKeyProps) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -48,47 +47,45 @@ export function HoloKey({ tone = "blue", halo = true, className }: HoloKeyProps)
     >
       <div className={styles.scene}>
         {halo ? <div className={styles.halo} /> : null}
-        <div className={styles.lean}>
-          <div className={styles.idle}>
-            <div className={styles.keyBody}>
-              <svg className={`${styles.layer} ${styles.keyBack}`} viewBox="0 0 200 90">
-                <path d={KEY} fillRule="evenodd" fill={rgb(p.c, 0.12)} stroke={rgb(p.c, 0.5)} strokeWidth="2" strokeLinejoin="round" />
-              </svg>
-              <svg className={`${styles.layer} ${styles.keyMid}`} viewBox="0 0 200 90">
-                <path d={KEY} fillRule="evenodd" fill="none" stroke={rgb(p.b, 0.45)} strokeWidth="1.5" strokeLinejoin="round" />
-              </svg>
-              <svg className={styles.layer} viewBox="0 0 200 90">
-                <defs>
-                  <linearGradient id={id("glass")} x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stopColor={rgb(p.hot)} stopOpacity="0.32" />
-                    <stop offset="0.5" stopColor={rgb(p.b)} stopOpacity="0.2" />
-                    <stop offset="1" stopColor={rgb(p.c)} stopOpacity="0.32" />
-                  </linearGradient>
-                  <linearGradient id={id("tube")} x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0" stopColor={rgb(p.a)} />
-                    <stop offset="0.5" stopColor={rgb(p.b)} />
-                    <stop offset="1" stopColor={rgb(p.a)} />
-                  </linearGradient>
-                  <filter id={id("bloom")} x="-15%" y="-40%" width="130%" height="180%">
-                    <feGaussianBlur stdDeviation="2" />
-                  </filter>
-                </defs>
-                <path d={KEY} fillRule="evenodd" fill={url("glass")} />
-                <path d={KEY} fillRule="evenodd" fill="none" stroke={rgb(p.b)} strokeOpacity="0.48" strokeWidth="10" filter={url("bloom")} />
-                <path d={KEY} fillRule="evenodd" fill="none" stroke={url("tube")} strokeWidth="5.2" strokeLinejoin="round" />
-                <path
-                  d={KEY}
-                  fillRule="evenodd"
-                  fill="none"
-                  stroke={rgb(p.hot)}
-                  strokeWidth="1.8"
-                  strokeLinejoin="round"
-                />
-                {/* A glint along the top of the shaft. */}
-                <path d="M86 41 H130" stroke="#fff" strokeOpacity="0.6" strokeWidth="1.3" strokeLinecap="round" />
-                <path d="M17 36 A20 20 0 0 1 30 26" fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="1.3" strokeLinecap="round" />
-              </svg>
-            </div>
+        <div className={styles.idle}>
+          <div className={styles.keyBody}>
+            <svg className={`${styles.layer} ${styles.keyBack}`} viewBox="0 0 200 90">
+              <path d={KEY} fillRule="evenodd" fill={rgb(p.c, 0.12)} stroke={rgb(p.c, 0.5)} strokeWidth="2" strokeLinejoin="round" />
+            </svg>
+            <svg className={`${styles.layer} ${styles.keyMid}`} viewBox="0 0 200 90">
+              <path d={KEY} fillRule="evenodd" fill="none" stroke={rgb(p.b, 0.45)} strokeWidth="1.5" strokeLinejoin="round" />
+            </svg>
+            <svg className={styles.layer} viewBox="0 0 200 90">
+              <defs>
+                <linearGradient id={id("glass")} x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor={rgb(p.hot)} stopOpacity="0.32" />
+                  <stop offset="0.5" stopColor={rgb(p.b)} stopOpacity="0.2" />
+                  <stop offset="1" stopColor={rgb(p.c)} stopOpacity="0.32" />
+                </linearGradient>
+                <linearGradient id={id("tube")} x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0" stopColor={rgb(p.a)} />
+                  <stop offset="0.5" stopColor={rgb(p.b)} />
+                  <stop offset="1" stopColor={rgb(p.a)} />
+                </linearGradient>
+                <filter id={id("bloom")} x="-15%" y="-40%" width="130%" height="180%">
+                  <feGaussianBlur stdDeviation="2" />
+                </filter>
+              </defs>
+              <path d={KEY} fillRule="evenodd" fill={url("glass")} />
+              <path d={KEY} fillRule="evenodd" fill="none" stroke={rgb(p.b)} strokeOpacity="0.48" strokeWidth="10" filter={url("bloom")} />
+              <path d={KEY} fillRule="evenodd" fill="none" stroke={url("tube")} strokeWidth="5.2" strokeLinejoin="round" />
+              <path
+                d={KEY}
+                fillRule="evenodd"
+                fill="none"
+                stroke={rgb(p.hot)}
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+              {/* A glint along the top of the shaft. */}
+              <path d="M86 41 H130" stroke="#fff" strokeOpacity="0.6" strokeWidth="1.3" strokeLinecap="round" />
+              <path d="M17 36 A20 20 0 0 1 30 26" fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
           </div>
         </div>
       </div>

@@ -8,12 +8,12 @@
    "UID" badge on the right.
 
    The cards live inside the stage's object box, so they bob with the
-   shield, sit between the back and front particle layers, and inherit
-   the stage's --hx/--hy. They are one CSS-3D scene of their own: each
-   card is pushed toward the viewer by a different amount, so the same
-   lean moves the near badge further than the ID card behind it.
+   shield and sit between the back and front particle layers. They are
+   one CSS-3D scene of their own: each card is pushed toward the viewer
+   by a different amount and turned outward.
 
-   Only transform and opacity animate. Standalone translate/rotate/
+   Nothing here animates of its own: the curtain and the cards are
+   still, and only ride the stage's float. Standalone translate/rotate/
    scale compute to none in this pipeline, so every offset is inside
    `transform`. Colours are the palette vars (--holo-a/b/c/hot) that
    paletteVars sets on the root.
@@ -58,15 +58,13 @@
   border-radius: 999px;
   background: linear-gradient(to top, rgb(var(--holo-hot)), rgb(var(--holo-c) / 0.7) 30%, rgb(var(--holo-a) / 0.3) 65%, transparent);
   box-shadow: 0 0 5px rgb(var(--holo-c) / 0.4);
-  transform-origin: bottom;
-  opacity: 0.4;
-  animation: streak-flicker 5.6s ease-in-out infinite;
+  /* Each streak sets its own strength inline. */
+  opacity: 0.6;
 }
 
 .curtain > span:nth-child(3n + 2) {
   background: linear-gradient(to top, rgb(var(--holo-hot)), rgb(var(--holo-a) / 0.7) 30%, rgb(var(--holo-b) / 0.3) 65%, transparent);
   box-shadow: 0 0 5px rgb(var(--holo-a) / 0.38);
-  animation-duration: 7.2s;
 }
 
 /* ---- Floating cards ---------------------------------------------- */
@@ -79,16 +77,6 @@
   inset: 0;
   container-type: inline-size;
   perspective: 280cqw;
-}
-
-/* Leans with the stage (--hx/--hy, -1..1) a little harder than the
-   shield does, so the cards read as nearer than the glass behind. */
-.propsLean {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  transform: rotateY(calc(var(--hx, 0) * 24deg)) rotateX(calc(var(--hy, 0) * -15deg));
-  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Each card's resting pose: its depth and its turn. Both open outward
@@ -113,19 +101,6 @@
   width: 50%;
   aspect-ratio: 1.3;
   transform: translateZ(15cqw) rotateY(-24deg) rotateZ(-6deg);
-}
-
-/* Each card drifts on its own period, so the two never move as one. */
-.drift {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  animation: card-drift 6.4s ease-in-out infinite;
-}
-
-.uidCard .drift {
-  animation-duration: 7.6s;
-  animation-delay: -3s;
 }
 
 /* Frosted neon glass: a white sheen over the top-left, the palette
@@ -208,49 +183,4 @@
 }
 :global(body.light-mode) .uidText {
   text-shadow: 0 0 1.8cqw rgb(var(--holo-a) / 0.16);
-}
-
-/* ---- Motion ------------------------------------------------------ */
-
-@keyframes streak-flicker {
-  0%,
-  100% {
-    opacity: 0.35;
-    transform: scaleY(0.8);
-  }
-  40% {
-    opacity: 0.95;
-    transform: scaleY(1);
-  }
-  55% {
-    opacity: 0.6;
-  }
-}
-
-@keyframes card-drift {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotateX(0deg);
-  }
-  50% {
-    transform: translate3d(0, -7%, 2cqw) rotateX(7deg);
-  }
-}
-
-/* Off screen or in a hidden tab (usePauseWhenHidden), pseudo-elements
-   included. Important, so no later rule restarts one. */
-.root[data-holo-paused] *,
-.root[data-holo-paused] *::before,
-.root[data-holo-paused] *::after {
-  animation-play-state: paused !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .curtain > span,
-  .drift {
-    animation: none;
-  }
-  .propsLean {
-    transition: none;
-  }
 }

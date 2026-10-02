@@ -8,10 +8,10 @@
    pedestalSize (0.6) x 22.1cqw above the bottom -- keep --eq in step
    with the pedestalSize the component passes.
 
-   Every animation is a transform or an opacity on a whole HTML element
-   (the SVGs turn inside divs -- Chrome keeps a transform on an <svg> on
-   the main thread), so the compositor runs them and nothing repaints. Standalone translate/rotate/scale are dropped from CSS
-   modules in this pipeline, so every offset lives in `transform`.
+   Nothing here moves: the dome, the floor rings and the streaks are a
+   still HUD, painted once, round the stage's moving key. Standalone
+   translate/rotate/scale are dropped from CSS modules in this
+   pipeline, so every offset lives in `transform`.
    ================================================================== */
 
 .root {
@@ -38,9 +38,7 @@
   z-index: 0;
   -webkit-mask-image: linear-gradient(to top, transparent, #000 24%);
   mask-image: linear-gradient(to top, transparent, #000 24%);
-  /* A touch of parallax against the key's lean. */
-  transform: translateX(-50%) translate(calc(var(--hx, 0) * -1cqw), calc(var(--hy, 0) * -0.5cqw));
-  transition: transform 0.7s ease-out;
+  transform: translateX(-50%);
 }
 
 .domeTilt {
@@ -73,8 +71,8 @@
   );
 }
 
-/* The radar beam: a wedge of light sweeping round, bright on its
-   leading edge. */
+/* The radar beam: a wedge of light bright on its leading edge, held
+   still up on the left, clear of the key. */
 .sweep {
   position: absolute;
   inset: 3%;
@@ -87,17 +85,7 @@
   );
   -webkit-mask-image: radial-gradient(closest-side, transparent 20%, #000 70%);
   mask-image: radial-gradient(closest-side, transparent 20%, #000 70%);
-  animation: mk-spin 8s linear infinite;
-  will-change: transform;
-}
-
-.spinSlow {
-  animation: mk-spin 48s linear infinite;
-  will-change: transform;
-}
-.spinBack {
-  animation: mk-spin 72s linear infinite reverse;
-  will-change: transform;
+  transform: rotate(-20deg);
 }
 
 .dotted,
@@ -155,8 +143,7 @@
 
 /* Wide rings on the floor round the pedestal: circles tipped flat with
    rotateX, centred on the pedestal's top face (the negative margin puts
-   the square's centre on --eq). The dashed one turns in the floor's
-   plane: it is flattened into its parent, then tipped with it. */
+   the square's centre on --eq). */
 .floor {
   position: absolute;
   left: 50%;
@@ -182,8 +169,6 @@
 .floorDash {
   inset: 10%;
   border: 3px dashed rgb(var(--holo-c) / 0.55);
-  animation: mk-spin 60s linear infinite;
-  will-change: transform;
 }
 .floorRing {
   inset: 19%;
@@ -195,43 +180,39 @@
 
 /* ---- Data streaks ------------------------------------------------ */
 
-/* Thin lines of light flicking outward either side of the pedestal. */
+/* Thin lines of light out either side of the pedestal, each at its own
+   strength so the four do not read as one set. */
 .streak {
   position: absolute;
   width: 15cqw;
   height: 1px;
   border-radius: 1px;
   z-index: 1;
-  opacity: 0;
   background: linear-gradient(90deg, transparent, rgb(var(--holo-a) / 0.9) 60%, rgb(var(--holo-hot)), transparent);
-  animation: mk-streak-left 4.6s ease-in-out infinite;
 }
 .streakL1 {
   left: 3cqw;
   bottom: calc(var(--eq) + 7cqw);
+  opacity: 0.6;
 }
 .streakL2 {
   left: 9cqw;
   bottom: calc(var(--eq) - 2cqw);
-  animation-duration: 5.4s;
-  animation-delay: -2.1s;
+  opacity: 0.35;
 }
 .streakR1,
 .streakR2 {
   background: linear-gradient(270deg, transparent, rgb(var(--mk-violet) / 0.9) 60%, rgb(var(--holo-hot)), transparent);
-  animation-name: mk-streak-right;
 }
 .streakR1 {
   right: 3cqw;
   bottom: calc(var(--eq) + 11cqw);
-  animation-duration: 5s;
-  animation-delay: -1.2s;
+  opacity: 0.45;
 }
 .streakR2 {
   right: 8cqw;
   bottom: calc(var(--eq) + 1cqw);
-  animation-duration: 4.2s;
-  animation-delay: -3.3s;
+  opacity: 0.65;
 }
 
 /* ---- Light mode -------------------------------------------------- */
@@ -261,63 +242,4 @@
 }
 :global(body.light-mode) .streak {
   background: linear-gradient(90deg, transparent, rgb(var(--holo-c) / 0.85), transparent);
-}
-
-/* ---- Motion ------------------------------------------------------ */
-
-@keyframes mk-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes mk-streak-left {
-  0% {
-    opacity: 0;
-    transform: translateX(6cqw) scaleX(0.4);
-  }
-  35% {
-    opacity: 0.95;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(-6cqw) scaleX(1);
-  }
-}
-
-@keyframes mk-streak-right {
-  0% {
-    opacity: 0;
-    transform: translateX(-6cqw) scaleX(0.4);
-  }
-  35% {
-    opacity: 0.95;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(6cqw) scaleX(1);
-  }
-}
-
-/* Off screen or in a hidden tab (see usePauseWhenHidden). */
-.root[data-holo-paused] *,
-.root[data-holo-paused] *::before,
-.root[data-holo-paused] *::after {
-  animation-play-state: paused !important;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sweep,
-  .spinSlow,
-  .spinBack,
-  .floorDash,
-  .streak {
-    animation: none;
-  }
-  .streak {
-    opacity: 0.6;
-  }
-  .dome {
-    transition: none;
-  }
 }
