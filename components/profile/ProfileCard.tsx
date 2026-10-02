@@ -54,11 +54,11 @@ export function ProfileCard({
           under the buttons. Painted first so the content sits over it. */}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-44 rounded-b-[24px] bg-[radial-gradient(60%_90%_at_50%_100%,rgba(255,112,67,0.14),rgba(255,61,154,0.06)_45%,transparent_75%)] lt:opacity-50"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-44 rounded-b-[24px] bg-[radial-gradient(60%_90%_at_50%_100%,rgba(255,112,67,0.06),rgba(255,61,154,0.03)_45%,transparent_75%)] lt:opacity-50"
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-x-[14%] -bottom-px h-[2px] rounded-full bg-[linear-gradient(90deg,transparent,#ff8a4c_28%,#ff3d9a_72%,transparent)] opacity-60 shadow-[0_0_10px_1px_rgba(255,112,67,0.3),0_0_24px_4px_rgba(255,61,154,0.12)] lt:opacity-40"
+        className="pointer-events-none absolute inset-x-[14%] -bottom-px h-[2px] rounded-full bg-[linear-gradient(90deg,transparent,#ff8a4c_28%,#ff3d9a_72%,transparent)] opacity-60 shadow-[0_0_6px_rgba(255,112,67,0.14),0_0_14px_2px_rgba(255,61,154,0.05)] lt:opacity-40"
       />
 
       <div className="relative flex flex-1 flex-col gap-4">
@@ -69,7 +69,7 @@ export function ProfileCard({
           className={cn(
             "relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-[18px] px-3 pt-2 pb-5 text-center",
             "border border-[rgba(167,139,250,0.35)]",
-            "shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_24px_-10px_rgba(168,85,247,0.8)]",
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_14px_-5px_rgba(168,85,247,0.36)]",
             "lt:border-violet-200 lt:shadow-none",
           )}
         >
@@ -191,11 +191,11 @@ export function ProfileCard({
             "group relative isolate flex h-14 w-full cursor-pointer items-center gap-3.5 overflow-hidden rounded-[14px] px-3.5",
             "border border-[rgba(24,119,242,0.85)] bg-[linear-gradient(180deg,rgba(24,119,242,0.2),rgba(24,119,242,0.05))]",
             "text-[17px] font-semibold text-[#d6e6ff] outline-none",
-            "shadow-[0_0_18px_-5px_rgba(24,119,242,0.85),inset_0_1px_0_rgba(255,255,255,0.12)]",
+            "shadow-[0_0_11px_-3px_rgba(24,119,242,0.38),inset_0_1px_0_rgba(255,255,255,0.12)]",
             // The text waits for the flood below to reach it before it
             // turns white; the lift and press answer at once.
             "[transition:color_300ms_ease-out_100ms,translate_300ms_ease-out,scale_150ms_ease-out,box-shadow_300ms_ease-out]",
-            "hover:-translate-y-0.5 hover:text-white hover:shadow-[0_8px_24px_-6px_rgba(24,119,242,0.9)] active:translate-y-0 active:scale-[0.98]",
+            "hover:-translate-y-0.5 hover:text-white hover:shadow-[0_5px_14px_-3px_rgba(24,119,242,0.5)] active:translate-y-0 active:scale-[0.98]",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#60a5fa]",
             // Circle that expands via inset box-shadow to flood the button.
             "before:absolute before:inset-0 before:-left-[5em] before:z-[-1] before:m-auto",
@@ -204,10 +204,10 @@ export function ProfileCard({
             // `lt:` adds no specificity, so each hover colour needs its own
             // light pair or the dark one wins on hover.
             "lt:bg-[rgba(24,119,242,0.07)] lt:bg-none lt:text-[rgb(24,119,242)] lt:shadow-none",
-            "lt:hover:text-white lt:hover:shadow-[0_6px_18px_-8px_rgba(24,119,242,0.6)]",
+            "lt:hover:text-white lt:hover:shadow-[0_4px_11px_-4px_rgba(24,119,242,0.27)]",
           )}
         >
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[rgb(24,119,242)] text-white shadow-[0_0_14px_rgba(24,119,242,0.8)] transition-colors duration-300 group-hover:bg-white group-hover:text-[rgb(24,119,242)] lt:shadow-none">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-[rgb(24,119,242)] text-white shadow-[0_0_8px_rgba(24,119,242,0.36)] transition-colors duration-300 group-hover:bg-white group-hover:text-[rgb(24,119,242)] lt:shadow-none">
             <DiscordIcon className="size-[18px]" />
           </span>
           <span className="flex-1 text-left">Discord</span>
@@ -224,13 +224,13 @@ export function ProfileCard({
             "group flex h-14 w-full cursor-pointer items-center gap-3.5 rounded-[14px] px-4 select-none",
             "border border-[#ff3d6e] bg-[linear-gradient(90deg,rgba(230,40,67,0.24),rgba(255,61,154,0.12))]",
             "text-[17px] font-semibold text-white",
-            "shadow-[0_0_18px_-5px_rgba(255,45,85,0.8),inset_0_1px_0_rgba(255,255,255,0.1)]",
+            "shadow-[0_0_11px_-3px_rgba(255,45,85,0.36),inset_0_1px_0_rgba(255,255,255,0.1)]",
             "transition-[translate,scale,background-color,box-shadow] duration-300",
             "hover:-translate-y-px hover:bg-[linear-gradient(90deg,rgba(230,40,67,0.4),rgba(255,61,154,0.22))]",
-            "hover:shadow-[0_6px_24px_-4px_rgba(255,45,85,0.6)] active:translate-y-0 active:scale-[0.98]",
+            "hover:shadow-[0_4px_14px_-2px_rgba(255,45,85,0.45)] active:translate-y-0 active:scale-[0.98]",
             "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ff6b8b]",
             "lt:bg-[rgba(230,40,67,0.06)] lt:bg-none lt:text-rose-700 lt:shadow-none",
-            "lt:hover:bg-[rgba(230,40,67,0.12)] lt:hover:bg-none lt:hover:shadow-[0_6px_18px_-8px_rgba(230,40,67,0.6)]",
+            "lt:hover:bg-[rgba(230,40,67,0.12)] lt:hover:bg-none lt:hover:shadow-[0_4px_11px_-4px_rgba(230,40,67,0.27)]",
           )}
         >
           <LogOutIcon aria-hidden className="size-5 shrink-0 text-[#ff6b8b] lt:text-rose-600" strokeWidth={2.5} />

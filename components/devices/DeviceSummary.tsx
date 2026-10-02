@@ -58,6 +58,10 @@ export function DeviceSummary({ stats, className }: { stats: DeviceSummaryStats;
 
 const MAX_TILT = 8;
 
+/** A glow layer the size of the tile's border box, faded at the tilt's pace. */
+const GLOW =
+  "pointer-events-none absolute -inset-px rounded-[inherit] transition-opacity [transition-duration:var(--tilt-ms,600ms)]";
+
 function Chip({
   label,
   rgb,
@@ -84,27 +88,56 @@ function Chip({
         onPointerMove={tilt.move}
         onPointerLeave={tilt.leave}
         className={cn(
-          // No overflow-hidden or backdrop-blur here: either one flattens
-          // preserve-3d, and the disc and mark would lose their depth.
-          // The clipped, blurred glass is the first layer inside instead.
+          // No overflow-hidden here: it flattens preserve-3d, and the disc
+          // and mark would lose their depth. The clipped glass is the first
+          // layer inside instead.
           "group relative flex h-full min-w-0 items-center gap-3 rounded-2xl border px-3 py-3 sm:px-3.5",
           "border-[rgba(var(--chip),0.75)]",
           "bg-[linear-gradient(135deg,rgba(var(--chip),0.24)_0%,rgba(6,10,36,0.86)_55%,rgba(var(--chip),0.1)_100%)]",
-          "shadow-[0_0_18px_-3px_rgba(var(--chip),0.55),0_14px_26px_-18px_rgba(var(--chip),0.9),inset_0_0_18px_rgba(var(--chip),0.12),inset_0_1px_0_rgba(255,255,255,0.09)]",
+          // The inner glow and top line as they looked through the glass's
+          // old 12px backdrop blur: wider and softer than drawn (18px at
+          // 0.12, a 0.09 line), matched to screenshots of the blurred tile
+          // -- then the glow halved with the rest (owner: "too glowing").
+          "shadow-[inset_0_0_30px_rgba(var(--chip),0.075),inset_0_1px_0_rgba(255,255,255,0.02)]",
           "lt:border-[rgba(var(--chip),0.45)] lt:bg-none lt:bg-white/85",
-          "lt:shadow-[0_10px_24px_-16px_rgba(var(--chip),0.7),inset_0_1px_0_rgba(255,255,255,0.9)]",
+          "lt:shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]",
           // Pointer-driven tilt: the handlers write the angles, the lift and
           // the transition speed -- quick while following, slow settling back.
           "[transform-style:preserve-3d]",
           "[transform:translateY(var(--lift,0px))_rotateX(var(--rx,0deg))_rotateY(var(--ry,0deg))]",
-          "transition-[transform,box-shadow] ease-smooth [transition-duration:var(--tilt-ms,600ms)]",
-          "hover:shadow-[0_0_26px_-2px_rgba(var(--chip),0.75),0_20px_30px_-18px_rgba(var(--chip),0.95),inset_0_0_22px_rgba(var(--chip),0.18),inset_0_1px_0_rgba(255,255,255,0.12)]",
-          "lt:hover:shadow-[0_16px_30px_-16px_rgba(var(--chip),0.75)]",
+          "transition-[transform] ease-smooth [transition-duration:var(--tilt-ms,600ms)]",
         )}
       >
+        {/* The glow, pre-painted at rest and at hover strength; hover
+            cross-fades the two rather than repainting a shadow. The one
+            coming in rises fast and the one going out falls slowly, so
+            the glow never dips mid-fade. Both are about half what they
+            were, and hover at most ~1.4x rest. */}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit] backdrop-blur-md"
+          className={cn(
+            GLOW,
+            "ease-smooth group-hover:opacity-0 group-hover:ease-in",
+            "shadow-[0_0_11px_-2px_rgba(var(--chip),0.25),0_8px_16px_-11px_rgba(var(--chip),0.4)]",
+            "lt:shadow-[0_6px_14px_-10px_rgba(var(--chip),0.32)]",
+          )}
+        />
+        <span
+          aria-hidden
+          className={cn(
+            GLOW,
+            "opacity-0 ease-in group-hover:opacity-100 group-hover:ease-smooth",
+            // Plus what the inner glow brightens by on hover.
+            "shadow-[0_0_16px_-1px_rgba(var(--chip),0.34),0_12px_18px_-11px_rgba(var(--chip),0.43),inset_0_0_34px_rgba(var(--chip),0.03)]",
+            "lt:shadow-[0_10px_18px_-10px_rgba(var(--chip),0.34)]",
+          )}
+        />
+        {/* No backdrop blur on the glass: it re-ran on every repaint of
+            the tile, and only softened the tile's own inner glow (now
+            drawn soft above). */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
         >
           {/* Gloss that follows the pointer across the glass. */}
           <span
@@ -126,7 +159,7 @@ function Chip({
               "animate-float-y flex size-9 items-center justify-center rounded-full border sm:size-10",
               "border-[rgba(var(--chip),0.8)] text-white",
               "bg-[radial-gradient(circle_at_34%_28%,rgba(255,255,255,0.35)_0%,rgba(var(--chip),0.75)_28%,rgba(var(--chip),0.28)_62%,rgba(4,8,30,0.95)_100%)]",
-              "shadow-[0_0_0_3px_rgba(var(--chip),0.14),0_0_16px_rgba(var(--chip),0.6),0_8px_14px_-6px_rgba(0,0,0,0.7),inset_0_-5px_8px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]",
+              "shadow-[0_0_0_3px_rgba(var(--chip),0.14),0_0_10px_rgba(var(--chip),0.27),0_8px_14px_-6px_rgba(0,0,0,0.7),inset_0_-5px_8px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]",
               "lt:bg-none lt:bg-[rgba(var(--chip),0.14)] lt:text-[rgb(var(--chip))]",
               "lt:shadow-[0_0_0_3px_rgba(var(--chip),0.08),0_6px_12px_-6px_rgba(var(--chip),0.7)]",
             )}
@@ -137,11 +170,11 @@ function Chip({
 
         {/* Left on the glass: lifted in 3D, the number and label would be
             drawn ~2% oversize and soft even with the tile at rest.
-            Positioned so it paints after the blurred glass layer above;
-            left in flow, that absolute layer painted over it and blurred it. */}
+            Positioned so it paints after the glass layers above; left in
+            flow, those absolute layers would paint over it. */}
         <div className="relative min-w-0 flex-1">
           <div
-            className="font-display text-[21px] leading-none font-extrabold text-white tabular-nums [text-shadow:0_0_14px_rgba(var(--chip),0.6)] sm:text-[22px] lt:text-fg lt:[text-shadow:none]"
+            className="font-display text-[21px] leading-none font-extrabold text-white tabular-nums [text-shadow:0_0_8px_rgba(var(--chip),0.24)] sm:text-[22px] lt:text-fg lt:[text-shadow:none]"
           >
             {shown}
           </div>
@@ -153,7 +186,7 @@ function Chip({
 
         <Mark
           aria-hidden
-          className="hidden size-5 shrink-0 text-[var(--ink)] drop-shadow-[0_0_6px_rgba(var(--chip),0.85)] [transform:translateZ(22px)] sm:block lt:text-[rgb(var(--chip))] lt:drop-shadow-none"
+          className="hidden size-5 shrink-0 text-[var(--ink)] drop-shadow-[0_0_4px_rgba(var(--chip),0.34)] [transform:translateZ(22px)] sm:block lt:text-[rgb(var(--chip))] lt:drop-shadow-none"
           strokeWidth={2.2}
         />
       </div>

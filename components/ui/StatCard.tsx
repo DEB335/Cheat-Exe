@@ -71,13 +71,13 @@ export function StatCard({
         "group glow-ring relative flex min-w-0 flex-col overflow-hidden",
         "rounded-[18px] border-[1.5px] border-transparent px-[22px] pt-[22px] pb-[18px]",
         "[background:var(--tile-bg)] lt:[background:var(--card-bg)] lt:border-[rgba(var(--stat),0.45)]",
-        "shadow-[0_0_20px_-4px_rgba(var(--stat),0.42),0_12px_28px_-16px_rgba(var(--stat),0.6),inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-26px_36px_-26px_rgba(var(--stat),0.4)]",
-        "lt:shadow-[0_8px_24px_-14px_rgba(var(--stat),0.5)]",
+        "shadow-[0_0_12px_-2px_rgba(var(--stat),0.19),inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-26px_36px_-26px_rgba(var(--stat),0.2)]",
+        "lt:shadow-[0_6px_14px_-7px_rgba(var(--stat),0.22)]",
         "transition-[transform,box-shadow,border-color] duration-[400ms] ease-smooth",
         "hover:glow-ring-on hover:-translate-y-1.5 hover:scale-[1.02]",
         "hover:border-[rgb(var(--stat))] lt:hover:border-[rgb(var(--stat))]",
-        "hover:shadow-[0_20px_40px_rgba(var(--stat),0.15),0_0_28px_-2px_rgba(var(--stat),0.55),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-26px_36px_-22px_rgba(var(--stat),0.5)]",
-        "lt:hover:shadow-[0_20px_40px_rgba(var(--stat),0.15)]",
+        "hover:shadow-[0_12px_24px_rgba(var(--stat),0.07),0_0_16px_-2px_rgba(var(--stat),0.26),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-26px_36px_-22px_rgba(var(--stat),0.25)]",
+        "lt:hover:shadow-[0_10px_20px_-8px_rgba(var(--stat),0.3)]",
       )}
     >
       {/* 4px accent bar that fades in on hover */}
@@ -102,9 +102,9 @@ export function StatCard({
             "flex size-14 shrink-0 items-center justify-center rounded-2xl border",
             "border-[rgba(var(--stat),0.55)] text-[rgb(var(--stat))]",
             "bg-[linear-gradient(145deg,rgba(var(--stat),0.42)_0%,rgba(var(--stat),0.14)_55%,rgba(var(--stat),0.26)_100%)]",
-            "shadow-[0_0_18px_-4px_rgba(var(--stat),0.55),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_14px_rgba(var(--stat),0.22)]",
+            "shadow-[0_0_11px_-2px_rgba(var(--stat),0.25),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_14px_rgba(var(--stat),0.11)]",
             "lt:shadow-none",
-            "[&>svg]:size-7 [&>svg]:[stroke:var(--ink)] [&>svg]:[stroke-width:2.2] [&>svg]:drop-shadow-[0_0_6px_rgba(var(--stat),0.6)]",
+            "[&>svg]:size-7 [&>svg]:[stroke:var(--ink)] [&>svg]:[stroke-width:2.2] [&>svg]:drop-shadow-[0_0_4px_rgba(var(--stat),0.24)]",
             "transition-transform duration-[400ms] ease-back group-hover:scale-110 group-hover:rotate-6",
           )}
         >
@@ -112,7 +112,7 @@ export function StatCard({
         </div>
 
         <div className="min-w-0">
-          <div className="font-display text-[30px] leading-none font-extrabold text-fg [text-shadow:0_0_18px_rgba(var(--stat),0.35)] lt:[text-shadow:none]">
+          <div className="font-display text-[30px] leading-none font-extrabold text-fg [text-shadow:0_0_8px_rgba(var(--stat),0.14)] lt:[text-shadow:none]">
             {value}
           </div>
           <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px] leading-none font-semibold text-[#d5def2] uppercase lt:text-muted">
@@ -123,6 +123,10 @@ export function StatCard({
       </div>
 
       {trend && <TrendRow trend={trend} label={typeof label === "string" ? label : undefined} />}
+
+      {/* The hover ring, turned by the compositor (see glow-ring in
+          globals.css). */}
+      <span aria-hidden className="glow-ring-track" />
     </div>
   );
 }
@@ -194,13 +198,13 @@ export function LivePip() {
         "-my-1 inline-flex h-[21px] items-center gap-[5px] rounded-full border px-[7px]",
         "border-[rgba(16,185,129,0.5)] bg-[rgba(5,90,68,0.42)]",
         "text-[10.5px] leading-none font-bold tracking-[0.4px] text-[#2ff0b0]",
-        "shadow-[0_0_12px_-3px_rgba(16,185,129,0.6),inset_0_0_8px_rgba(16,185,129,0.16)]",
+        "shadow-[0_0_7px_-2px_rgba(16,185,129,0.27),inset_0_0_8px_rgba(16,185,129,0.08)]",
         "lt:border-emerald-300 lt:bg-emerald-50 lt:text-emerald-600 lt:shadow-none",
       )}
     >
       <span className="relative inline-flex size-1.5">
         <span className="absolute inset-0 rotate-45 rounded-[1px] bg-current opacity-0 group-hover:animate-ping group-hover:opacity-75" />
-        <span className="relative size-1.5 rotate-45 rounded-[1px] bg-current shadow-[0_0_6px_#10b981]" />
+        <span className="relative size-1.5 rotate-45 rounded-[1px] bg-current shadow-[0_0_4px_rgba(16,185,129,0.45)]" />
       </span>
       LIVE
     </span>

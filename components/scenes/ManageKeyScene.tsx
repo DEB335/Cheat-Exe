@@ -115,22 +115,28 @@ export function ManageKeyScene({ className }: { className?: string }) {
             <circle cx={C} cy={C} r="99" className={styles.outline} />
             <path d={FINE_TICKS} className={styles.fine} />
           </svg>
-          <svg className={`${styles.layer} ${styles.spinSlow}`} viewBox="0 0 200 200">
-            <defs>
-              <filter id={id("bloom")} x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="2.2" />
-              </filter>
-            </defs>
-            <path d={MAIN_ARC} className={styles.arcBloom} filter={url("bloom")} />
-            <path d={MAIN_ARC} className={styles.arcMain} />
-            <path d={MAIN_ARC} className={styles.arcCore} />
-            <path d={ACCENT_ARC} className={styles.arcAccent} />
-          </svg>
-          <svg className={`${styles.layer} ${styles.spinBack}`} viewBox="0 0 200 200">
-            <path d={TICK_BAND} className={styles.tickBand} />
-            <path d={TICK_BAND_2} className={styles.tickBand} />
-            <path d={INNER_ARC} className={styles.innerArc} />
-          </svg>
+          {/* The turning SVGs ride in HTML boxes: Chrome will not hand a
+              transform on an <svg> to the compositor, but will a div's. */}
+          <div className={`${styles.layer} ${styles.spinSlow}`}>
+            <svg className={styles.layer} viewBox="0 0 200 200">
+              <defs>
+                <filter id={id("bloom")} x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur stdDeviation="1.3" />
+                </filter>
+              </defs>
+              <path d={MAIN_ARC} className={styles.arcBloom} filter={url("bloom")} />
+              <path d={MAIN_ARC} className={styles.arcMain} />
+              <path d={MAIN_ARC} className={styles.arcCore} />
+              <path d={ACCENT_ARC} className={styles.arcAccent} />
+            </svg>
+          </div>
+          <div className={`${styles.layer} ${styles.spinBack}`}>
+            <svg className={styles.layer} viewBox="0 0 200 200">
+              <path d={TICK_BAND} className={styles.tickBand} />
+              <path d={TICK_BAND_2} className={styles.tickBand} />
+              <path d={INNER_ARC} className={styles.innerArc} />
+            </svg>
+          </div>
         </div>
       </div>
 

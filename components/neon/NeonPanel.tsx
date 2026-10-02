@@ -41,16 +41,17 @@ interface NeonPanelProps extends React.HTMLAttributes<HTMLDivElement> {
 /**
  * The big neon glass panel every restyled page is built from.
  *
- * Layers, back to front: the pane (fill, corner glows, sheen, bloom --
- * all on the root), a blurred copy of the rim as its glow, the 1.5px
+ * Layers, back to front: the pane (fill, corner glows, sheen -- all on
+ * the root), the bloom pre-painted at rest and at hover strength (hover
+ * cross-fades the two), a blurred copy of the rim as its glow, the 1.5px
  * gradient rim itself, and three short streaks of white-hot light on
  * the straights. The decoration only ever draws on the edge, so it is
  * safe above the content and needs no wrapper: `className` lays out the
  * children directly, as it would on a plain div.
  *
  * Keeps the Card behaviour: the red `glow-ring` rotates round the rim
- * on hover while the panel lifts. Nothing here is position: fixed and
- * nothing leaves the panel -- the page's background video stays as is.
+ * on hover while the panel lifts. Hover only moves and fades layers
+ * (transform and opacity): nothing is repainted while it runs.
  */
 export function NeonPanel({
   rim = "aurora",
@@ -73,7 +74,7 @@ export function NeonPanel({
         cn(
           "glow-ring relative min-w-0 text-fg",
           size === "lg" ? "rounded-[24px] p-5 sm:p-7 xl:p-8" : "rounded-[20px] p-4 sm:p-5",
-          "transition-[translate,scale,box-shadow] duration-[400ms] ease-smooth",
+          "transition-[translate,scale] duration-[400ms] ease-smooth",
           !still &&
             (size === "lg"
               ? "hover:glow-ring-slow hover:-translate-y-1"
@@ -82,6 +83,8 @@ export function NeonPanel({
         ),
       )}
     >
+      <span aria-hidden className={styles.bloom} />
+      <span aria-hidden className={`${styles.bloom} ${styles.bloomHover}`} />
       <span aria-hidden className={styles.rimGlow}>
         <span className="glass-edge" />
       </span>
@@ -89,6 +92,11 @@ export function NeonPanel({
       <span aria-hidden className={`${styles.streak} ${styles.streakTop}`} />
       <span aria-hidden className={`${styles.streak} ${styles.streakLeft}`} />
       <span aria-hidden className={`${styles.streak} ${styles.streakBottom}`} />
+      {/* The red ring, turned by the compositor (see glow-ring in
+          globals.css). Up here with the decoration rather than last, so
+          a caller's space-y or last: never counts it; its z-index keeps
+          it on top. */}
+      <span aria-hidden className="glow-ring-track" />
       {children}
     </div>
   );

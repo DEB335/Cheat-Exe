@@ -58,7 +58,7 @@ function AuditRow({ log, index }: { log: AuditLog; index: number }) {
         <span className="flex items-center gap-3">
           <span
             aria-hidden
-            className="grid size-7 shrink-0 place-items-center rounded-full border border-[rgba(147,197,253,0.8)] bg-[radial-gradient(circle_at_50%_35%,#60a5fa,#2563eb)] text-white shadow-[0_0_12px_-3px_rgba(59,130,246,0.9)] lt:border-blue-300 lt:bg-blue-50 lt:bg-none lt:text-blue-600 lt:shadow-none"
+            className="grid size-7 shrink-0 place-items-center rounded-full border border-[rgba(147,197,253,0.8)] bg-[radial-gradient(circle_at_50%_35%,#60a5fa,#2563eb)] text-white shadow-[0_0_7px_-2px_rgba(59,130,246,0.4)] lt:border-blue-300 lt:bg-blue-50 lt:bg-none lt:text-blue-600 lt:shadow-none"
           >
             <UserIcon className="size-3.5" />
           </span>
@@ -90,7 +90,7 @@ function AuditRow({ log, index }: { log: AuditLog; index: number }) {
           <span
             aria-hidden
             style={toneVars(STATUS_TONES[look.pill])}
-            className="mt-[7px] size-2 shrink-0 rounded-full bg-[rgb(var(--tone-hi))] shadow-[0_0_8px_rgb(var(--tone))] lt:bg-[var(--tone-lt)] lt:shadow-none"
+            className="mt-[7px] size-2 shrink-0 rounded-full bg-[rgb(var(--tone-hi))] shadow-[0_0_5px_rgba(var(--tone),0.45)] lt:bg-[var(--tone-lt)] lt:shadow-none"
           />
           <span className="break-words">
             {generated ? (

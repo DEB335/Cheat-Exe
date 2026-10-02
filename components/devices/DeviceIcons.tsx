@@ -78,7 +78,7 @@ function WindowsMark({ className }: MarkProps) {
   return (
     <Mark
       className={className}
-      glow="drop-shadow-[0_0_3px_rgba(34,211,238,0.65)] lt:drop-shadow-[0_1px_1px_rgba(2,132,199,0.3)]"
+      glow="drop-shadow-[0_0_3px_rgba(34,211,238,0.26)] lt:drop-shadow-[0_1px_1px_rgba(2,132,199,0.3)]"
     >
       <defs>
         <Lit
@@ -105,7 +105,7 @@ function AndroidMark({ className }: MarkProps) {
   return (
     <Mark
       className={className}
-      glow="drop-shadow-[0_0_3px_rgba(74,222,128,0.6)] lt:drop-shadow-[0_1px_1px_rgba(21,128,61,0.3)]"
+      glow="drop-shadow-[0_0_3px_rgba(74,222,128,0.24)] lt:drop-shadow-[0_1px_1px_rgba(21,128,61,0.3)]"
     >
       <defs>
         <Lit
@@ -139,7 +139,7 @@ function AppleMark({ className }: MarkProps) {
   return (
     <Mark
       className={className}
-      glow="drop-shadow-[0_0_3px_rgba(226,232,240,0.55)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.3)]"
+      glow="drop-shadow-[0_0_3px_rgba(226,232,240,0.22)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.3)]"
     >
       <defs>
         <Lit
@@ -164,7 +164,7 @@ function LinuxMark({ className }: MarkProps) {
   return (
     <Mark
       className={className}
-      glow="drop-shadow-[0_0_3px_rgba(251,191,36,0.45)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.3)]"
+      glow="drop-shadow-[0_0_3px_rgba(251,191,36,0.18)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.3)]"
     >
       <defs>
         {/* Tux is black; on navy that disappears, so he is lit slate. */}
@@ -195,7 +195,7 @@ function UnixMark({ className }: MarkProps) {
   return (
     <Mark
       className={className}
-      glow="drop-shadow-[0_0_3px_rgba(74,222,128,0.45)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.3)]"
+      glow="drop-shadow-[0_0_3px_rgba(74,222,128,0.18)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.3)]"
     >
       <defs>
         <Lit
@@ -238,7 +238,7 @@ function ChromeMark({ className }: MarkProps) {
   return (
     <Mark
       className={className}
-      glow="drop-shadow-[0_0_3px_rgba(250,204,21,0.4)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.25)]"
+      glow="drop-shadow-[0_0_3px_rgba(250,204,21,0.16)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.25)]"
     >
       <defs>
         <Lit id={`${id}r`} top="#f87171" bottom="#dc2626" />
@@ -262,7 +262,7 @@ function EdgeMark({ className }: MarkProps) {
   return (
     <Mark
       className={className}
-      glow="drop-shadow-[0_0_3px_rgba(45,212,191,0.55)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.25)]"
+      glow="drop-shadow-[0_0_3px_rgba(45,212,191,0.22)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.25)]"
     >
       <defs>
         <linearGradient id={`${id}t`} x1="1" y1="0" x2="0" y2="1">
@@ -290,7 +290,7 @@ function FirefoxMark({ className }: MarkProps) {
   return (
     <Mark
       className={className}
-      glow="drop-shadow-[0_0_3px_rgba(251,146,60,0.55)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.25)]"
+      glow="drop-shadow-[0_0_3px_rgba(251,146,60,0.22)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.25)]"
     >
       <defs>
         <linearGradient id={`${id}f`} x1="0.2" y1="0" x2="0.6" y2="1">
@@ -319,7 +319,7 @@ function SafariMark({ className }: MarkProps) {
   return (
     <Mark
       className={className}
-      glow="drop-shadow-[0_0_3px_rgba(56,189,248,0.6)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.25)]"
+      glow="drop-shadow-[0_0_3px_rgba(56,189,248,0.24)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.25)]"
     >
       <defs>
         <Lit id={`${id}c`} top="#7dd3fc" bottom="#1d4ed8" />
@@ -345,7 +345,7 @@ function IeMark({ className }: MarkProps) {
   return (
     <Mark
       className={className}
-      glow="drop-shadow-[0_0_3px_rgba(56,189,248,0.55)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.25)]"
+      glow="drop-shadow-[0_0_3px_rgba(56,189,248,0.22)] lt:drop-shadow-[0_1px_1px_rgba(15,23,42,0.25)]"
     >
       <defs>
         <Lit id={`${id}e`} top="#7dd3fc" bottom="#0369a1" />

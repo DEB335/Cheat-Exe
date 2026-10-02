@@ -50,11 +50,11 @@ export interface Orbit {
  * visibly passes round the hologram rather than across it.
  *
  * A bead rides each ring with no per-frame work: a circle of the ring's
- * width is squashed into the ellipse and tilted, a child spins inside it,
- * and the bead on the child's rim spins back and unsquashes, which leaves
- * it round and exactly on the ellipse. Each half clips its copy of the
- * bead to its own half, so one bead goes behind the object and comes out
- * the other side.
+ * width is squashed into the ellipse and tilted, and the bead on its rim
+ * swings round the circle's centre, turning back and unsquashing as it
+ * goes (one animation), which leaves it round and exactly on the
+ * ellipse. Each half clips its copy of the bead to its own half, so one
+ * bead goes behind the object and comes out the other side.
  */
 export function OrbitLayer({ orbits, half, view }: { orbits: readonly Orbit[]; half: "back" | "front"; view: View }) {
   const { id, url } = useSvgIds(`bo${half}`);
@@ -81,7 +81,7 @@ export function OrbitLayer({ orbits, half, view }: { orbits: readonly Orbit[]; h
             </linearGradient>
           ))}
           <filter id={id("bloom")} x="-10%" y="-60%" width="120%" height="220%">
-            <feGaussianBlur stdDeviation="2.4" />
+            <feGaussianBlur stdDeviation="1.45" />
           </filter>
         </defs>
         {orbits.map((o, i) => {
@@ -111,13 +111,13 @@ export function OrbitLayer({ orbits, half, view }: { orbits: readonly Orbit[]; h
                 "--lap": `${bead.lap}s`,
                 "--lap-at": `${round((-bead.at / 360) * bead.lap)}s`,
                 "--unsquash": round(o.rx / o.ry),
+                // The circle's radius, from its rim down to its centre.
+                "--r": `${round((o.rx / h) * 100)}cqh`,
                 "--bead": bead.color.join(" "),
               } as CSSProperties
             }
           >
-            <span className={styles.beadSpin}>
-              <i className={styles.bead} />
-            </span>
+            <i className={styles.bead} />
           </div>
         )),
       )}
@@ -218,7 +218,7 @@ export function NetworkRouter() {
                     style={
                       {
                         "--led": led.color,
-                        animationDuration: `${led.blink}s`,
+                        "--blink": `${led.blink}s`,
                         animationDelay: `${-led.at}s`,
                       } as CSSProperties
                     }
@@ -256,7 +256,7 @@ export function WifiSignal() {
             <stop offset="1" stopColor={rgb([139, 92, 246])} />
           </linearGradient>
           <filter id={id("bloom")} x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="1.8" />
+            <feGaussianBlur stdDeviation="1.1" />
           </filter>
         </defs>
         <circle cx="24" cy="34" r="3.4" fill={url("stroke")} />
@@ -331,7 +331,7 @@ export function CircuitFloor({ traces, view }: { traces: readonly Trace[]; view:
                 "--angle": `${round((Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI)}deg`,
                 "--run": `${round((Math.hypot(x2 - x1, y2 - y1) / w) * 100)}cqw`,
                 "--pulse": t.color.join(" "),
-                animationDuration: `${t.pulse}s`,
+                "--run-time": `${t.pulse}s`,
                 animationDelay: `${-(t.at ?? 0)}s`,
               } as CSSProperties
             }

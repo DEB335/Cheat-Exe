@@ -206,12 +206,12 @@ function MessageCard({
         "rounded-2xl border p-4 transition-colors sm:p-5",
         message.read
           ? "border-line bg-white/2"
-          : "border-[rgba(34,211,238,0.35)] bg-[rgba(34,211,238,0.06)] shadow-[0_0_18px_rgba(34,211,238,0.1)]",
+          : "border-[rgba(34,211,238,0.35)] bg-[rgba(34,211,238,0.06)] shadow-[0_0_11px_rgba(34,211,238,0.05)]",
       )}
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
         {!message.read && (
-          <span className="rounded-full bg-[#22d3ee] px-2 py-[2px] text-[9px] font-extrabold tracking-[0.8px] text-[#04121a] uppercase shadow-[0_0_8px_rgba(34,211,238,0.8)]">
+          <span className="rounded-full bg-[#22d3ee] px-2 py-[2px] text-[9px] font-extrabold tracking-[0.8px] text-[#04121a] uppercase shadow-[0_0_5px_rgba(34,211,238,0.36)]">
             New
           </span>
         )}

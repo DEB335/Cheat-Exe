@@ -40,9 +40,9 @@
   transform: translateX(-50%);
   background: radial-gradient(
     closest-side,
-    rgb(var(--holo-b) / 0.34),
-    rgb(139 92 246 / 0.16) 50%,
-    rgb(255 61 242 / 0.05) 72%,
+    rgb(var(--holo-b) / 0.17),
+    rgb(139 92 246 / 0.08) 50%,
+    rgb(255 61 242 / 0.025) 72%,
     transparent
   );
 }
@@ -97,7 +97,7 @@
   position: absolute;
   inset: 0;
   transform-style: preserve-3d;
-  animation: audit-sway 9s ease-in-out infinite;
+  animation: audit-sway 27s ease-in-out infinite; /* 3 x 9s */
 }
 
 .slab {
@@ -126,8 +126,8 @@
     linear-gradient(180deg, rgb(var(--holo-hot) / 0.2), transparent 22%),
     linear-gradient(115deg, rgb(14 40 90 / 0.88), rgb(20 90 150 / 0.66) 55%, rgb(24 28 92 / 0.9));
   box-shadow:
-    0 0 1.4cqw rgb(var(--holo-a) / 0.5),
-    inset 0 0 1.6cqw rgb(var(--holo-a) / 0.45);
+    0 0 0.85cqw rgb(var(--holo-a) / 0.23),
+    inset 0 0 1.6cqw rgb(var(--holo-a) / 0.22);
 }
 
 .side {
@@ -141,8 +141,8 @@
     linear-gradient(180deg, rgb(196 181 253 / 0.16), transparent 30%),
     linear-gradient(160deg, rgb(20 60 120 / 0.8), rgb(40 36 130 / 0.82) 60%, rgb(22 20 70 / 0.9));
   box-shadow:
-    0 0 1.2cqw rgb(139 92 246 / 0.45),
-    inset 0 0 1.4cqw rgb(139 92 246 / 0.5);
+    0 0 0.7cqw rgb(139 92 246 / 0.2),
+    inset 0 0 1.4cqw rgb(139 92 246 / 0.25);
 }
 
 .lid {
@@ -152,7 +152,7 @@
   height: var(--td);
   transform: rotateX(90deg) translateZ(calc(var(--sh) / 2));
   background: linear-gradient(135deg, rgb(var(--holo-hot) / 0.75), rgb(var(--holo-a) / 0.6) 45%, rgb(var(--holo-c) / 0.65));
-  box-shadow: inset 0 0 2cqw rgb(var(--holo-a) / 0.7);
+  box-shadow: inset 0 0 2cqw rgb(var(--holo-a) / 0.35);
 }
 
 /* The ringed emblem on the lid. */
@@ -165,8 +165,8 @@
   border-radius: 50%;
   border: 0.45cqw solid rgb(255 255 255 / 0.9);
   box-shadow:
-    0 0 1.4cqw rgb(var(--holo-a)),
-    inset 0 0 1.2cqw rgb(var(--holo-a) / 0.9);
+    0 0 0.85cqw rgb(var(--holo-a) / 0.45),
+    inset 0 0 1.2cqw rgb(var(--holo-a) / 0.45);
   transform: translate(-50%, -50%);
 }
 .emblem::after {
@@ -175,7 +175,7 @@
   inset: 30%;
   border-radius: 50%;
   background: rgb(var(--holo-hot));
-  box-shadow: 0 0 1cqw rgb(var(--holo-a));
+  box-shadow: 0 0 0.6cqw rgb(var(--holo-a) / 0.45);
 }
 
 /* Lit slots and status lights. The flicker is an opacity loop on each. */
@@ -191,8 +191,8 @@
   width: 54%;
   height: 13%;
   background: linear-gradient(90deg, rgb(var(--holo-hot)), rgb(var(--holo-a)) 60%, rgb(var(--holo-b) / 0.8));
-  box-shadow: 0 0 1.2cqw rgb(var(--holo-a)), 0 0 0.4cqw rgb(255 255 255 / 0.8);
-  animation: audit-flicker 5.2s ease-in-out infinite;
+  box-shadow: 0 0 0.7cqw rgb(var(--holo-a) / 0.45), 0 0 0.4cqw rgb(255 255 255 / 0.4);
+  animation: audit-flicker 26s ease-in-out infinite; /* 5 x 5.2s */
   animation-delay: var(--at);
 }
 .slotDim {
@@ -201,7 +201,7 @@
   width: 32%;
   height: 9%;
   background: rgb(var(--holo-a) / 0.55);
-  box-shadow: 0 0 0.8cqw rgb(var(--holo-a) / 0.6);
+  box-shadow: 0 0 0.5cqw rgb(var(--holo-a) / 0.27);
 }
 .leds {
   position: absolute;
@@ -211,7 +211,7 @@
   height: 12%;
   background: radial-gradient(circle, rgb(var(--holo-hot)) 0 34%, rgb(var(--holo-a) / 0.6) 46%, transparent 62%) 0 50% / 33.4% 100%
     repeat-x;
-  animation: audit-blink 2.6s steps(2, jump-none) infinite;
+  animation: audit-blink 26s steps(2, jump-none) infinite; /* 10 x 2.6s */
   animation-delay: var(--at);
 }
 .vent {
@@ -228,8 +228,8 @@
   width: 58%;
   height: 11%;
   background: linear-gradient(90deg, rgb(216 180 254), rgb(167 139 250 / 0.7));
-  box-shadow: 0 0 1cqw rgb(167 139 250 / 0.9);
-  animation: audit-flicker 6.4s ease-in-out infinite;
+  box-shadow: 0 0 0.6cqw rgb(167 139 250 / 0.4);
+  animation: audit-flicker 32s ease-in-out infinite; /* 5 x 6.4s */
   animation-delay: calc(var(--at) - 2s);
 }
 
@@ -245,7 +245,7 @@
 
 .bob {
   position: relative;
-  animation: audit-bob 6.5s ease-in-out infinite;
+  animation: audit-bob 26s ease-in-out infinite; /* 4 x 6.5s */
 }
 
 /* ---- Floating screens -------------------------------------------- */
@@ -260,11 +260,11 @@
     linear-gradient(180deg, rgb(255 255 255 / 0.12), transparent 30%),
     linear-gradient(160deg, rgb(var(--holo-b) / 0.26), rgb(30 41 120 / 0.42));
   box-shadow:
-    0 0 1.2cqw rgb(var(--edge) / 0.4),
-    inset 0 0 1cqw rgb(var(--edge) / 0.22);
+    0 0 0.7cqw rgb(var(--edge) / 0.18),
+    inset 0 0 1cqw rgb(var(--edge) / 0.11);
   color: rgb(var(--holo-a));
   transform: perspective(60cqw) rotateY(var(--ry));
-  animation: audit-drift 7.5s ease-in-out infinite;
+  animation: audit-drift 30s ease-in-out infinite; /* 4 x 7.5s */
 }
 .far {
   opacity: 0.6;
@@ -280,7 +280,7 @@
   height: 9%;
   border-radius: 99px;
   background: currentColor;
-  box-shadow: 0 0 0.6cqw currentColor;
+  box-shadow: 0 0 0.36cqw color-mix(in srgb, currentColor 45%, transparent);
   opacity: 0.85;
 }
 .rowDim {
@@ -301,7 +301,7 @@
   width: 84%;
   height: 76%;
   overflow: visible;
-  filter: drop-shadow(0 0 0.4cqw currentColor);
+  filter: drop-shadow(0 0 0.25cqw color-mix(in srgb, currentColor 45%, transparent));
 }
 
 /* ---- Data streaks and glints ------------------------------------- */
@@ -313,7 +313,8 @@
   border-radius: 99px;
   background: linear-gradient(0deg, transparent, rgb(var(--holo-a) / 0.85) 45%, rgb(var(--holo-hot)) 60%, transparent);
   opacity: 0;
-  animation: audit-rise 4s linear infinite;
+  /* --rise-time per streak, inline; 6 rises per iteration. */
+  animation: audit-rise calc(var(--rise-time) * 6) linear infinite;
 }
 
 .glint {
@@ -326,10 +327,10 @@
     closest-side,
     #fff 0 10%,
     rgb(var(--holo-hot) / 0.85) 20%,
-    rgb(var(--holo-a) / 0.3) 42%,
+    rgb(var(--holo-a) / 0.14) 42%,
     transparent 70%
   );
-  animation: audit-twinkle 4.8s ease-in-out infinite;
+  animation: audit-twinkle 28.8s ease-in-out infinite; /* 6 x 4.8s */
 }
 .glint::before,
 .glint::after {
@@ -351,7 +352,7 @@
 }
 :global(body.light-mode) .face {
   border-color: rgb(var(--holo-c) / 0.75);
-  box-shadow: inset 0 0 1.4cqw rgb(var(--holo-b) / 0.3);
+  box-shadow: inset 0 0 1.4cqw rgb(var(--holo-b) / 0.15);
 }
 :global(body.light-mode) .front {
   background: linear-gradient(150deg, rgb(var(--holo-a) / 0.3), rgb(255 255 255 / 0.4) 50%, rgb(var(--holo-c) / 0.3));
@@ -365,14 +366,14 @@
 }
 :global(body.light-mode) .emblem {
   border-color: rgb(var(--holo-c));
-  box-shadow: 0 0 0.8cqw rgb(var(--holo-b) / 0.6);
+  box-shadow: 0 0 0.5cqw rgb(var(--holo-b) / 0.27);
 }
 :global(body.light-mode) .emblem::after {
   background: rgb(var(--holo-c));
 }
 :global(body.light-mode) .slot {
   background: linear-gradient(90deg, rgb(var(--holo-b)), rgb(var(--holo-c)));
-  box-shadow: 0 0 0.6cqw rgb(var(--holo-b) / 0.6);
+  box-shadow: 0 0 0.36cqw rgb(var(--holo-b) / 0.27);
 }
 :global(body.light-mode) .slotDim {
   background: rgb(var(--holo-c) / 0.5);
@@ -385,12 +386,12 @@
 }
 :global(body.light-mode) .sideSlot {
   background: rgb(124 58 237 / 0.75);
-  box-shadow: 0 0 0.6cqw rgb(124 58 237 / 0.5);
+  box-shadow: 0 0 0.36cqw rgb(124 58 237 / 0.22);
 }
 :global(body.light-mode) .screen {
   border-color: rgb(var(--edge) / 0.7);
   background: linear-gradient(160deg, rgb(255 255 255 / 0.6), rgb(var(--holo-a) / 0.16));
-  box-shadow: 0 0.4cqw 1.2cqw rgb(var(--holo-c) / 0.18);
+  box-shadow: 0 0.4cqw 0.7cqw rgb(var(--holo-c) / 0.09);
   color: rgb(var(--holo-c));
 }
 :global(body.light-mode) .pink {
@@ -401,7 +402,7 @@
   background: linear-gradient(0deg, transparent, rgb(var(--holo-c) / 0.55) 50%, transparent);
 }
 :global(body.light-mode) .glint {
-  background: radial-gradient(closest-side, rgb(var(--holo-b)) 0 14%, rgb(var(--holo-a) / 0.35) 40%, transparent 70%);
+  background: radial-gradient(closest-side, rgb(var(--holo-b)) 0 14%, rgb(var(--holo-a) / 0.16) 40%, transparent 70%);
 }
 :global(body.light-mode) .glint::before,
 :global(body.light-mode) .glint::after {
@@ -410,71 +411,149 @@
 
 /* ---- Motion ------------------------------------------------------ */
 
+/* Each loop is written out several times inside one long iteration
+   (the count is the multiplier on its duration above). The motion is
+   the same, but Chrome wakes the main thread, and re-styles every
+   running animation, at each iteration boundary (React listens for
+   animationiteration on the root), so long iterations keep these loops
+   on the compositor. Where a loop jumps back to its start, the jump sits
+   0.01% early, while the element is transparent. */
+
 @keyframes audit-sway {
   0%,
+  33.333%,
+  66.667%,
   100% {
     transform: rotateY(-4deg) translateY(0);
   }
-  50% {
+  16.667%,
+  50%,
+  83.333% {
     transform: rotateY(4deg) translateY(-0.8cqw);
   }
 }
 
 @keyframes audit-bob {
   0%,
+  25%,
+  50%,
+  75%,
   100% {
     transform: translateY(0);
   }
-  50% {
+  12.5%,
+  37.5%,
+  62.5%,
+  87.5% {
     transform: translateY(-1.4cqw);
   }
 }
 
 @keyframes audit-drift {
   0%,
+  25%,
+  50%,
+  75%,
   100% {
     transform: perspective(60cqw) rotateY(var(--ry)) translateY(0);
   }
-  50% {
+  12.5%,
+  37.5%,
+  62.5%,
+  87.5% {
     transform: perspective(60cqw) rotateY(var(--ry)) translateY(-1.6cqw);
   }
 }
 
 @keyframes audit-flicker {
   0%,
+  20%,
+  40%,
+  60%,
+  80%,
   100% {
     opacity: 1;
   }
-  45% {
+  9%,
+  29%,
+  49%,
+  69%,
+  89% {
     opacity: 0.55;
   }
-  52% {
+  10.4%,
+  30.4%,
+  50.4%,
+  70.4%,
+  90.4% {
     opacity: 0.95;
   }
-  58% {
+  11.6%,
+  31.6%,
+  51.6%,
+  71.6%,
+  91.6% {
     opacity: 0.4;
   }
 }
 
 @keyframes audit-blink {
   0%,
+  10%,
+  20%,
+  30%,
+  40%,
+  50%,
+  60%,
+  70%,
+  80%,
+  90%,
   100% {
     opacity: 1;
   }
-  50% {
+  5%,
+  15%,
+  25%,
+  35%,
+  45%,
+  55%,
+  65%,
+  75%,
+  85%,
+  95% {
     opacity: 0.35;
   }
 }
 
 @keyframes audit-rise {
-  0% {
+  0%,
+  16.667%,
+  33.333%,
+  50%,
+  66.667%,
+  83.333% {
     opacity: 0;
     transform: translateY(30%);
   }
-  25%,
-  60% {
+  4.167%,
+  10%,
+  20.833%,
+  26.667%,
+  37.5%,
+  43.333%,
+  54.167%,
+  60%,
+  70.833%,
+  76.667%,
+  87.5%,
+  93.333% {
     opacity: 0.8;
   }
+  16.657%,
+  33.323%,
+  49.99%,
+  66.657%,
+  83.323%,
   100% {
     opacity: 0;
     transform: translateY(-70%);
@@ -483,15 +562,30 @@
 
 @keyframes audit-twinkle {
   0%,
+  16.667%,
+  33.333%,
+  50%,
+  66.667%,
+  83.333%,
   100% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.4) rotate(0deg);
   }
-  40% {
+  6.667%,
+  23.333%,
+  40%,
+  56.667%,
+  73.333%,
+  90% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1) rotate(45deg);
   }
-  70% {
+  11.667%,
+  28.333%,
+  45%,
+  61.667%,
+  78.333%,
+  95% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.5) rotate(90deg);
   }
@@ -504,14 +598,14 @@
 .root[data-holo-paused] *,
 .root[data-holo-paused] *::before,
 .root[data-holo-paused] *::after {
-  animation-play-state: paused;
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .root *,
   .root *::before,
   .root *::after {
-    animation-play-state: paused;
+    animation-play-state: paused !important;
   }
   .towerLean {
     transition: none;

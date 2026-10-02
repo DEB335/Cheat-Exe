@@ -98,12 +98,12 @@ export function HoloShield({ tone = "aurora", glyph = "user", shape = "heater", 
                   <stop offset="1" stopColor="#fff" stopOpacity="0" />
                 </linearGradient>
                 <radialGradient id={id("core")}>
-                  <stop offset="0" stopColor={rgb(p.a)} stopOpacity="0.34" />
-                  <stop offset="0.6" stopColor={rgb(p.b)} stopOpacity="0.12" />
+                  <stop offset="0" stopColor={rgb(p.a)} stopOpacity="0.17" />
+                  <stop offset="0.6" stopColor={rgb(p.b)} stopOpacity="0.06" />
                   <stop offset="1" stopColor={rgb(p.b)} stopOpacity="0" />
                 </radialGradient>
                 <filter id={id("bloom")} x="-25%" y="-25%" width="150%" height="150%">
-                  <feGaussianBlur stdDeviation="3" />
+                  <feGaussianBlur stdDeviation="1.8" />
                 </filter>
               </defs>
               <path d={s.outline} fill="#0b0f3a" fillOpacity="0.55" className={styles.darkFill} />
@@ -121,7 +121,7 @@ export function HoloShield({ tone = "aurora", glyph = "user", shape = "heater", 
                 strokeWidth="1.1"
                 strokeLinejoin="round"
               />
-              <path d={s.outline} fill="none" stroke={url("rim")} strokeWidth="6" filter={url("bloom")} />
+              <path d={s.outline} fill="none" stroke={url("rim")} strokeOpacity="0.48" strokeWidth="6" filter={url("bloom")} />
               <path d={s.outline} fill="none" stroke={url("rim")} strokeWidth="2.2" strokeLinejoin="round" />
               <path d={s.outline} fill="none" stroke="#fff" strokeOpacity="0.4" strokeWidth="0.6" strokeLinejoin="round" />
             </svg>

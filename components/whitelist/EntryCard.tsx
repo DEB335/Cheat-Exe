@@ -98,7 +98,7 @@ export function EntryCard({
       <div style={toneVars(look.tone)} className="mt-4 flex items-start gap-3">
         <CalendarIcon
           aria-hidden
-          className="size-7 shrink-0 text-[rgb(var(--tone-hi))] drop-shadow-[0_0_6px_rgba(var(--tone),0.8)] lt:text-[var(--tone-lt)] lt:drop-shadow-none"
+          className="size-7 shrink-0 text-[rgb(var(--tone-hi))] drop-shadow-[0_0_5px_rgba(var(--tone),0.32)] lt:text-[var(--tone-lt)] lt:drop-shadow-none"
         />
         <div className="min-w-0 flex-1">
           <span className="block text-[11px] leading-none font-bold tracking-[1px] text-[#9fb0dd] uppercase lt:text-slate-500">

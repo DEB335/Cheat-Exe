@@ -222,7 +222,7 @@ function MiniTile({
         {dot && (
           <span
             className="size-2 shrink-0 rounded-full"
-            style={{ background: dot, boxShadow: `0 0 6px ${dot}` }}
+            style={{ background: dot, boxShadow: `0 0 4px color-mix(in srgb, ${dot} 45%, transparent)` }}
           />
         )}
         {value}

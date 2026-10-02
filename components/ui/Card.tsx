@@ -3,35 +3,58 @@ import { cn } from "@/lib/utils";
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   /**
    * The original markup pairs `.card` with `.card-flat` for the wide
-   * table panels: heavier blur, flat translucent fill, gentler lift.
+   * table panels: flat translucent fill, gentler lift.
    */
   flat?: boolean;
 }
 
+/**
+ * No backdrop blur: the page behind is flat navy now the video is gone,
+ * so it changed nothing on screen, yet it re-ran a full-card blur every
+ * time anything in the card repainted.
+ *
+ * Hover never repaints the card itself. The reddish hover border and the
+ * brighter top highlight are pre-painted on ::before and faded in with
+ * opacity over the resting ones. That border is opaque, mixed to what
+ * --border-hover (20% red; 15% in light mode) gives over the card's own
+ * fill, so it covers the resting border -- including a caller's colour,
+ * as on PerformanceCard -- much as the old colour change did. The
+ * highlight is the amount that lifts the resting 0.08 white line to the
+ * hover one. The lift stays as it was: instant, since the transition
+ * names `transform` and the lift uses the translate/scale properties.
+ */
 export function Card({ flat = false, className, children, ...rest }: CardProps) {
   return (
     <div
       {...rest}
       className={cn(
         "glow-ring relative rounded-[20px] border border-line p-[30px]",
-        "transition-[transform,box-shadow,border-color] duration-[400ms] ease-smooth",
-        "hover:border-line-hover",
+        "transition-[transform] duration-[400ms] ease-smooth",
+        "before:pointer-events-none before:absolute before:inset-[-1px] before:rounded-[inherit] before:border",
+        "before:opacity-0 before:transition-opacity before:duration-[400ms] before:ease-smooth hover:before:opacity-100",
+        "lt:before:shadow-none",
         flat
           ? [
-              "bg-[rgba(10,15,30,0.72)] shadow-[var(--card-shadow)] backdrop-blur-[35px]",
+              "bg-[rgba(10,15,30,0.72)] shadow-[var(--card-shadow)]",
+              "before:border-[rgb(58,16,41)] before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.044)]",
+              "lt:before:border-[rgb(250,222,226)]",
               "hover:-translate-y-1 hover:scale-[1.005]",
-              "hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)]",
               "hover:glow-ring-slow lt:bg-white/70",
             ]
           : [
-              "card-surface backdrop-blur-[25px]",
+              "card-surface",
+              "before:border-[rgb(57,13,35)] before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.076)]",
+              "lt:before:border-[rgb(251,223,227)]",
               "hover:-translate-y-1.5 hover:scale-[1.005]",
-              "hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.15)]",
               "hover:glow-ring-on",
             ],
         className,
       )}
     >
+      {/* The red ring, turned by the compositor (see glow-ring in
+          globals.css). First rather than last, so a caller's space-y or
+          last: never counts it; its z-index keeps it on top. */}
+      <span aria-hidden className="glow-ring-track" />
       {children}
     </div>
   );

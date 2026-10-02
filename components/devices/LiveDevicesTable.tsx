@@ -52,7 +52,7 @@ export function LiveDevicesTable({
       <div className="relative min-w-[760px]">
         {/* One band of light crossing the header, clipped to it. */}
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-11 overflow-hidden rounded-t-xl">
-          <span className="animate-panel-sweep absolute motion-reduce:hidden inset-y-0 left-0 w-1/5 bg-[linear-gradient(90deg,transparent,rgba(96,165,250,0.22),transparent)] lt:bg-[linear-gradient(90deg,transparent,rgba(59,130,246,0.14),transparent)]" />
+          <span className="animate-panel-sweep absolute motion-reduce:hidden inset-y-0 left-0 w-1/5 bg-[linear-gradient(90deg,transparent,rgba(96,165,250,0.12),transparent)] lt:bg-[linear-gradient(90deg,transparent,rgba(59,130,246,0.08),transparent)]" />
         </div>
 
         <table className="w-full border-separate border-spacing-0 text-left">
@@ -145,7 +145,7 @@ function DeviceRow({
         "group/row animate-device-row-in relative [animation-fill-mode:backwards]",
         "transition-[transform,box-shadow] duration-300 ease-smooth",
         "hover:z-[1] hover:-translate-y-0.5",
-        "hover:shadow-[0_14px_30px_-14px_rgba(59,130,246,0.7)] lt:hover:shadow-[0_14px_30px_-16px_rgba(59,130,246,0.45)]",
+        "hover:shadow-[0_12px_18px_-10px_rgba(59,130,246,0.32)] lt:hover:shadow-[0_12px_18px_-11px_rgba(59,130,246,0.2)]",
         // Faint blue rule under every row, and a brighter glass fill on hover.
         "[&>td]:border-b [&>td]:border-[rgba(96,165,250,0.12)] [&>td]:transition-colors [&>td]:duration-300",
         "hover:[&>td]:bg-[rgba(59,130,246,0.09)] [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl",
@@ -157,7 +157,7 @@ function DeviceRow({
         className={cn(
           "relative px-2.5 py-3 2xl:px-4",
           "before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:content-['']",
-          "before:bg-[#3b82f6] before:opacity-0 before:shadow-[0_0_10px_#3b82f6] before:transition-opacity",
+          "before:bg-[#3b82f6] before:opacity-0 before:shadow-[0_0_6px_rgba(59,130,246,0.45)] before:transition-opacity",
           "group-hover/row:before:opacity-100",
         )}
       >
@@ -278,13 +278,13 @@ function OnlinePill() {
         "text-[10.5px] font-extrabold tracking-[0.8px] whitespace-nowrap uppercase",
         "border-[rgba(52,211,153,0.45)] text-[#6ee7b7]",
         "bg-[linear-gradient(180deg,rgba(16,185,129,0.3),rgba(16,185,129,0.1))]",
-        "shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.25),0_0_14px_rgba(16,185,129,0.3)]",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.25),0_0_8px_rgba(16,185,129,0.14)]",
         "lt:border-emerald-300 lt:bg-none lt:bg-emerald-50 lt:text-emerald-700 lt:shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]",
       )}
     >
       <span className="relative flex size-2 shrink-0">
         <span aria-hidden className="animate-status-ping absolute inset-0 rounded-full bg-[#34d399]" />
-        <span className="relative size-2 rounded-full bg-[#34d399] shadow-[0_0_8px_#34d399] lt:bg-emerald-500 lt:shadow-none" />
+        <span className="relative size-2 rounded-full bg-[#34d399] shadow-[0_0_5px_rgba(52,211,153,0.45)] lt:bg-emerald-500 lt:shadow-none" />
       </span>
       Online
     </span>
@@ -295,12 +295,12 @@ const AVATAR_STYLE: Record<Role, React.CSSProperties> = {
   OWNER: {
     background: "radial-gradient(circle at 32% 28%, #dbeafe 0%, #60a5fa 24%, #2563eb 58%, #1e3a8a 100%)",
     boxShadow:
-      "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 14px rgba(59,130,246,0.5)",
+      "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 8px rgba(59,130,246,0.22)",
   },
   RESELLER: {
     background: "radial-gradient(circle at 32% 28%, #ede9fe 0%, #a78bfa 24%, #7c3aed 58%, #4c1d95 100%)",
     boxShadow:
-      "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 14px rgba(139,92,246,0.5)",
+      "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 8px rgba(139,92,246,0.22)",
   },
 };
 
@@ -326,11 +326,11 @@ function KickButton({ onClick }: { onClick: () => void }) {
         "inline-flex min-w-[72px] cursor-pointer items-center justify-center gap-1.5 rounded-full border px-3 py-1.5 2xl:min-w-[84px] 2xl:px-4",
         "text-[12px] font-bold whitespace-nowrap text-[#ffe4e6] select-none",
         "border-[rgba(251,113,133,0.6)] bg-[linear-gradient(180deg,rgba(244,63,94,0.42),rgba(190,18,60,0.3))]",
-        "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_3px_0_rgba(136,19,55,0.85),0_0_16px_rgba(244,63,94,0.4)]",
-        "transition-all duration-150 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_3px_0_rgba(136,19,55,0.85),0_0_24px_rgba(244,63,94,0.65)]",
-        "active:translate-y-[3px] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_0_0_rgba(136,19,55,0.85),0_0_10px_rgba(244,63,94,0.4)]",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_3px_0_rgba(136,19,55,0.85),0_0_10px_rgba(244,63,94,0.18)]",
+        "transition-all duration-150 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_3px_0_rgba(136,19,55,0.85),0_0_12px_rgba(244,63,94,0.25)]",
+        "active:translate-y-[3px] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_0_0_rgba(136,19,55,0.85),0_0_6px_rgba(244,63,94,0.18)]",
         "lt:border-rose-300 lt:bg-none lt:bg-rose-50 lt:text-rose-600",
-        "lt:shadow-[inset_0_1px_0_#fff,0_3px_0_rgba(225,29,72,0.28)] lt:hover:shadow-[inset_0_1px_0_#fff,0_3px_0_rgba(225,29,72,0.28),0_0_14px_rgba(244,63,94,0.25)]",
+        "lt:shadow-[inset_0_1px_0_#fff,0_3px_0_rgba(225,29,72,0.28)] lt:hover:shadow-[inset_0_1px_0_#fff,0_3px_0_rgba(225,29,72,0.28),0_0_8px_rgba(244,63,94,0.11)]",
         "lt:active:shadow-[inset_0_1px_0_#fff,0_0_0_rgba(225,29,72,0.28)]",
       )}
     >
@@ -472,7 +472,7 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
         className={cn(
           "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border text-[#bfdbfe]",
           "border-[rgba(96,165,250,0.4)] bg-[rgba(59,130,246,0.12)]",
-          "shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_10px_rgba(59,130,246,0.25)]",
+          "shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_6px_rgba(59,130,246,0.11)]",
           "transition-all duration-200 hover:border-[rgba(147,197,253,0.7)] hover:bg-[rgba(59,130,246,0.22)] hover:text-white active:scale-90",
           // lt:hover:text-* is needed: hover:text-white outranks lt:text-*
           // (the lt: variant adds no specificity) and vanished on blue-50.
@@ -492,7 +492,7 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
             className={cn(
               "animate-dropdown-fade fixed z-[1000] overflow-hidden rounded-xl border p-1.5",
               "border-[rgba(96,165,250,0.3)] bg-[rgba(8,15,40,0.94)] backdrop-blur-[20px]",
-              "shadow-[0_18px_40px_rgba(0,0,0,0.55),0_0_20px_rgba(59,130,246,0.2)]",
+              "shadow-[0_18px_40px_rgba(0,0,0,0.55),0_0_12px_rgba(59,130,246,0.09)]",
               "lt:border-slate-200 lt:bg-white/95 lt:shadow-[0_18px_40px_rgba(15,23,42,0.15)]",
             )}
           >

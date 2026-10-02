@@ -159,7 +159,7 @@ export default function GeneratorPage() {
             missing and left them clicking dead cards; the owner still
             sees everything because everything is theirs. */}
         {allowed.length === 0 ? (
-          <div className="mb-7 flex items-start gap-3 rounded-[14px] border border-[rgba(245,165,36,0.45)] bg-[rgba(245,165,36,0.1)] px-4 py-3.5 text-[14px] leading-snug text-[#fdd680] shadow-[0_0_18px_-8px_rgba(245,165,36,0.8)] lt:border-amber-300 lt:bg-amber-50 lt:text-amber-800 lt:shadow-none">
+          <div className="mb-7 flex items-start gap-3 rounded-[14px] border border-[rgba(245,165,36,0.45)] bg-[rgba(245,165,36,0.1)] px-4 py-3.5 text-[14px] leading-snug text-[#fdd680] shadow-[0_0_11px_-4px_rgba(245,165,36,0.36)] lt:border-amber-300 lt:bg-amber-50 lt:text-amber-800 lt:shadow-none">
             <AlertTriangleIcon aria-hidden className="mt-px size-[18px] shrink-0" />
             No packages are assigned to your account yet. Ask the owner to grant you one.
           </div>
@@ -247,7 +247,7 @@ export default function GeneratorPage() {
               asked for no drawn line under the button. */}
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-x-[2%] -bottom-3 h-[46px] rounded-[50%] bg-[radial-gradient(46%_100%_at_50%_0%,rgba(168,85,247,0.42),rgba(59,130,246,0.14)_50%,transparent_80%)] lt:opacity-40"
+            className="pointer-events-none absolute inset-x-[2%] -bottom-3 h-[46px] rounded-[50%] bg-[radial-gradient(46%_100%_at_50%_0%,rgba(168,85,247,0.19),rgba(59,130,246,0.06)_50%,transparent_80%)] lt:opacity-40"
           />
           <NeonCta
             icon={<KeyIcon />}

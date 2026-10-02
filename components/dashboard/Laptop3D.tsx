@@ -46,18 +46,18 @@ export function Laptop3D({ className }: { className?: string }) {
         className="absolute inset-0 lt:opacity-40"
         style={{
           background: [
-            "radial-gradient(ellipse 110px 60px at 22px 86%, rgba(139, 92, 246, 0.38), transparent 70%)",
-            "radial-gradient(ellipse 150px 90px at 45% 58%, rgba(76, 70, 229, 0.3), transparent 72%)",
-            "radial-gradient(ellipse 120px 40px at 70% 100%, rgba(168, 85, 247, 0.22), transparent 70%)",
+            "radial-gradient(ellipse 110px 60px at 22px 86%, rgba(139, 92, 246, 0.2), transparent 70%)",
+            "radial-gradient(ellipse 150px 90px at 45% 58%, rgba(76, 70, 229, 0.16), transparent 72%)",
+            "radial-gradient(ellipse 120px 40px at 70% 100%, rgba(168, 85, 247, 0.12), transparent 70%)",
           ].join(","),
         }}
       />
       <div
         className={cn(
           "absolute top-[26%] left-[47%] size-[120px] -translate-x-1/2 rounded-full opacity-55",
-          "transition-opacity duration-500 group-hover/banner:opacity-100",
+          "transition-opacity duration-500 group-hover/banner:opacity-75",
         )}
-        style={{ background: "radial-gradient(circle, rgba(124, 92, 255, 0.45), rgba(124, 92, 255, 0) 65%)" }}
+        style={{ background: "radial-gradient(circle, rgba(124, 92, 255, 0.22), rgba(124, 92, 255, 0) 65%)" }}
       />
 
       {/* The world: a zero-size pivot the whole model hangs off. */}
@@ -89,7 +89,7 @@ export function Laptop3D({ className }: { className?: string }) {
           x={-PLATFORM.w / 2 + 6}
           y={-PLATFORM.d / 2 + 4}
           top="linear-gradient(135deg, #141a4a 0%, #0b0f33 45%, #080a26 100%)"
-          topClass="rounded-[6px] shadow-[inset_0_0_0_1px_rgba(129,120,255,0.28),inset_0_0_22px_rgba(99,82,255,0.18)]"
+          topClass="rounded-[6px] shadow-[inset_0_0_0_1px_rgba(129,120,255,0.28),inset_0_0_13px_rgba(99,82,255,0.09)]"
           front="linear-gradient(180deg, rgba(168, 120, 255, 0.75) 0 1px, #0a0b27 1px, #05061a 100%)"
           side="linear-gradient(180deg, rgba(129, 120, 255, 0.45) 0 1px, #0c0e30 1px, #070820 100%)"
         />
@@ -108,7 +108,7 @@ export function Laptop3D({ className }: { className?: string }) {
         >
           <span className="absolute top-[7px] left-[6px] h-px w-[22px] bg-[rgba(167,139,250,0.55)]" />
           <span className="absolute top-[12px] left-[6px] h-px w-[14px] bg-[rgba(167,139,250,0.35)]" />
-          <span className="absolute right-[5px] bottom-[5px] size-[3px] rounded-full bg-[#c4b5fd] shadow-[0_0_6px_2px_rgba(167,139,250,0.8)]" />
+          <span className="absolute right-[5px] bottom-[5px] size-[3px] rounded-full bg-[#c4b5fd] shadow-[0_0_4px_1px_rgba(167,139,250,0.36)]" />
         </div>
 
         {/* The laptop body sits on the plinth. */}
@@ -192,7 +192,7 @@ export function Laptop3D({ className }: { className?: string }) {
               className={cn(
                 face,
                 "inset-0 rounded-[6px] bg-[linear-gradient(160deg,#b4a5ff,#6d5df5_40%,#4338ca)] p-[1.5px]",
-                "shadow-[0_0_14px_rgba(124,92,255,0.55)]",
+                "shadow-[0_0_8px_rgba(124,92,255,0.25)]",
               )}
             >
               <div className="relative size-full rounded-[5px] bg-[#07081f] p-[3.5px]">
@@ -208,12 +208,12 @@ export function Laptop3D({ className }: { className?: string }) {
                   <span
                     className="absolute inset-0 opacity-0 transition-opacity duration-500 group-hover/banner:opacity-100"
                     style={{
-                      background: "radial-gradient(circle at 50% 46%, rgba(167, 139, 250, 0.55), transparent 62%)",
+                      background: "radial-gradient(circle at 50% 46%, rgba(167, 139, 250, 0.3), transparent 62%)",
                     }}
                   />
                   <span
                     className="absolute size-[54px] rounded-full opacity-80"
-                    style={{ background: "radial-gradient(circle, rgba(129, 140, 248, 0.6), transparent 68%)" }}
+                    style={{ background: "radial-gradient(circle, rgba(129, 140, 248, 0.35), transparent 68%)" }}
                   />
                   <Shield uid={uid} />
                   {/* Glass sheen. */}
@@ -298,7 +298,7 @@ function Shield({ uid }: { uid: string }) {
   const stroke = `${uid}-shield-stroke`;
   const fill = `${uid}-shield-fill`;
   return (
-    <svg viewBox="0 0 40 46" width="27" height="31" className="relative drop-shadow-[0_0_5px_rgba(167,139,250,0.9)]">
+    <svg viewBox="0 0 40 46" width="27" height="31" className="relative drop-shadow-[0_0_3px_rgba(167,139,250,0.36)]">
       <defs>
         <linearGradient id={stroke} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#e9d5ff" />

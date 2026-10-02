@@ -1,10 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-import { clientIp, livePackages, loadDb } from "@/lib/auth";
+import { ACCESS_FIELDS, asDatabase, clientIp, livePackages } from "@/lib/auth";
 import { pushAudit, route } from "@/lib/api-helpers";
 import { matchBan } from "@/lib/bans";
-import { accountBlock, updateDb } from "@/lib/db";
+import { accountBlock, readSlice, updateDb } from "@/lib/db";
 import { deviceIdentity } from "@/lib/device";
 import { unreadFor } from "@/lib/messages";
 import { lockedToAnotherDevice } from "@/lib/device-lock";
@@ -63,19 +63,21 @@ export const GET = route(async () => {
   if (state.status !== "valid") return NextResponse.json({ user: null });
 
   const user = state.user;
-  // loadDb rather than readDb: this handler reads the database twice
-  // -- once for the checks, once for the grants below -- and the cache
-  // keeps a poll running every five seconds from doubling its queries.
-  const db = await loadDb();
+  // One read for everything below, and only the fields it uses: the
+  // account checks', plus the device list for the kick check and the
+  // messages for the unread count. This runs every five seconds in every
+  // open tab, and the key history and audit log it leaves behind are
+  // most of the document -- see readSlice.
+  const db = await readSlice([...ACCESS_FIELDS, "cheatExeDevices", "cheatExeMessages"]);
   const { hwid, fingerprint } = await deviceIdentity();
 
   const blocked = accountBlock(db, user.username, user.role);
   const kicked = !db.cheatExeDevices.some((d) => d.sessionId === user.sessionId);
   // The owner is exempt from device blocks and locks -- see resolveLogin.
   const marks = { ip: await clientIp(), hwid, fingerprint };
-  const rule = user.role === "OWNER" ? null : matchBan(db, marks);
+  const rule = user.role === "OWNER" ? null : matchBan(asDatabase(db), marks);
   const locked =
-    user.role !== "OWNER" && lockedToAnotherDevice(db, user.username, marks);
+    user.role !== "OWNER" && lockedToAnotherDevice(asDatabase(db), user.username, marks);
 
   const terminated =
     blocked ?? (rule ? "device" : locked ? "locked" : kicked ? "kicked" : null);

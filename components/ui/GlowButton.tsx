@@ -3,8 +3,10 @@
 import { cn } from "@/lib/utils";
 
 const MESH = "linear-gradient(135deg, rgb(122, 105, 249), rgb(242, 99, 120), rgb(245, 131, 63))";
+// Half-strength stops: the star-shine pulse fades this layer between
+// 0.35 and 0.7, so halving the paint halves the pulse without touching it.
 const SHINE =
-  "linear-gradient(135deg, rgb(59, 196, 242), rgb(122, 105, 249), rgb(242, 99, 120), rgb(245, 131, 63))";
+  "linear-gradient(135deg, rgba(59, 196, 242, 0.5), rgba(122, 105, 249, 0.5), rgba(242, 99, 120, 0.5), rgba(245, 131, 63, 0.5))";
 
 interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /**
@@ -41,8 +43,8 @@ export function GlowButton({
         // a plain shadow that only changes on hover, never while idle.
         vivid && [
           "bg-[linear-gradient(90deg,#ff3d8b_0%,#c13ee0_48%,#6a4df5_100%)] p-[1.5px]",
-          "shadow-[0_0_16px_rgba(255,45,122,0.3),0_0_26px_rgba(106,77,245,0.28)]",
-          "hover:shadow-[0_0_22px_rgba(255,45,122,0.45),0_0_38px_rgba(106,77,245,0.45)]",
+          "shadow-[0_0_8px_rgba(255,45,122,0.14),0_0_16px_rgba(106,77,245,0.13)]",
+          "hover:shadow-[0_0_8px_rgba(255,45,122,0.19),0_0_18px_rgba(106,77,245,0.18)]",
         ],
         className,
       )}
@@ -75,7 +77,7 @@ export function GlowButton({
           vivid && [
             "gap-2.5 py-3 pr-[18px] pl-[21px]",
             "bg-[linear-gradient(90deg,#2f1145_0%,#1b0e58_52%,#18187a_100%)]",
-            "shadow-[inset_0_0_18px_rgba(124,92,255,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]",
+            "shadow-[inset_0_0_18px_rgba(124,92,255,0.14),inset_0_1px_0_rgba(255,255,255,0.08)]",
             "lt:bg-[linear-gradient(90deg,#2f1145_0%,#1b0e58_52%,#18187a_100%)]",
           ],
         )}

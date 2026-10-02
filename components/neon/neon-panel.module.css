@@ -6,25 +6,30 @@
    of the sweep) and --rim-c (bottom-right). Everything here reads them,
    so one set of rules draws every rim preset.
 
-   Two things this file must not do, both learned the hard way here:
+   Three things this file must not do, all learned the hard way here:
    - use the standalone translate/rotate/scale properties -- in a CSS
      module they compute to none; the hover lift is a Tailwind class;
    - be overridden from Tailwind: these rules are unlayered and beat
-     any utility, so only paint lives here, never layout.
+     any utility, so only paint lives here, never layout;
+   - change a shadow, filter or backdrop-filter on hover. Each repaints
+     the whole pane (and everything on it) every frame of the
+     transition; hover here only ever fades opacity on pre-painted
+     layers.
    ================================================================== */
 
 /* ---------------------------------------------------------------
-   The pane. Deep navy glass, opaque enough to hold white text over
-   the bright background video, with the rim colours pooling faintly
-   in the two lit corners and a sheen across the top.
+   The pane. Deep navy glass, opaque enough to hold white text, with
+   the rim colours pooling faintly in the two lit corners and a sheen
+   across the top.
 
-   The bloom is split: one shadow pulled up and left in --rim-a, one
-   pushed down and right in --rim-c, so the halo takes the colour of
-   the stretch of rim it sits beside rather than one flat wash.
+   No backdrop-filter. It frosted the old background video; with the
+   video gone the page behind is flat navy, which a blur leaves exactly
+   as it was -- while it still re-ran a full-pane blur every time
+   anything on or behind the pane repainted.
 
-   Every glow here is kept low on purpose. At full strength the borders
-   read as too bright over the video, and the owner asked for a quiet
-   halo: the rim should be seen, not shine.
+   Only the two inner highlights live on the pane itself, and they are
+   the same at rest and on hover (.bloomHover adds the small
+   difference), so the pane's own paint never changes.
    --------------------------------------------------------------- */
 .panel {
   background:
@@ -32,46 +37,87 @@
     radial-gradient(620px 380px at 100% 100%, rgba(var(--rim-c), 0.13), transparent 70%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0) 16%),
     linear-gradient(160deg, rgba(13, 17, 52, 0.9) 0%, rgba(7, 10, 36, 0.9) 48%, rgba(10, 8, 38, 0.92) 100%);
-  -webkit-backdrop-filter: blur(22px) saturate(1.35);
-  backdrop-filter: blur(22px) saturate(1.35);
   box-shadow:
-    -12px -10px 38px -24px rgba(var(--rim-a), 0.3),
-    14px 12px 40px -24px rgba(var(--rim-c), 0.3),
-    0 0 26px -14px rgba(var(--rim-b), 0.22),
-    0 26px 60px -32px rgba(0, 0, 0, 0.9),
     inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    inset 0 0 46px rgba(var(--rim-b), 0.04);
+    inset 0 0 46px rgba(var(--rim-b), 0.02);
 }
 
-.panel:hover {
+/* The smaller card's inner glow is tighter. */
+.md {
   box-shadow:
-    -14px -12px 44px -22px rgba(var(--rim-a), 0.42),
-    16px 14px 46px -22px rgba(var(--rim-c), 0.42),
-    0 0 32px -12px rgba(var(--rim-b), 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 0 30px rgba(var(--rim-b), 0.025);
+}
+
+/* ---------------------------------------------------------------
+   The bloom, pre-painted twice: once as it sits at rest (.bloom) and
+   once as it swells on hover (.bloomHover), each on its own layer the
+   size of the pane. Hover cross-fades the two -- opacity only, so the
+   compositor runs it and neither shadow is repainted. An outer shadow
+   only draws outside its box, so these layers never cover the content.
+
+   The bloom is split: one shadow pulled up and left in --rim-a, one
+   pushed down and right in --rim-c, so the halo takes the colour of
+   the stretch of rim it sits beside rather than one flat wash.
+
+   Every glow here is kept low on purpose. At full strength the borders
+   read as too bright, and the owner asked for a quiet halo: the rim
+   should be seen, not shine. It has since been halved again ("too
+   glowing"): two coloured layers at most, each at under half its old
+   strength and about 0.6x its old reach, with hover no more than ~1.4x
+   rest. The black depth shadow is not a glow and stays as it was.
+
+   The incoming layer rises fast (the ease-smooth curve) and the
+   outgoing one falls slowly (ease-in), so the halo never dips mid-fade.
+   --------------------------------------------------------------- */
+.bloom {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    -7px -6px 23px -14px rgba(var(--rim-a), 0.14),
+    8px 7px 24px -14px rgba(var(--rim-c), 0.14),
+    0 26px 60px -32px rgba(0, 0, 0, 0.9);
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.panel:hover .bloom {
+  opacity: 0;
+  transition-timing-function: ease-in;
+}
+
+/* Hover: the bigger bloom, plus what the two inner highlights brighten
+   by (0.07 -> 0.09, 0.02 -> 0.03) laid over the pane's own. */
+.bloom.bloomHover {
+  opacity: 0;
+  transition-timing-function: ease-in;
+  box-shadow:
+    -8px -7px 24px -13px rgba(var(--rim-a), 0.19),
+    10px 8px 24px -13px rgba(var(--rim-c), 0.19),
     0 30px 64px -30px rgba(0, 0, 0, 0.9),
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 0 52px rgba(var(--rim-b), 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.022),
+    inset 0 0 52px rgba(var(--rim-b), 0.011);
+}
+.panel:hover .bloom.bloomHover {
+  opacity: 1;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* The smaller card: tighter bloom, so a grid of them does not merge
    into one haze. */
-.md {
+.md .bloom {
   box-shadow:
-    -8px -6px 24px -18px rgba(var(--rim-a), 0.28),
-    10px 8px 26px -18px rgba(var(--rim-c), 0.28),
-    0 0 18px -10px rgba(var(--rim-b), 0.22),
-    0 18px 40px -26px rgba(0, 0, 0, 0.9),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    inset 0 0 30px rgba(var(--rim-b), 0.05);
+    -5px -4px 14px -11px rgba(var(--rim-a), 0.13),
+    6px 5px 16px -11px rgba(var(--rim-c), 0.13),
+    0 18px 40px -26px rgba(0, 0, 0, 0.9);
 }
-.md:hover {
+.md .bloom.bloomHover {
   box-shadow:
-    -10px -8px 30px -16px rgba(var(--rim-a), 0.42),
-    12px 10px 32px -16px rgba(var(--rim-c), 0.42),
-    0 0 24px -8px rgba(var(--rim-b), 0.3),
+    -6px -5px 18px -10px rgba(var(--rim-a), 0.18),
+    7px 6px 19px -10px rgba(var(--rim-c), 0.18),
     0 22px 44px -24px rgba(0, 0, 0, 0.9),
-    inset 0 1px 0 rgba(255, 255, 255, 0.09),
-    inset 0 0 36px rgba(var(--rim-b), 0.07);
+    inset 0 1px 0 rgba(255, 255, 255, 0.022),
+    inset 0 0 36px rgba(var(--rim-b), 0.01);
 }
 
 /* ---------------------------------------------------------------
@@ -104,7 +150,7 @@
   border-radius: inherit;
   pointer-events: none;
   filter: blur(6px);
-  opacity: 0.28;
+  opacity: 0.14;
   transition: opacity 0.4s ease;
 }
 .rimGlow > span {
@@ -112,7 +158,7 @@
   background: linear-gradient(118deg, rgb(var(--rim-a)) 0%, rgb(var(--rim-b)) 48%, rgb(var(--rim-c)) 100%);
 }
 .panel:hover .rimGlow {
-  opacity: 0.45;
+  opacity: 0.2;
 }
 
 /* The smaller card's rim is a hair finer. */
@@ -137,7 +183,7 @@
   transition: opacity 0.4s ease;
 }
 .panel:hover .streak {
-  opacity: 0.55;
+  opacity: 0.45;
 }
 
 .streakTop {
@@ -147,8 +193,8 @@
   height: 1.5px;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85) 45%, rgba(255, 255, 255, 0.85) 60%, transparent);
   box-shadow:
-    0 0 8px 1px rgba(var(--rim-a), 0.45),
-    0 0 18px 2px rgba(var(--rim-b), 0.2);
+    0 0 5px 0.5px rgba(var(--rim-a), 0.2),
+    0 0 11px 1px rgba(var(--rim-b), 0.09);
 }
 
 .streakLeft {
@@ -157,7 +203,7 @@
   width: 1.5px;
   height: 30%;
   background: linear-gradient(180deg, transparent, rgba(255, 230, 255, 0.8) 50%, transparent);
-  box-shadow: 0 0 8px 1px rgba(var(--rim-a), 0.4);
+  box-shadow: 0 0 5px 0.5px rgba(var(--rim-a), 0.18);
 }
 
 .streakBottom {
@@ -167,8 +213,8 @@
   height: 1.5px;
   background: linear-gradient(90deg, transparent, rgba(225, 240, 255, 0.8) 50%, transparent);
   box-shadow:
-    0 0 8px 1px rgba(var(--rim-c), 0.45),
-    0 0 16px 2px rgba(var(--rim-c), 0.18);
+    0 0 5px 0.5px rgba(var(--rim-c), 0.2),
+    0 0 10px 1px rgba(var(--rim-c), 0.08);
 }
 
 /* ---------------------------------------------------------------
@@ -192,35 +238,37 @@
   height: 1px;
   pointer-events: none;
   background: linear-gradient(90deg, transparent, rgba(var(--rim-a), 0.6), transparent);
-  box-shadow: 0 0 6px rgba(var(--rim-a), 0.35);
+  box-shadow: 0 0 4px rgba(var(--rim-a), 0.16);
 }
 
 /* ---------------------------------------------------------------
-   Light mode hides the video and paints the page near-white. The
-   pane turns to frosted white with dark text; the rim stays as a
-   quieter coloured line and the glows mostly go.
+   Light mode paints the page near-white. The pane turns to frosted
+   white with dark text; the rim stays as a quieter coloured line and
+   the glows mostly go. These selectors outrank the .md ones above, so
+   the smaller card takes the same light shadows, as it always has.
    --------------------------------------------------------------- */
 :global(body.light-mode) .panel {
   background:
     radial-gradient(560px 340px at 0% 0%, rgba(var(--rim-a), 0.07), transparent 70%),
     radial-gradient(620px 380px at 100% 100%, rgba(var(--rim-c), 0.07), transparent 70%),
     linear-gradient(160deg, rgba(255, 255, 255, 0.94) 0%, rgba(247, 248, 255, 0.9) 100%);
-  box-shadow:
-    0 18px 44px -26px rgba(var(--rim-b), 0.45),
-    0 2px 6px rgba(15, 23, 42, 0.05),
-    inset 0 1px 0 #fff;
+  box-shadow: inset 0 1px 0 #fff;
 }
-:global(body.light-mode) .panel:hover {
+:global(body.light-mode) .bloom {
   box-shadow:
-    0 22px 50px -24px rgba(var(--rim-b), 0.55),
-    0 2px 6px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 #fff;
+    0 11px 24px -16px rgba(var(--rim-b), 0.2),
+    0 2px 6px rgba(15, 23, 42, 0.05);
+}
+:global(body.light-mode) .bloom.bloomHover {
+  box-shadow:
+    0 13px 24px -14px rgba(var(--rim-b), 0.26),
+    0 2px 6px rgba(15, 23, 42, 0.06);
 }
 :global(body.light-mode) .rim {
   opacity: 0.6;
 }
 :global(body.light-mode) .rimGlow {
-  opacity: 0.1;
+  opacity: 0.05;
 }
 :global(body.light-mode) .streak {
   opacity: 0.2;

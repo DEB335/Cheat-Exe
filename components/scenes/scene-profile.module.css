@@ -61,8 +61,8 @@
   height: 70cqw;
   transform: translate(-50%, -50%);
   background:
-    radial-gradient(closest-side at 34% 58%, rgb(255 122 26 / 0.34), rgb(255 79 216 / 0.1) 60%, transparent),
-    radial-gradient(closest-side at 68% 42%, rgb(168 85 247 / 0.42), rgb(99 102 241 / 0.12) 62%, transparent);
+    radial-gradient(closest-side at 34% 58%, rgb(255 122 26 / 0.17), rgb(255 79 216 / 0.05) 60%, transparent),
+    radial-gradient(closest-side at 68% 42%, rgb(168 85 247 / 0.21), rgb(99 102 241 / 0.06) 62%, transparent);
   animation: profile-breathe 5.5s ease-in-out infinite;
 }
 
@@ -92,12 +92,12 @@
 
 .warm {
   background: linear-gradient(90deg, transparent, rgb(255 138 61 / 0.75) 45%, #ffd9a8);
-  box-shadow: 0 0 6px rgb(255 138 61 / 0.8);
+  box-shadow: 0 0 4px rgb(255 138 61 / 0.38);
 }
 
 .cool {
   background: linear-gradient(90deg, transparent, rgb(168 85 247 / 0.75) 45%, #e9d5ff);
-  box-shadow: 0 0 6px rgb(168 85 247 / 0.85);
+  box-shadow: 0 0 4px rgb(168 85 247 / 0.4);
 }
 
 .avatarPedestal {
@@ -150,8 +150,8 @@
   background: radial-gradient(
     closest-side,
     transparent 58%,
-    rgb(255 140 60 / 0.5) 66%,
-    rgb(255 79 216 / 0.22) 78%,
+    rgb(255 140 60 / 0.24) 66%,
+    rgb(255 79 216 / 0.1) 78%,
     transparent
   );
   animation: profile-breathe 4.4s ease-in-out infinite;
@@ -171,7 +171,7 @@
   background: radial-gradient(circle at 50% 38%, #3b1470, #150b3a 62%, #0a0826);
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 0.12),
-    inset 0 -1.6cqw 3cqw rgb(255 110 40 / 0.35);
+    inset 0 -1.6cqw 3cqw rgb(255 110 40 / 0.18);
 }
 
 .face > img,
@@ -258,8 +258,8 @@
   height: 36cqw;
   transform: translate(-50%, -50%);
   background:
-    radial-gradient(closest-side at 42% 50%, rgb(59 130 246 / 0.4), transparent),
-    radial-gradient(closest-side at 60% 46%, rgb(168 85 247 / 0.34), transparent);
+    radial-gradient(closest-side at 42% 50%, rgb(59 130 246 / 0.19), transparent),
+    radial-gradient(closest-side at 60% 46%, rgb(168 85 247 / 0.16), transparent);
   animation: profile-breathe 6s ease-in-out infinite;
 }
 
@@ -291,24 +291,45 @@
   height: 1px;
 }
 
-/* Data packets riding the dotted links toward the cloud. SVG lengths
-   in a CSS transform are user units, so the travel is in the 440-wide
-   drawing's own units at any size. */
+/* The moving bits of the cloud drawing are HTML over its SVG, placed at
+   a point of the drawing (left/top from the component) and sized in its
+   units: one unit is 100cqw / 440 of the frame. */
+
+/* Data packets riding the dotted links toward the cloud: 132 units of
+   travel, 6.4 across. */
 .packet {
+  position: absolute;
+  width: calc(100cqw * 6.4 / 440);
+  aspect-ratio: 1;
+  margin: calc(100cqw * -3.2 / 440) 0 0 calc(100cqw * -3.2 / 440);
   opacity: 0;
   animation: profile-packet 3.3s linear infinite;
   animation-delay: var(--d);
 }
 
+.packet > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
 .packetIn {
-  --travel: 132px;
+  --travel: 30cqw;
 }
 
 .packetOut {
-  --travel: -132px;
+  --travel: -30cqw;
 }
 
+/* A status light by each slot: 1.8 units across. */
 .led {
+  position: absolute;
+  width: calc(100cqw * 1.8 / 440);
+  aspect-ratio: 1;
+  margin: calc(100cqw * -0.9 / 440) 0 0 calc(100cqw * -0.9 / 440);
+  border-radius: 50%;
+  background: #67e8f9;
   animation: profile-blink 2.4s steps(2, jump-none) infinite;
   animation-delay: var(--d);
 }
@@ -417,10 +438,11 @@
   }
 }
 
-/* Off screen or in a hidden tab (see usePauseWhenHidden). Last, so it
-   wins over the animations above at equal specificity. */
-.root[data-holo-paused] * {
-  animation-play-state: paused;
+/* Off screen or in a hidden tab (see usePauseWhenHidden). */
+.root[data-holo-paused] *,
+.root[data-holo-paused] *::before,
+.root[data-holo-paused] *::after {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

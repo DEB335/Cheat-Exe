@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type RefObj
 import { Line } from "react-chartjs-2";
 
 import { BoltIcon } from "@/components/icons";
+import { usePing } from "@/lib/ping";
 import { useLightMode } from "@/lib/use-external";
 import { cn } from "@/lib/utils";
 import { pageZoom } from "@/lib/zoom";
@@ -58,8 +59,8 @@ const DARK: Palette = {
   fillBottom: "rgba(110, 30, 190, 0.06)",
   point: "#ff2d7a",
   ring: "#ffe2ee",
-  bloom: "rgba(255, 45, 122, 0.9)",
-  bloomBlur: 16,
+  bloom: "rgba(255, 45, 122, 0.4)",
+  bloomBlur: 10,
   grid: "rgba(96, 116, 214, 0.13)",
   tick: "#c9d3ef",
   guide: "rgba(255, 184, 214, 0.26)",
@@ -81,8 +82,8 @@ const LIGHT: Palette = {
   fillBottom: "rgba(124, 58, 237, 0)",
   point: "#7c3aed",
   ring: "#ffffff",
-  bloom: "rgba(124, 58, 237, 0.35)",
-  bloomBlur: 8,
+  bloom: "rgba(124, 58, 237, 0.16)",
+  bloomBlur: 5,
   grid: "rgba(15, 23, 42, 0.07)",
   tick: "#475569",
   guide: "rgba(15, 23, 42, 0.16)",
@@ -249,13 +250,59 @@ export function MetricsChart({
      * The area is painted here as one closed path rather than by the
      * Filler plugin: Filler fills segment by segment under clip rects, and
      * the anti-aliased seams between them showed as a faint diagonal
-     * line through the fill. It is drawn before the shadow is set, so the
-     * glow never smears into the area. canvas shadowBlur ignores the
-     * context transform, hence the device-pixel-ratio scale.
+     * line through the fill. The glow goes down after it, so it never
+     * smears into the area. canvas shadowBlur ignores the context
+     * transform, hence the device-pixel-ratio scale.
      */
     // The gradient is rebuilt only when the plot's height changes. Held in
     // an object so the draw callbacks mutate a field, not a captured `let`.
     const fill: { key: string; area?: CanvasGradient } = { key: "" };
+    // The bloom itself is painted once into a canvas of its own and then
+    // copied under the line on every draw. Hover redraws the whole chart on
+    // each mouse move, and a shadowBlur over the full line is per-pixel
+    // work every time; the copy is one blit. Repainted only when the line
+    // moves (layout, the intro animation, new data) or a different point
+    // is hovered, since a hovered point is drawn in its hover colours.
+    const glow: { key: string; canvas?: HTMLCanvasElement } = { key: "" };
+    const paintGlow = (chart: ChartJS<"line">, line: LineElement) => {
+      const { canvas, chartArea } = chart;
+      const points = chart.getDatasetMeta(0).data as PointElement[];
+      const active = chart.getActiveElements().map((el) => el.index).join(",");
+      const key = [
+        canvas.width,
+        canvas.height,
+        active,
+        // Not the radius: a hovered point grows over a short animation, and
+        // following it would repaint the bloom every frame of every hover.
+        ...points.map((p) => `${Math.round(p.x * 4)},${Math.round(p.y * 4)}`),
+      ].join(":");
+      const layer = glow.canvas ?? document.createElement("canvas");
+      glow.canvas = layer;
+      if (key !== glow.key) {
+        glow.key = key;
+        layer.width = canvas.width;
+        layer.height = canvas.height;
+        const g = layer.getContext("2d");
+        if (!g) return;
+        // Shadow only: the shapes are drawn a whole canvas-width off to
+        // the left and their shadow offset straight back, so nothing but
+        // the bloom lands on the layer. (shadowOffset ignores the
+        // transform, so both are in device px.)
+        const dpr = chart.currentDevicePixelRatio;
+        const off = layer.width + 64;
+        g.setTransform(dpr, 0, 0, dpr, -off, 0);
+        g.shadowColor = pal.bloom;
+        g.shadowBlur = pal.bloomBlur * dpr;
+        g.shadowOffsetX = off;
+        line.draw(g, chartArea);
+        for (const point of points) point.draw(g, chartArea);
+      }
+      const { ctx } = chart;
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(layer, 0, 0);
+      ctx.restore();
+    };
     const bloom: Plugin<"line"> = {
       id: "perfBloom",
       beforeDatasetDraw(chart) {
@@ -282,10 +329,10 @@ export function MetricsChart({
           ctx.fillStyle = fill.area;
           ctx.fill();
           ctx.restore();
+          paintGlow(chart, line);
         }
+        // Paired with the restore after the dataset draws.
         ctx.save();
-        ctx.shadowColor = pal.bloom;
-        ctx.shadowBlur = pal.bloomBlur * chart.currentDevicePixelRatio;
       },
       afterDatasetDraw(chart) {
         chart.ctx.restore();
@@ -313,7 +360,7 @@ export function MetricsChart({
         ctx.setLineDash([]);
         ctx.fillStyle = pal.axisDot;
         ctx.shadowColor = pal.bloom;
-        ctx.shadowBlur = 6 * chart.currentDevicePixelRatio;
+        ctx.shadowBlur = 4 * chart.currentDevicePixelRatio;
         for (const point of points) {
           ctx.beginPath();
           ctx.arc(point.x, chartArea.bottom, 2.2, 0, Math.PI * 2);
@@ -533,7 +580,7 @@ export function MetricsChart({
           )}
         >
           <div className="flex items-center gap-1.5 text-[11px] leading-none font-medium text-[#d5dcf5] lt:text-slate-600">
-            <span className="size-[6px] rounded-full bg-[#ff2d7a] shadow-[0_0_6px_#ff2d7a] lt:bg-[#7c3aed] lt:shadow-none" />
+            <span className="size-[6px] rounded-full bg-[#ff2d7a] shadow-[0_0_4px_rgba(255,45,122,0.45)] lt:bg-[#7c3aed] lt:shadow-none" />
             Peak Usage
           </div>
           <div className="mt-[5px] text-[16px] leading-none font-bold text-white tabular-nums lt:text-slate-900">
@@ -587,21 +634,27 @@ function ScreenIcon(props: React.SVGProps<SVGSVGElement>) {
  * the next scheduled sample. A sample that straddles the tab going
  * hidden (rAF pauses in the background, so elapsed time balloons) is
  * discarded rather than reported as a bogus near-zero reading. Ping is a
- * real round trip to this app's own server, timed with performance.now()
- * around the session endpoint the shell already polls elsewhere -- no
- * new route, no more than one small request every 10s, and nothing while
- * the tab is hidden.
+ * real round trip to this app's own server: the shell times its own
+ * session poll with performance.now() and publishes the figure (see
+ * lib/ping), so the pill costs no request of its own and, like the poll,
+ * goes quiet while the tab is hidden.
  */
 export function PerformanceTicker() {
   const [fps, setFps] = useState<number | null>(null);
-  const [ping, setPing] = useState<number | null>(null);
+  const ping = usePing();
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
     let rafId = 0;
+    let sampling = false;
+    // Scrolled away (a phone, a short window), nobody is reading the pill,
+    // so no burst runs; it takes a fresh one as soon as it is back.
+    let onScreen = true;
 
     const sampleFps = () => {
-      if (document.hidden) return;
+      if (document.hidden || !onScreen || sampling) return;
+      sampling = true;
       const start = performance.now();
       let frames = 0;
       const tick = (now: number) => {
@@ -611,31 +664,39 @@ export function PerformanceTicker() {
           rafId = requestAnimationFrame(tick);
           return;
         }
+        sampling = false;
         if (!cancelled && elapsed < 2000) setFps(Math.round((frames * 1000) / elapsed));
       };
       rafId = requestAnimationFrame(tick);
     };
 
-    const samplePing = async () => {
-      if (document.hidden) return;
-      const start = performance.now();
-      try {
-        await fetch("/api/auth/session", { cache: "no-store" });
-        if (!cancelled) setPing(Math.round(performance.now() - start));
-      } catch {
-        if (!cancelled) setPing(null);
-      }
-    };
+    const el = rootRef.current;
+    const observer =
+      el && typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(([entry]) => {
+            const was = onScreen;
+            onScreen = entry.isIntersecting;
+            if (onScreen && !was) sampleFps();
+          })
+        : null;
+    if (el) observer?.observe(el);
 
-    const sample = () => {
-      sampleFps();
-      void samplePing();
-    };
-
-    sample();
-    const id = window.setInterval(sample, 10_000);
+    // The first second after mount is the page still building (scenes,
+    // chart, data), not the frame rate anyone will scroll at -- sampled
+    // then, the pill read "3 FPS" for ten seconds on every load. Give it a
+    // moment and wait for the main thread to go idle before the first reading.
+    const hasIdle = typeof requestIdleCallback === "function";
+    let idleId = 0;
+    const firstTimer = window.setTimeout(() => {
+      if (hasIdle) idleId = requestIdleCallback(sampleFps, { timeout: 3000 });
+      else sampleFps();
+    }, 1500);
+    const id = window.setInterval(sampleFps, 10_000);
     return () => {
       cancelled = true;
+      observer?.disconnect();
+      window.clearTimeout(firstTimer);
+      if (hasIdle) cancelIdleCallback(idleId);
       window.clearInterval(id);
       cancelAnimationFrame(rafId);
     };
@@ -648,13 +709,13 @@ export function PerformanceTicker() {
   );
 
   return (
-    <div className="flex items-center gap-3 sm:gap-[18px]">
+    <div ref={rootRef} className="flex items-center gap-3 sm:gap-[18px]">
       <div
         title="Client frame rate, sampled briefly every 10s"
         className={cn(
           pill,
           "border-[rgba(22,214,150,0.5)] bg-[#022b2c] text-[#3fe3ae]",
-          "shadow-[0_0_16px_rgba(16,185,129,0.2),inset_0_0_14px_rgba(16,185,129,0.12)]",
+          "shadow-[0_0_10px_rgba(16,185,129,0.09),inset_0_0_14px_rgba(16,185,129,0.06)]",
           "lt:border-[rgba(16,185,129,0.35)] lt:bg-[rgba(16,185,129,0.1)] lt:text-[#047857] lt:shadow-none",
         )}
       >
@@ -666,7 +727,7 @@ export function PerformanceTicker() {
         className={cn(
           pill,
           "border-[rgba(236,160,58,0.5)] bg-[#261c15] text-[#ffc454]",
-          "shadow-[0_0_16px_rgba(245,158,11,0.16),inset_0_0_14px_rgba(245,158,11,0.1)]",
+          "shadow-[0_0_10px_rgba(245,158,11,0.07),inset_0_0_14px_rgba(245,158,11,0.05)]",
           "lt:border-[rgba(217,119,6,0.35)] lt:bg-[rgba(245,158,11,0.1)] lt:text-[#b45309] lt:shadow-none",
         )}
       >

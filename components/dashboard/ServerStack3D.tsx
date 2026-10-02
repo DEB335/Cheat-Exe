@@ -159,8 +159,8 @@ const slabFaces = (i: number) => ({
     ),
     children: (
       <>
-        <Led className="top-[8px] left-[9px] w-[9px] bg-[#ff3d8b] shadow-[0_0_5px_#ff3d8b]" />
-        <Led className="top-[8px] left-[34px] w-[3px] bg-[#ff5c9a] shadow-[0_0_5px_#ff5c9a]" />
+        <Led className="top-[8px] left-[9px] w-[9px] bg-[#ff3d8b] shadow-[0_0_3px_rgba(255,61,139,0.45)]" />
+        <Led className="top-[8px] left-[34px] w-[3px] bg-[#ff5c9a] shadow-[0_0_3px_rgba(255,92,154,0.45)]" />
         {/* Light spill from the platform on the lowest slab. */}
         {i === 0 && (
           <span className="absolute inset-0 bg-[linear-gradient(90deg,rgba(90,120,255,0.45),transparent_60%)]" />
@@ -175,8 +175,8 @@ const slabFaces = (i: number) => ({
     ),
     children: (
       <>
-        <Led className="top-[8px] left-[20px] w-[12px] bg-[#8fb2ff] shadow-[0_0_5px_#6d8dff]" />
-        <Led className="top-[8px] left-[50px] w-[5px] bg-[#c7d4ff] shadow-[0_0_5px_#6d8dff]" />
+        <Led className="top-[8px] left-[20px] w-[12px] bg-[#8fb2ff] shadow-[0_0_3px_rgba(109,141,255,0.45)]" />
+        <Led className="top-[8px] left-[50px] w-[5px] bg-[#c7d4ff] shadow-[0_0_3px_rgba(109,141,255,0.45)]" />
       </>
     ),
   },
@@ -281,9 +281,9 @@ export function ServerStack3D({
       <div
         className={cn(
           "absolute top-[176px] right-[128px] h-[260px] w-[340px] translate-x-1/2 -translate-y-[58%] rounded-full",
-          "bg-[radial-gradient(closest-side,rgba(96,88,255,0.4),rgba(124,58,237,0.14)_55%,transparent)]",
+          "bg-[radial-gradient(closest-side,rgba(96,88,255,0.2),rgba(124,58,237,0.07)_55%,transparent)]",
           "opacity-80 transition-opacity duration-500 group-hover/perf:opacity-100",
-          "lt:bg-[radial-gradient(closest-side,rgba(124,58,237,0.16),transparent)]",
+          "lt:bg-[radial-gradient(closest-side,rgba(124,58,237,0.08),transparent)]",
         )}
       />
 
@@ -346,8 +346,8 @@ export function ServerStack3D({
           h={58}
           className="border-[rgba(120,136,255,0.2)] bg-[linear-gradient(180deg,rgba(34,42,130,0.3),rgba(18,22,80,0.16))]"
         >
-          <span className="absolute top-[16px] left-[14px] h-[5px] w-[64px] rounded-full bg-[rgba(90,130,255,0.42)] shadow-[0_0_8px_rgba(90,130,255,0.4)]" />
-          <span className="absolute top-[30px] left-[14px] h-[4px] w-[82px] rounded-full bg-[rgba(214,190,90,0.3)] shadow-[0_0_8px_rgba(214,190,90,0.25)]" />
+          <span className="absolute top-[16px] left-[14px] h-[5px] w-[64px] rounded-full bg-[rgba(90,130,255,0.42)] shadow-[0_0_5px_rgba(90,130,255,0.18)]" />
+          <span className="absolute top-[30px] left-[14px] h-[4px] w-[82px] rounded-full bg-[rgba(214,190,90,0.3)] shadow-[0_0_5px_rgba(214,190,90,0.11)]" />
         </Panel>
         <Panel
           x={-300}
@@ -393,8 +393,8 @@ export function ServerStack3D({
             className: "rounded-[12px] border border-[#3b47c9] bg-[#0c1142]",
             children: (
               <>
-                <span className="absolute inset-0 rounded-[inherit] bg-[radial-gradient(closest-side,rgba(116,126,255,0.6),rgba(116,126,255,0.12)_70%,transparent)] opacity-80 transition-opacity duration-500 group-hover/perf:opacity-100" />
-                <span className="absolute inset-[8px] rounded-[9px] border-[1.5px] border-[#7383ff] shadow-[0_0_12px_#5b6cff,inset_0_0_10px_rgba(91,108,255,0.55)]" />
+                <span className="absolute inset-0 rounded-[inherit] bg-[radial-gradient(closest-side,rgba(116,126,255,0.3),rgba(116,126,255,0.06)_70%,transparent)] opacity-80 transition-opacity duration-500 group-hover/perf:opacity-100" />
+                <span className="absolute inset-[8px] rounded-[9px] border-[1.5px] border-[#7383ff] shadow-[0_0_7px_rgba(91,108,255,0.45),inset_0_0_10px_rgba(91,108,255,0.28)]" />
               </>
             ),
           }}
@@ -425,7 +425,7 @@ export function ServerStack3D({
               className: cn(
                 "rounded-[6px] border border-[rgba(190,180,255,0.75)]",
                 "bg-[linear-gradient(135deg,#3a36b8_0%,#4a3fd4_55%,#8a6cff_100%)]",
-                "shadow-[0_0_14px_rgba(140,120,255,0.55)]",
+                "shadow-[0_0_8px_rgba(140,120,255,0.25)]",
               ),
             }}
             south={{ className: "bg-[linear-gradient(180deg,#6d64ff,#3b35b0)]" }}

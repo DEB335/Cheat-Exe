@@ -69,6 +69,8 @@ export function CursorSparks() {
     let lastY = -100;
     let ticking = false;
     let frame = 0;
+    /** Whether a render frame is scheduled. */
+    let running = false;
     let resizeTimer: number | undefined;
 
     const onResize = () => {
@@ -111,6 +113,7 @@ export function CursorSparks() {
           addSpark(mouseX, mouseY, vx, vy, Math.random() * 2.5 + 1.5, 14);
           lastX = mouseX;
           lastY = mouseY;
+          start();
         }
         ticking = false;
       });
@@ -130,37 +133,62 @@ export function CursorSparks() {
           Math.floor(Math.random() * 15 + 15),
         );
       }
+      start();
     };
 
+    // The loop runs only while there are sparks. This canvas covers the
+    // whole screen above everything, so even a clearRect of an empty
+    // canvas made the compositor redraw the page -- every backdrop blur
+    // included -- 60 times a second with the mouse at rest.
     const render = () => {
       ctx.clearRect(0, 0, width, height);
-      if (particles.length > 0) {
-        ctx.globalCompositeOperation = "lighter";
-        for (let i = particles.length - 1; i >= 0; i--) {
-          const p = particles[i]!;
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vx *= 0.92;
-          p.vy *= 0.92;
-          p.life--;
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i]!;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vx *= 0.92;
+        p.vy *= 0.92;
+        p.life--;
 
-          const alpha = p.life / p.maxLife;
-          if (alpha > 0) {
-            ctx.fillStyle = `${p.color}${alpha})`;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          if (p.life <= 0) particles.splice(i, 1);
+        const alpha = p.life / p.maxLife;
+        if (alpha > 0) {
+          ctx.fillStyle = `${p.color}${alpha})`;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+          ctx.fill();
         }
+        if (p.life <= 0) particles.splice(i, 1);
       }
+      // The frame that retires the last spark has just cleared the canvas,
+      // so stopping here leaves it blank.
+      if (particles.length > 0 && !document.hidden) {
+        frame = requestAnimationFrame(render);
+      } else {
+        running = false;
+      }
+    };
+
+    function start() {
+      if (running || document.hidden) return;
+      running = true;
       frame = requestAnimationFrame(render);
+    }
+
+    // A hidden tab keeps its sparks frozen and picks them up on return.
+    const onVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(frame);
+        running = false;
+      } else if (particles.length > 0) {
+        start();
+      }
     };
 
     window.addEventListener("resize", onResize);
     window.addEventListener("mousemove", onMouseMove, { passive: true });
     window.addEventListener("mousedown", onMouseDown, { passive: true });
-    render();
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
       cancelAnimationFrame(frame);
@@ -168,6 +196,7 @@ export function CursorSparks() {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, []);
 

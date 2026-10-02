@@ -39,9 +39,9 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(30% 58% at 12% 28%, rgb(var(--holo-a) / 0.2), transparent 70%),
-    radial-gradient(28% 62% at 88% 24%, rgb(var(--holo-c) / 0.18), transparent 70%),
-    radial-gradient(42% 38% at 50% 80%, rgb(var(--holo-b) / 0.16), transparent 72%);
+    radial-gradient(30% 58% at 12% 28%, rgb(var(--holo-a) / 0.1), transparent 70%),
+    radial-gradient(28% 62% at 88% 24%, rgb(var(--holo-c) / 0.085), transparent 70%),
+    radial-gradient(42% 38% at 50% 80%, rgb(var(--holo-b) / 0.075), transparent 72%);
   animation: pool-breathe 11s ease-in-out infinite;
 }
 
@@ -165,8 +165,8 @@
   height: 100%;
   transform: translate(-50%, -50%);
   background:
-    radial-gradient(closest-side, rgb(var(--holo-b) / 0.34), rgb(var(--holo-c) / 0.12) 55%, transparent),
-    radial-gradient(40% 30% at 50% 88%, rgb(var(--holo-c) / 0.3), transparent);
+    radial-gradient(closest-side, rgb(var(--holo-b) / 0.16), rgb(var(--holo-c) / 0.06) 55%, transparent),
+    radial-gradient(40% 30% at 50% 88%, rgb(var(--holo-c) / 0.14), transparent);
   animation: pool-breathe 6s ease-in-out infinite;
 }
 
@@ -184,8 +184,8 @@
   border: 1.5px solid rgb(var(--holo-hot) / 0.75);
   background: radial-gradient(closest-side, rgb(var(--holo-hot) / 0.55), rgb(var(--holo-b) / 0.35) 40%, rgb(var(--holo-c) / 0.12) 75%, transparent);
   box-shadow:
-    0 0 3cqw rgb(var(--holo-b) / 0.8),
-    inset 0 0 3cqw rgb(var(--holo-c) / 0.7);
+    0 0 1.8cqw rgb(var(--holo-b) / 0.36),
+    inset 0 0 3cqw rgb(var(--holo-c) / 0.35);
 }
 
 .pad > span {
@@ -204,7 +204,7 @@
   width: 34%;
   height: 58%;
   transform: translateX(-50%);
-  background: linear-gradient(to top, rgb(var(--holo-b) / 0.4), rgb(var(--holo-c) / 0.12) 60%, transparent);
+  background: linear-gradient(to top, rgb(var(--holo-b) / 0.2), rgb(var(--holo-c) / 0.06) 60%, transparent);
   clip-path: polygon(34% 100%, 66% 100%, 100% 0, 0 0);
   animation: pool-breathe 4.5s ease-in-out infinite;
 }
@@ -246,8 +246,8 @@
   border-radius: 50%;
   border: 1.5px solid rgb(var(--holo-hot) / 0.7);
   box-shadow:
-    0 0 2.4cqw rgb(var(--holo-b) / 0.85),
-    inset 0 0 2.4cqw rgb(var(--holo-c) / 0.6);
+    0 0 1.44cqw rgb(var(--holo-b) / 0.38),
+    inset 0 0 2.4cqw rgb(var(--holo-c) / 0.3);
 }
 
 /* A comet of light running round the ring. */
@@ -283,11 +283,19 @@
   transform: translate(-50%, -50%) rotateZ(-9deg) scaleY(0.242);
 }
 
-.arm {
+/* One turning wrapper for all three arms; each arm holds its lap offset
+   as a fixed angle (--a, set inline from its --d), which on a linear
+   spin is the same place a per-arm delay would put it. */
+.lap {
   position: absolute;
   inset: 0;
   animation: scene-spin 7s linear infinite;
-  animation-delay: var(--d);
+}
+
+.arm {
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--a, 0deg));
 }
 
 .spark {
@@ -296,10 +304,8 @@
   top: 50%;
   width: 9cqw;
   height: 9cqw;
-  animation:
-    spark-counter 7s linear infinite,
-    spark-occlude 7s linear infinite;
-  animation-delay: var(--d), var(--d);
+  animation: spark-lap 7s linear infinite;
+  animation-delay: var(--d);
 }
 
 /* The four-point star: a hot core and two thin flares. */
@@ -425,36 +431,40 @@
   }
 }
 
-/* Turns the sparkle back as its arm turns it (see .sparks), and
-   unsquashes it. */
-@keyframes spark-counter {
-  from {
+/* One animation per sparkle, for two jobs over the same linear lap:
+   - transform turns it back as its arm turns it (see .sparks), and
+     unsquashes it. The angle is -360deg x the keyframe's offset at every
+     stop, so with linear timing the turn is one steady counter-spin.
+   - opacity: clockwise from the right, the near side is the first half
+     of the lap, the far side the second, and round 75% the sparkle is
+     behind the shield, so it dims on the far side and vanishes there. */
+@keyframes spark-lap {
+  0% {
     transform: translate(-50%, -50%) rotate(0deg) scaleY(4.13) scale(var(--s));
+    opacity: 1;
   }
-  to {
-    transform: translate(-50%, -50%) rotate(-360deg) scaleY(4.13) scale(var(--s));
-  }
-}
-
-/* Clockwise from the right: the near side is the first half of the lap,
-   the far side the second, and round 75% the sparkle is behind the
-   shield, so it dims on the far side and vanishes there. */
-@keyframes spark-occlude {
-  0%,
   50% {
+    transform: translate(-50%, -50%) rotate(-180deg) scaleY(4.13) scale(var(--s));
     opacity: 1;
   }
   62% {
+    transform: translate(-50%, -50%) rotate(-223.2deg) scaleY(4.13) scale(var(--s));
     opacity: 0.4;
   }
-  68%,
+  68% {
+    transform: translate(-50%, -50%) rotate(-244.8deg) scaleY(4.13) scale(var(--s));
+    opacity: 0;
+  }
   82% {
+    transform: translate(-50%, -50%) rotate(-295.2deg) scaleY(4.13) scale(var(--s));
     opacity: 0;
   }
   88% {
+    transform: translate(-50%, -50%) rotate(-316.8deg) scaleY(4.13) scale(var(--s));
     opacity: 0.4;
   }
   100% {
+    transform: translate(-50%, -50%) rotate(-360deg) scaleY(4.13) scale(var(--s));
     opacity: 1;
   }
 }
@@ -462,8 +472,12 @@
 /* Off screen or in a hidden tab (usePauseWhenHidden). Last, so it wins
    over the animations above at equal specificity. */
 .ambient[data-holo-paused] *,
-.emblem[data-holo-paused] * {
-  animation-play-state: paused;
+.ambient[data-holo-paused] *::before,
+.ambient[data-holo-paused] *::after,
+.emblem[data-holo-paused] *,
+.emblem[data-holo-paused] *::before,
+.emblem[data-holo-paused] *::after {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -473,7 +487,7 @@
   .bob,
   .pad > span,
   .ring > span,
-  .arm,
+  .lap,
   .spark {
     animation: none;
   }

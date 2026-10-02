@@ -154,6 +154,20 @@ html {
    Animated conic border ring. A masked pseudo-element has no utility
    equivalent, so it stays hand-written -- but it is registered as a
    real Tailwind utility via @utility.
+
+   Two ways to draw it:
+   - The host alone: its ::after is the ring, and --border-angle turns
+     the gradient. Animating a custom property is main-thread paint every
+     frame, and the repaint takes in the host's whole layer -- big
+     shadows and backdrop blur included. (A layer of its own via
+     will-change was tried: it snaps the 1px ring to whole device pixels
+     under the 0.75 zoom and visibly shifts it off the border.)
+   - The host with a `<span aria-hidden className="glow-ring-track" />`
+     as its last child: the span is the masked ring and its ::before an
+     oversized, static conic gradient spun with transform -- painted once,
+     then turned by the compositor. The ::after stands down. A spin of the
+     whole gradient about the centre is exactly what `from <angle>` does,
+     so the two draw the same ring.
    --------------------------------------------------------------- */
 @property --border-angle {
   syntax: "<angle>";
@@ -167,6 +181,25 @@ html {
   }
   100% {
     --border-angle: 360deg;
+  }
+}
+
+/* A track on a host that is not drawing a ring right now (the sidebar
+   while expanded) stays out of the layout, flex gaps included. */
+@layer base {
+  .glow-ring-track {
+    position: absolute;
+    pointer-events: none;
+  }
+}
+
+/* The track's gradient sits centred on the ring by the translate. */
+@keyframes glow-ring-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
@@ -195,12 +228,56 @@ html {
     transition: opacity 0.3s ease;
     z-index: 3;
   }
+  &:has(> .glow-ring-track)::after {
+    content: none;
+  }
+  & > .glow-ring-track {
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    overflow: hidden;
+    /* Sizes the gradient below from this box. */
+    container-type: size;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 3;
+  }
+  & > .glow-ring-track::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    /* At least the box's diagonal, so no corner ever leaves it. */
+    width: 150cqmax;
+    width: calc(hypot(100cqw, 100cqh) + 8px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    background: conic-gradient(
+      transparent 70%,
+      #ff0000 85%,
+      #ff1f5a 90%,
+      #ff0000 95%,
+      transparent 100%
+    );
+  }
 }
 
 @utility glow-ring-on {
   &::after {
     opacity: 1;
     animation: rotate-border 2.5s linear infinite;
+  }
+  & > .glow-ring-track {
+    opacity: 1;
+  }
+  & > .glow-ring-track::before {
+    animation: glow-ring-spin 2.5s linear infinite;
   }
 }
 
@@ -210,6 +287,12 @@ html {
     opacity: 1;
     animation: rotate-border 3s linear infinite;
   }
+  & > .glow-ring-track {
+    opacity: 1;
+  }
+  & > .glow-ring-track::before {
+    animation: glow-ring-spin 3s linear infinite;
+  }
 }
 
 /* Faster variant used by the search containers and logo avatar */
@@ -217,6 +300,12 @@ html {
   &::after {
     opacity: 1;
     animation: rotate-border 2.2s linear infinite;
+  }
+  & > .glow-ring-track {
+    opacity: 1;
+  }
+  & > .glow-ring-track::before {
+    animation: glow-ring-spin 2.2s linear infinite;
   }
 }
 
@@ -244,11 +333,59 @@ html {
     pointer-events: none;
     z-index: 5;
     animation: rotate-border 3.5s linear infinite;
-    box-shadow: 0 0 28px rgba(255, 120, 0, 0.28), inset 0 0 10px rgba(255, 120, 0, 0.1);
+    box-shadow: 0 0 17px rgba(255, 120, 0, 0.13), inset 0 0 6px rgba(255, 120, 0, 0.05);
     transition: box-shadow 0.3s ease;
   }
   &:hover::after {
-    box-shadow: 0 0 38px rgba(255, 120, 0, 0.42), inset 0 0 14px rgba(255, 120, 0, 0.18);
+    box-shadow: 0 0 21px rgba(255, 120, 0, 0.18), inset 0 0 7px rgba(255, 120, 0, 0.07);
+  }
+  &:has(> .glow-ring-track)::after {
+    content: none;
+  }
+  & > .glow-ring-track {
+    position: absolute;
+    inset: 0;
+    border-radius: 42.5px;
+    padding: 1.5px;
+    overflow: hidden;
+    container-type: size;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 5;
+  }
+  & > .glow-ring-track::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 150cqmax;
+    width: calc(hypot(100cqw, 100cqh) + 8px);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    background: conic-gradient(
+      transparent 60%,
+      rgba(255, 120, 0, 0.18) 75%,
+      rgba(255, 120, 0, 1) 90%,
+      rgba(255, 120, 0, 0.18) 95%,
+      transparent 100%
+    );
+    animation: glow-ring-spin 3.5s linear infinite;
+  }
+  /* The glow sat above the gradient on the old ::after (an inset shadow
+     paints over its own background), so it gets its own layer on top. */
+  & > .glow-ring-track::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 17px rgba(255, 120, 0, 0.13), inset 0 0 6px rgba(255, 120, 0, 0.05);
+    transition: box-shadow 0.3s ease;
+  }
+  &:hover > .glow-ring-track::after {
+    box-shadow: 0 0 21px rgba(255, 120, 0, 0.18), inset 0 0 7px rgba(255, 120, 0, 0.07);
   }
 }
 
@@ -292,7 +429,7 @@ html {
   -webkit-text-fill-color: transparent;
   animation: rgb-text-flow 6s linear infinite;
   animation-play-state: paused;
-  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.45));
+  filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.18));
   &:hover {
     animation-play-state: running;
   }
@@ -490,11 +627,11 @@ html {
 @keyframes status-ping {
   0% {
     transform: scale(1);
-    opacity: 0.7;
+    opacity: 0.35;
   }
   80%,
   100% {
-    transform: scale(2.6);
+    transform: scale(1.8);
     opacity: 0;
   }
 }
@@ -670,7 +807,8 @@ html {
   border-radius: 50%;
   transform: translate(-50%, -50%);
   border: 1.2px solid var(--wave-color);
-  box-shadow: 0 0 8px var(--wave-color), inset 0 0 4px var(--wave-color);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--wave-color) 45%, transparent),
+    inset 0 0 3px color-mix(in srgb, var(--wave-color) 50%, transparent);
   animation: wave-expand 0.6s cubic-bezier(0.15, 0.85, 0.35, 1) forwards;
 }
 

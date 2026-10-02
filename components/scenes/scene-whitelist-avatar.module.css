@@ -4,7 +4,7 @@
 
    One sits on every card, so it is plain SVG and CSS -- no canvas, no
    pointer tracking. The figure is static SVG, painted once; the float
-   is a transform on its <svg> box and the base glow only breathes, so
+   is a transform on the HTML box round it and the base glow only breathes, so
    the compositor does all the moving.
 
    Its colours are the enclosing NeonPanel's rim (--rim-a/b/c, "r, g, b"
@@ -36,14 +36,17 @@
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    rgba(var(--av-b), 0.6),
-    rgba(var(--av-c), 0.22) 58%,
+    rgba(var(--av-b), 0.3),
+    rgba(var(--av-c), 0.11) 58%,
     transparent
   );
   animation: av-breathe 5s ease-in-out infinite;
 }
 
+/* An HTML box round the figure's <svg>, so the float is compositor work. */
 .figure {
+  position: absolute;
+  inset: 0;
   animation: av-float 5.4s ease-in-out infinite;
 }
 
@@ -70,6 +73,11 @@
 .bloomFill {
   fill: rgb(var(--av-b));
   stroke: rgb(var(--av-a));
+}
+
+/* The neon bloom round the glass: half strength, a calm halo. */
+.bloom {
+  opacity: 0.5;
 }
 
 .paneLine {
@@ -116,7 +124,7 @@
   stroke: rgb(var(--av-c));
 }
 :global(body.light-mode) .bloom {
-  opacity: 0.3;
+  opacity: 0.15;
 }
 :global(body.light-mode) .glow {
   opacity: 0.45;
@@ -145,9 +153,12 @@
   }
 }
 
-/* Off screen or in a hidden tab (usePauseWhenHidden). */
-.avatar[data-holo-paused] * {
-  animation-play-state: paused;
+/* Off screen or in a hidden tab (usePauseWhenHidden), pseudo-elements
+   included. Important, so no later rule restarts one. */
+.avatar[data-holo-paused] *,
+.avatar[data-holo-paused] *::before,
+.avatar[data-holo-paused] *::after {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

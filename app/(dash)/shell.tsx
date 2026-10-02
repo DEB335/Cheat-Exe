@@ -11,8 +11,9 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/components/ui/Toast";
 import { canManageWhitelist } from "@/lib/packages";
+import { publishPing } from "@/lib/ping";
 import { SESSION_LIFETIME_MINUTES } from "@/lib/session-lifetime";
-import { useDashboard, useMyPackages } from "@/lib/store";
+import { isRefreshing, useDashboard, useMyPackages } from "@/lib/store";
 import { useInspectGuard } from "@/lib/use-inspect-guard";
 import { useRealtimePing } from "@/lib/use-realtime";
 import type { SessionUser } from "@/lib/types";
@@ -107,6 +108,9 @@ export function Shell({
   const setUser = useDashboard((s) => s.setUser);
   const refresh = useDashboard((s) => s.refresh);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Stable, so the memoised sidebar is not re-rendered by every render here.
+  const openMobile = useCallback(() => setMobileOpen(true), []);
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
   const [terminated, setTerminated] = useState<Terminated | null>(null);
   const storeUser = useDashboard((s) => s.user);
   const packages = useMyPackages();
@@ -129,10 +133,15 @@ export function Shell({
     router.replace("/dashboard");
   }, [terminated, storeUser, packages, pathname, router, toast]);
 
+  // Keyed by value. The layout hands over a new `user` object whenever it
+  // re-renders on the server -- a router refresh, a hot reload -- and
+  // keyed by identity each of those refetched the whole snapshot even
+  // though nothing about the account had changed.
+  const userKey = JSON.stringify(user);
   useEffect(() => {
-    setUser(user);
+    setUser(JSON.parse(userKey) as SessionUser);
     void refresh();
-  }, [user, setUser, refresh]);
+  }, [userKey, setUser, refresh]);
 
   /**
    * Ends the session on the deadline itself.
@@ -162,7 +171,13 @@ export function Shell({
   // a data refresh, leaving the reason to arrive on the next tick.
   const check = useCallback(async () => {
     try {
-      const response = await fetch("/api/auth/session", { cache: "no-store" });
+      // Timed to the response headers, the same moment the overview's
+      // ping pill used to measure with a request of its own to this very
+      // endpoint. It reads this figure now instead (lib/ping).
+      const started = performance.now();
+      const response = await fetch("/api/auth/session", { cache: "no-store" }).catch(() => null);
+      publishPing(response ? performance.now() - started : null);
+      if (!response) return;
       const data = (await response.json()) as {
         user: SessionUser | null;
         terminated?: Terminated;
@@ -187,9 +202,14 @@ export function Shell({
 
         // The poll carries the unread count, so a new announcement costs
         // no extra request -- pull the messages themselves only when the
-        // server's count disagrees with what is already loaded.
+        // server's count disagrees with what is already loaded. Not while
+        // a read is already on its way: the first check runs alongside
+        // the first load, against a store that is still empty, and would
+        // otherwise fetch the whole snapshot a second time.
         const loaded = store.db.cheatExeMessages.filter((m) => !m.read).length;
-        if (typeof data.unread === "number" && data.unread !== loaded) void refresh();
+        if (typeof data.unread === "number" && data.unread !== loaded && !isRefreshing()) {
+          void refresh();
+        }
         return;
       }
 
@@ -229,7 +249,9 @@ export function Shell({
       start();
     };
 
-    if (!document.hidden) start();
+    // One check straight away as well, so the overview's ping pill has a
+    // figure on the first paint rather than five seconds in.
+    onVisibility();
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
@@ -280,13 +302,13 @@ export function Shell({
       {terminated && <TerminatedNotice reason={terminated} />}
 
       <div className="relative flex min-h-app-screen lg:h-app-screen lg:overflow-hidden">
-        <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
+        <Sidebar mobileOpen={mobileOpen} onCloseMobile={closeMobile} />
 
         {/* Full height, no outer margin: the header and the content column
             carry their own padding, so the scroller runs to the bottom of
             the screen instead of clipping cards 20px short of it. */}
         <main className="relative z-[2] flex min-w-0 flex-1 flex-col lg:h-app-screen lg:overflow-hidden">
-          <Header pathname={pathname} onOpenMobile={() => setMobileOpen(true)} />
+          <Header pathname={pathname} onOpenMobile={openMobile} />
           <AnnouncementBanner />
           {/* The scrollbar gutter is always reserved, so a page that scrolls
               and one that does not end their cards on the same line as the

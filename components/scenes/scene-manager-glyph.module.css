@@ -31,7 +31,7 @@
   height: 41.7cqw;
   overflow: visible;
   /* The disc throws its light onto the card round it, as in the mockup. */
-  filter: drop-shadow(0 0 4px rgb(var(--holo-a) / 0.9));
+  filter: drop-shadow(0 0 2.4px rgb(var(--holo-a) / 0.42));
 }
 
 .ringOuter {
@@ -64,7 +64,7 @@
   margin-bottom: -4.3cqw;
   border-radius: 50%;
   border: 1.5px solid rgb(var(--holo-a) / 0.85);
-  box-shadow: 0 0 6px rgb(var(--holo-a) / 0.6);
+  box-shadow: 0 0 4px rgb(var(--holo-a) / 0.28);
   opacity: 0;
   animation: ag-pulse 3s ease-out infinite;
 }
@@ -78,7 +78,7 @@
   height: 66cqw;
   transform: translateX(-50%);
   clip-path: polygon(28% 100%, 72% 100%, 100% 0, 0 0);
-  background: linear-gradient(to top, rgb(var(--holo-b) / 0.34), rgb(var(--holo-a) / 0.08) 60%, transparent);
+  background: linear-gradient(to top, rgb(var(--holo-b) / 0.17), rgb(var(--holo-a) / 0.04) 60%, transparent);
   -webkit-mask-image: radial-gradient(ellipse 60% 100% at 50% 100%, #000 40%, transparent);
   mask-image: radial-gradient(ellipse 60% 100% at 50% 100%, #000 40%, transparent);
   animation: ag-breathe 4.2s ease-in-out infinite;
@@ -126,7 +126,7 @@
 .bloom {
   stroke: rgb(var(--holo-b));
   stroke-width: 4.6;
-  opacity: 0.8;
+  opacity: 0.4;
   transition: opacity 0.3s ease;
 }
 .tube {
@@ -146,7 +146,7 @@
   transform: translateX(-50%) translateY(-4cqw);
 }
 :global(:is(button, a, .group, .group\/action):not(:disabled)):hover .bloom {
-  opacity: 1;
+  opacity: 0.55;
 }
 :global(:is(button, a, .group, .group\/action):not(:disabled)):hover .beam {
   opacity: 1;
@@ -161,7 +161,10 @@
   opacity: 0;
 }
 :global(body.light-mode) .bloom {
-  opacity: 0.35;
+  opacity: 0.17;
+}
+:global(body.light-mode) :global(:is(button, a, .group, .group\/action):not(:disabled)):hover .bloom {
+  opacity: 0.24;
 }
 :global(body.light-mode) .tube {
   stroke: rgb(var(--holo-b));
@@ -170,7 +173,7 @@
   stroke: rgb(var(--holo-b));
 }
 :global(body.light-mode) .disc {
-  filter: drop-shadow(0 0 2px rgb(var(--holo-a) / 0.45));
+  filter: drop-shadow(0 0 1.2px rgb(var(--holo-a) / 0.21));
 }
 :global(body.light-mode) .beam {
   opacity: 0.5;
@@ -211,8 +214,10 @@
 }
 
 /* Off screen or in a hidden tab (see usePauseWhenHidden). */
-.root[data-holo-paused] * {
-  animation-play-state: paused;
+.root[data-holo-paused] *,
+.root[data-holo-paused] *::before,
+.root[data-holo-paused] *::after {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

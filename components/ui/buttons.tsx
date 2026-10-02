@@ -23,9 +23,9 @@ export function PrimaryButton({
         "group relative flex h-[52px] w-full max-w-[320px] cursor-pointer items-center justify-center",
         "rounded-[15px] border-none p-[2.5px] transition-all duration-300 select-none",
         "bg-[image:linear-gradient(to_bottom_right,#2e8eff_0%,rgba(46,142,255,0)_30%)]",
-        "bg-[color:rgba(46,142,255,0.65)] shadow-[0_0_15px_rgba(46,142,255,0.45)]",
-        "hover:bg-[color:rgba(46,142,255,0.85)] hover:shadow-[0_0_25px_rgba(46,142,255,0.65)] hover:scale-[1.02]",
-        "focus:bg-[color:rgba(46,142,255,0.85)] focus:shadow-[0_0_25px_rgba(46,142,255,0.65)] focus:outline-none",
+        "bg-[color:rgba(46,142,255,0.65)] shadow-[0_0_9px_rgba(46,142,255,0.2)]",
+        "hover:bg-[color:rgba(46,142,255,0.85)] hover:shadow-[0_0_11px_rgba(46,142,255,0.28)] hover:scale-[1.02]",
+        "focus:bg-[color:rgba(46,142,255,0.85)] focus:shadow-[0_0_11px_rgba(46,142,255,0.28)] focus:outline-none",
         "active:scale-[0.98]",
         "disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none",
         className,
@@ -81,9 +81,9 @@ type ActionTone = "neutral" | "primary" | "success" | "danger";
 
 const ACTION_HOVER: Record<ActionTone, string> = {
   neutral: "hover:bg-white/5 hover:border-white/15",
-  primary: "hover:bg-[rgba(59,130,246,0.15)] hover:border-[#3b82f6] hover:text-[#60a5fa] hover:shadow-[0_6px_20px_rgba(59,130,246,0.2)]",
-  success: "hover:bg-[rgba(16,185,129,0.15)] hover:border-[#10b981] hover:text-[#34d399] hover:shadow-[0_6px_20px_rgba(16,185,129,0.2)]",
-  danger: "hover:bg-[rgba(239,68,68,0.15)] hover:border-[#ef4444] hover:text-[#f87171] hover:shadow-[0_6px_20px_rgba(239,68,68,0.2)]",
+  primary: "hover:bg-[rgba(59,130,246,0.15)] hover:border-[#3b82f6] hover:text-[#60a5fa] hover:shadow-[0_4px_12px_rgba(59,130,246,0.09)]",
+  success: "hover:bg-[rgba(16,185,129,0.15)] hover:border-[#10b981] hover:text-[#34d399] hover:shadow-[0_4px_12px_rgba(16,185,129,0.09)]",
+  danger: "hover:bg-[rgba(239,68,68,0.15)] hover:border-[#ef4444] hover:text-[#f87171] hover:shadow-[0_4px_12px_rgba(239,68,68,0.09)]",
 };
 
 interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -144,15 +144,15 @@ export type PillTone = "suspend" | "activate" | "perms" | "pass" | "hwid" | "del
 
 const PILL_TONES: Record<PillTone, string> = {
   suspend:
-    "bg-[linear-gradient(135deg,#d97706,#fb923c)] hover:bg-[linear-gradient(135deg,#b45309,#f97316)] hover:shadow-[0_6px_15px_rgba(249,115,22,0.35)]",
+    "bg-[linear-gradient(135deg,#d97706,#fb923c)] hover:bg-[linear-gradient(135deg,#b45309,#f97316)] hover:shadow-[0_4px_9px_rgba(249,115,22,0.16)]",
   activate:
-    "bg-[linear-gradient(135deg,#059669,#34d399)] hover:bg-[linear-gradient(135deg,#047857,#10b981)] hover:shadow-[0_6px_15px_rgba(16,185,129,0.35)]",
+    "bg-[linear-gradient(135deg,#059669,#34d399)] hover:bg-[linear-gradient(135deg,#047857,#10b981)] hover:shadow-[0_4px_9px_rgba(16,185,129,0.16)]",
   perms:
-    "bg-[linear-gradient(135deg,#7c3aed,#c084fc)] hover:bg-[linear-gradient(135deg,#6d28d9,#a855f7)] hover:shadow-[0_6px_15px_rgba(168,85,247,0.35)]",
-  pass: "bg-[linear-gradient(135deg,#1d4ed8,#60a5fa)] hover:bg-[linear-gradient(135deg,#1e40af,#3b82f6)] hover:shadow-[0_6px_15px_rgba(59,130,246,0.35)]",
-  hwid: "bg-[linear-gradient(135deg,#0f766e,#2dd4bf)] hover:bg-[linear-gradient(135deg,#115e59,#14b8a6)] hover:shadow-[0_6px_15px_rgba(45,212,191,0.35)]",
+    "bg-[linear-gradient(135deg,#7c3aed,#c084fc)] hover:bg-[linear-gradient(135deg,#6d28d9,#a855f7)] hover:shadow-[0_4px_9px_rgba(168,85,247,0.16)]",
+  pass: "bg-[linear-gradient(135deg,#1d4ed8,#60a5fa)] hover:bg-[linear-gradient(135deg,#1e40af,#3b82f6)] hover:shadow-[0_4px_9px_rgba(59,130,246,0.16)]",
+  hwid: "bg-[linear-gradient(135deg,#0f766e,#2dd4bf)] hover:bg-[linear-gradient(135deg,#115e59,#14b8a6)] hover:shadow-[0_4px_9px_rgba(45,212,191,0.16)]",
   delete:
-    "bg-[linear-gradient(135deg,#b91c1c,#f87171)] hover:bg-[linear-gradient(135deg,#991b1b,#ef4444)] hover:shadow-[0_6px_15px_rgba(239,68,68,0.35)]",
+    "bg-[linear-gradient(135deg,#b91c1c,#f87171)] hover:bg-[linear-gradient(135deg,#991b1b,#ef4444)] hover:shadow-[0_4px_9px_rgba(239,68,68,0.16)]",
 };
 
 interface PillButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -188,11 +188,11 @@ interface SmallButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>
 
 const SMALL_TONES: Record<SmallButtonProps["tone"], string> = {
   success:
-    "bg-green-glow text-green border-[rgba(16,185,129,0.2)] hover:bg-[rgba(16,185,129,0.25)] hover:shadow-[0_4px_10px_var(--accent-green-glow)]",
+    "bg-green-glow text-green border-[rgba(16,185,129,0.2)] hover:bg-[rgba(16,185,129,0.25)] hover:shadow-[0_3px_6px_var(--accent-green-glow)]",
   warning:
-    "bg-orange-glow text-orange border-[rgba(245,158,11,0.2)] hover:bg-[rgba(245,158,11,0.25)] hover:shadow-[0_4px_10px_var(--accent-orange-glow)]",
+    "bg-orange-glow text-orange border-[rgba(245,158,11,0.2)] hover:bg-[rgba(245,158,11,0.25)] hover:shadow-[0_3px_6px_var(--accent-orange-glow)]",
   danger:
-    "bg-[rgba(239,68,68,0.15)] text-[#ef4444] border-[rgba(239,68,68,0.2)] hover:bg-[rgba(239,68,68,0.25)] hover:shadow-[0_4px_10px_var(--accent-red-glow)]",
+    "bg-[rgba(239,68,68,0.15)] text-[#ef4444] border-[rgba(239,68,68,0.2)] hover:bg-[rgba(239,68,68,0.25)] hover:shadow-[0_3px_6px_var(--accent-red-glow)]",
 };
 
 export function SmallButton({ tone, children, className, ...rest }: SmallButtonProps) {

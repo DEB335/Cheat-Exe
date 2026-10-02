@@ -109,7 +109,7 @@ export function DevicesBanner({ online, onViewAll }: { online: number; onViewAll
                   "inline-flex items-center rounded-full border border-[rgba(16,185,129,0.55)] px-3 py-[6px]",
                   "bg-[linear-gradient(180deg,rgba(2,60,52,0.9),rgba(1,36,32,0.9))]",
                   "text-[12.5px] leading-none font-bold whitespace-nowrap text-[#5cf2c4] uppercase",
-                  "shadow-[0_0_14px_rgba(16,185,129,0.22),inset_0_0_10px_rgba(16,185,129,0.14)]",
+                  "shadow-[0_0_8px_rgba(16,185,129,0.1),inset_0_0_10px_rgba(16,185,129,0.07)]",
                   // bg-none: the dark gradient is a background-image, which
                   // a light background-color alone would sit underneath.
                   "lt:border-emerald-300 lt:bg-emerald-50 lt:bg-none lt:text-emerald-600 lt:shadow-none",

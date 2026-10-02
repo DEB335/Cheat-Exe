@@ -195,10 +195,10 @@ function MedallionRing({ back = false }: { back?: boolean }) {
           <stop offset="1" stopColor="#a855f7" />
         </linearGradient>
         <filter id={id("bloom")} x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="2.2" />
+          <feGaussianBlur stdDeviation="1.3" />
         </filter>
       </defs>
-      <circle cx="50" cy="50" r="46.5" fill="none" stroke={url("ring")} strokeWidth="6" filter={url("bloom")} />
+      <circle cx="50" cy="50" r="46.5" fill="none" stroke={url("ring")} strokeWidth="6" opacity="0.5" filter={url("bloom")} />
       <circle cx="50" cy="50" r="49.2" fill="none" stroke="#c084fc" strokeOpacity="0.45" strokeWidth="0.6" />
       <circle cx="50" cy="50" r="46.5" fill="none" stroke={url("ring")} strokeWidth="3" />
       <circle cx="50" cy="50" r="44.4" fill="none" stroke="#fff4dc" strokeOpacity="0.55" strokeWidth="0.6" />
@@ -235,11 +235,11 @@ function Crown() {
               <stop offset="1" stopColor="#ea580c" />
             </radialGradient>
             <filter id={id("bloom")} x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="2.4" />
+              <feGaussianBlur stdDeviation="1.4" />
             </filter>
           </defs>
           {/* Glow first, so the crown reads as lit metal rather than a flat icon. */}
-          <path d={body} fill="#ffb020" opacity="0.7" filter={url("bloom")} />
+          <path d={body} fill="#ffb020" opacity="0.33" filter={url("bloom")} />
           <path d={body} fill={url("gold")} />
           {/* The right half in shade, for volume. */}
           <path d="M30 4.6 L41.4 19.4 L53 11.2 Q55 10 54.8 12.2 L51 31 L30 31 Z" fill="#b45309" opacity="0.28" />
@@ -271,18 +271,33 @@ const CLOUD_AT = "translate(124.45 -1.7) scale(1.3)";
 /** Specular arcs across the tops of the three big lobes. */
 const CLOUD_SHINE = ["M34.1 35.5 A19 19 0 0 1 45.5 24.1", "M58.4 26.1 A23 23 0 0 1 76 11.4", "M99.5 33.3 A17 17 0 0 1 113.8 32"];
 
+/** A server box: [cx, top, half-width, rise, height, slots] (see IsoBox). */
+type Box = readonly [number, number, number, number, number, number];
+
 /**
- * Where the links run, and the racks along them: [cx, top, half-width,
- * rise, height, slots]. Beside the cloud, a tall rack (about 2:1, four
- * bays); further out, a squat box on the line, as in the mockup.
+ * Where the links run, and the racks along them. Beside the cloud, a
+ * tall rack (about 2:1, four bays); further out, a squat box on the
+ * line, as in the mockup.
  */
 const LINK_Y = 74;
-const RACKS: readonly (readonly [number, number, number, number, number, number])[] = [
+const RACKS: readonly Box[] = [
   [106, 36, 14, 4.2, 46, 4],
   [54, 63, 12, 3.4, 13, 2],
   [334, 36, 14, 4.2, 46, 4],
   [386, 63, 12, 3.4, 13, 2],
 ];
+/** The server tower standing on the platform before the cloud. */
+const TOWER: Box = [220, 37, 29, 8, 54, 5];
+
+/** How far down each slot row sits from the lid's side corners. */
+const slotRows = (h: number, slots: number) => Array.from({ length: slots }, (_, i) => (h * (i + 1)) / (slots + 1));
+
+/** A box's status lights, one by each slot on its left face, with their blink offsets (s). */
+const boxLeds = ([cx, ty, w, k, h, slots]: Box, blink: number) =>
+  slotRows(h, slots).map((s) => ({ x: cx - w * 0.2, y: ty + 1.8 * k + s, d: blink + s * 0.07 }));
+
+const RACK_LEDS = RACKS.flatMap((box, i) => boxLeds(box, i * 0.6));
+const TOWER_LEDS = boxLeds(TOWER, 0.3);
 /** Packets on the links; `rest` is how far along a still frame shows each one. */
 const PACKETS: readonly { x: number; d: number; inbound: boolean; rest: number }[] = [
   { x: 16, d: 0, inbound: true, rest: 0.17 },
@@ -314,7 +329,11 @@ export function CloudScene({ className }: { className?: string }) {
       <div className={join(styles.frame, styles.cloudFrame)}>
         <div className={styles.cloudGlow} />
 
-        {/* Behind the platform: the links, the packets on them, the racks. */}
+        {/* Behind the platform: the links, the packets on them, the racks.
+            Anything that moves is an HTML element over the still SVG
+            (CSS motion on an SVG child runs on the main thread), layered
+            in the drawing's order: links, packets, end points and racks,
+            then the racks' status lights. */}
         <svg className={styles.layer} viewBox="0 0 440 140">
           <defs>
             <BoxGradients id={id} />
@@ -324,7 +343,7 @@ export function CloudScene({ className }: { className?: string }) {
               <stop offset="1" stopColor="#3b82f6" stopOpacity="0" />
             </radialGradient>
             <filter id={id("soft")} x="-20%" y="-60%" width="140%" height="220%">
-              <feGaussianBlur stdDeviation="1.6" />
+              <feGaussianBlur stdDeviation="1" />
             </filter>
           </defs>
 
@@ -333,7 +352,7 @@ export function CloudScene({ className }: { className?: string }) {
             [290, 426],
           ].map(([from, to]) => (
             <g key={from}>
-              <path d={`M${from} ${LINK_Y} H${to}`} stroke="#60a5fa" strokeOpacity="0.25" strokeWidth="3" filter={url("soft")} />
+              <path d={`M${from} ${LINK_Y} H${to}`} stroke="#60a5fa" strokeOpacity="0.12" strokeWidth="3" filter={url("soft")} />
               <path
                 d={`M${from} ${LINK_Y} H${to}`}
                 stroke="#93c5fd"
@@ -344,19 +363,23 @@ export function CloudScene({ className }: { className?: string }) {
               />
             </g>
           ))}
+        </svg>
 
+        <div className={styles.layer}>
           {PACKETS.map((p) => (
-            <circle
+            <span
               key={`${p.x}-${p.d}`}
-              cx={p.x}
-              cy={LINK_Y}
-              r="3.2"
-              fill={url("packet")}
               className={join(styles.packet, p.inbound ? styles.packetIn : styles.packetOut)}
-              style={{ "--d": `${-p.d}s`, "--p": p.rest } as CSSProperties}
-            />
+              style={{ ...at(p.x, LINK_Y), "--d": `${-p.d}s`, "--p": p.rest } as CSSProperties}
+            >
+              <svg viewBox="-3.2 -3.2 6.4 6.4">
+                <circle r="3.2" fill={url("packet")} />
+              </svg>
+            </span>
           ))}
+        </div>
 
+        <svg className={styles.layer} viewBox="0 0 440 140">
           {/* End points: the far devices' uplinks. */}
           {[12, 428].map((x) => (
             <g key={x}>
@@ -365,10 +388,11 @@ export function CloudScene({ className }: { className?: string }) {
             </g>
           ))}
 
-          {RACKS.map(([cx, ty, w, k, h, slots], i) => (
-            <IsoBox key={cx} cx={cx} ty={ty} w={w} k={k} h={h} slots={slots} blink={i * 0.6} url={url} />
+          {RACKS.map((box) => (
+            <IsoBox key={box[0]} box={box} url={url} />
           ))}
         </svg>
+        <StatusLeds leds={RACK_LEDS} />
 
         <HoloPedestal tone={CLOUD_PLATFORM} beam={false} className={styles.cloudPedestal} />
 
@@ -394,19 +418,19 @@ export function CloudScene({ className }: { className?: string }) {
               <stop offset="1" stopColor="#e879f9" />
             </linearGradient>
             <radialGradient id={id("base-light")}>
-              <stop offset="0" stopColor="#fff" stopOpacity="0.95" />
-              <stop offset="0.3" stopColor="#93c5fd" stopOpacity="0.6" />
+              <stop offset="0" stopColor="#fff" stopOpacity="0.5" />
+              <stop offset="0.3" stopColor="#93c5fd" stopOpacity="0.3" />
               <stop offset="1" stopColor="#6366f1" stopOpacity="0" />
             </radialGradient>
             <filter id={id("bloom")} x="-20%" y="-30%" width="140%" height="160%">
-              <feGaussianBlur stdDeviation="3" />
+              <feGaussianBlur stdDeviation="1.8" />
             </filter>
           </defs>
 
           <g transform={CLOUD_AT}>
             {/* Stroke widths are in the cloud's own units, so they are
                 set a notch under the look wanted, as the group scales. */}
-            <path d={CLOUD} fill="none" stroke={url("cloud-rim")} strokeWidth="5.5" opacity="0.8" filter={url("bloom")} />
+            <path d={CLOUD} fill="none" stroke={url("cloud-rim")} strokeWidth="5.5" opacity="0.38" filter={url("bloom")} />
             <path d={CLOUD} fill={url("cloud")} />
             <path d={CLOUD} fill={url("cloud-core")} className={styles.darkFill} />
             <path d={CLOUD} fill={url("cloud-shine")} />
@@ -418,8 +442,9 @@ export function CloudScene({ className }: { className?: string }) {
           </g>
 
           <ellipse cx="220" cy="105" rx="42" ry="8" fill={url("base-light")} />
-          <IsoBox cx={220} ty={37} w={29} k={8} h={54} slots={5} blink={0.3} url={url} />
+          <IsoBox box={TOWER} url={url} />
         </svg>
+        <StatusLeds leds={TOWER_LEDS} className={styles.cloudFront} />
 
         <div ref={anchorRef} className={styles.cloudAnchor} />
         <ParticleField
@@ -456,47 +481,46 @@ function BoxGradients({ id }: { id: (name: string) => string }) {
   );
 }
 
+/** Places an HTML piece at a point of the 440 x 140 drawing. */
+const at = (x: number, y: number) => ({ left: `${x / 4.4}%`, top: `${y / 1.4}%` });
+
+/**
+ * The boxes' blinking status lights, as HTML dots over the drawing so
+ * the compositor runs the blink. Each keeps its own offset: the stagger
+ * is the look.
+ */
+function StatusLeds({ leds, className }: { leds: readonly { x: number; y: number; d: number }[]; className?: string }) {
+  return (
+    <div className={join(styles.layer, className)}>
+      {leds.map((l) => (
+        <span key={`${l.x}-${l.y}`} className={styles.led} style={{ ...at(l.x, l.y), "--d": `${-l.d}s` } as CSSProperties} />
+      ))}
+    </div>
+  );
+}
+
 /**
  * A server box seen corner-on: a rhombus lid over a blue left face and a
  * violet right one, slots running across both faces along the lid's
- * slope, a blinking status light by each slot on the left, neon edges.
+ * slope, neon edges. Its status lights are drawn over it by StatusLeds.
  * (cx, ty) is the lid's back corner; w the half-width, k the lid's rise.
  */
-function IsoBox({
-  cx,
-  ty,
-  w,
-  k,
-  h,
-  slots,
-  blink,
-  url,
-}: {
-  cx: number;
-  ty: number;
-  w: number;
-  k: number;
-  h: number;
-  slots: number;
-  blink: number;
-  url: (name: string) => string;
-}) {
+function IsoBox({ box: [cx, ty, w, k, h, slots], url }: { box: Box; url: (name: string) => string }) {
   const top = `M${cx} ${ty} L${cx + w} ${ty + k} L${cx} ${ty + 2 * k} L${cx - w} ${ty + k} Z`;
   const left = `M${cx - w} ${ty + k} L${cx} ${ty + 2 * k} V${ty + 2 * k + h} L${cx - w} ${ty + k + h} Z`;
   const right = `M${cx} ${ty + 2 * k} L${cx + w} ${ty + k} V${ty + k + h} L${cx} ${ty + 2 * k + h} Z`;
   const outline = `M${cx} ${ty} L${cx + w} ${ty + k} V${ty + k + h} L${cx} ${ty + 2 * k + h} L${cx - w} ${ty + k + h} V${ty + k} Z`;
   const slope = k / w;
   const inset = w * 0.16;
-  const rows = Array.from({ length: slots }, (_, i) => (h * (i + 1)) / (slots + 1));
 
   return (
     <g>
-      <path d={outline} fill="none" stroke="#60a5fa" strokeOpacity="0.55" strokeWidth="3" filter={url("soft")} />
+      <path d={outline} fill="none" stroke="#60a5fa" strokeOpacity="0.26" strokeWidth="3" filter={url("soft")} />
       <path d={outline} fill="#0b1040" fillOpacity="0.7" className={styles.darkFill} />
       <path d={left} fill={url("box-left")} />
       <path d={right} fill={url("box-right")} />
       <path d={top} fill={url("box-top")} />
-      {rows.map((s) => (
+      {slotRows(h, slots).map((s) => (
         <g key={s}>
           <path
             d={`M${cx - w + inset} ${ty + k + s + inset * slope} L${cx - w * 0.36} ${ty + k + s + w * 0.64 * slope}`}
@@ -511,14 +535,6 @@ function IsoBox({
             strokeOpacity="0.7"
             strokeWidth="1.1"
             strokeLinecap="round"
-          />
-          <circle
-            cx={cx - w * 0.2}
-            cy={ty + k + s + w * 0.8 * slope}
-            r="0.9"
-            fill="#67e8f9"
-            className={styles.led}
-            style={{ "--d": `${-(blink + s * 0.07)}s` } as CSSProperties}
           />
         </g>
       ))}

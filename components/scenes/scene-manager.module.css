@@ -8,9 +8,9 @@
    pedestalSize (0.6) x 22.1cqw above the bottom -- keep --eq in step
    with the pedestalSize the component passes.
 
-   Every animation is a transform or an opacity on a whole element (the
-   SVGs turn as one layer), so the compositor runs them and nothing
-   repaints. Standalone translate/rotate/scale are dropped from CSS
+   Every animation is a transform or an opacity on a whole HTML element
+   (the SVGs turn inside divs -- Chrome keeps a transform on an <svg> on
+   the main thread), so the compositor runs them and nothing repaints. Standalone translate/rotate/scale are dropped from CSS
    modules in this pipeline, so every offset lives in `transform`.
    ================================================================== */
 
@@ -127,7 +127,7 @@
 .arcBloom {
   stroke: rgb(var(--holo-a));
   stroke-width: 5;
-  opacity: 0.85;
+  opacity: 0.4;
 }
 .arcMain {
   stroke: rgb(var(--holo-a));
@@ -189,8 +189,8 @@
   inset: 19%;
   border: 2px solid rgb(var(--holo-a) / 0.32);
   box-shadow:
-    0 0 14px rgb(var(--holo-a) / 0.35),
-    inset 0 0 14px rgb(var(--holo-a) / 0.25);
+    0 0 8px rgb(var(--holo-a) / 0.16),
+    inset 0 0 8px rgb(var(--holo-a) / 0.12);
 }
 
 /* ---- Data streaks ------------------------------------------------ */
@@ -246,7 +246,7 @@
   stroke: rgb(var(--holo-c));
 }
 :global(body.light-mode) .arcBloom {
-  opacity: 0.4;
+  opacity: 0.19;
 }
 :global(body.light-mode) .dotted,
 :global(body.light-mode) .tickBand {
@@ -300,8 +300,10 @@
 }
 
 /* Off screen or in a hidden tab (see usePauseWhenHidden). */
-.root[data-holo-paused] * {
-  animation-play-state: paused;
+.root[data-holo-paused] *,
+.root[data-holo-paused] *::before,
+.root[data-holo-paused] *::after {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

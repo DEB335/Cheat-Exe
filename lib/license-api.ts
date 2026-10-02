@@ -95,10 +95,126 @@ export interface GenerateResponse extends LicenseEnvelope {
  * carries its own `app_id`. Attaching it everywhere was a leftover of
  * the old host, and an unasked-for field is one more thing the provider
  * can one day start rejecting.
+ *
+ * The two listings the dashboard refreshes constantly are answered from
+ * memory for a short while; see CACHE_TTL_MS.
  */
 export async function callLicenseApi<T extends LicenseEnvelope>(
   action: string,
   params: Record<string, string | number> = {},
+): Promise<T> {
+  const ttl = CACHE_TTL_MS[action];
+  if (ttl !== undefined) return cachedRead<T>(action, params, ttl);
+
+  try {
+    return await sendToLicenseApi<T>(action, params);
+  } finally {
+    // Settled either way: a call that failed or timed out may still have
+    // landed upstream, so the counts are suspect after any attempt.
+    if (!READ_ONLY_ACTIONS.has(action)) forgetCounts();
+  }
+}
+
+/**
+ * How long a read may be answered from this instance's memory.
+ *
+ * Every dashboard refresh -- after each action, and on every realtime
+ * ping, in every open tab -- asks for both of these, and each one was a
+ * fresh round trip to the provider. The package list changes when the
+ * provider adds or renames a package, which is rare, so five minutes
+ * costs nothing. The counts move with every key issued anywhere, so they
+ * are held only long enough to absorb a burst of refreshes -- and a
+ * change made through this instance drops them at once (forgetCounts).
+ *
+ * Nothing else is cached. Every other action either changes something
+ * or, like key_info, is a lookup someone asked for by hand, where an
+ * answer from a minute ago is the wrong answer.
+ *
+ * The provider answers both per API key, not per panel user -- neither
+ * call carries anyone's identity -- so one entry per action and
+ * parameter set is the whole of what the answer depends on. Each
+ * serverless instance keeps its own copy, which only means a cold one
+ * asks again.
+ */
+const CACHE_TTL_MS: Partial<Record<string, number>> = {
+  get_admin_packages: 5 * 60_000,
+  reseller_stats: 10_000,
+};
+
+/** Actions that change nothing upstream, so leave the cached counts standing. */
+const READ_ONLY_ACTIONS = new Set(["get_admin_packages", "reseller_stats", "key_info"]);
+
+/** Cleared whenever this instance changes something upstream. */
+const COUNT_ACTIONS = new Set(["reseller_stats"]);
+
+interface Cached {
+  action: string;
+  value: LicenseEnvelope;
+  expires: number;
+}
+
+const answers = new Map<string, Cached>();
+const inFlight = new Map<string, { action: string; request: Promise<LicenseEnvelope> }>();
+
+/**
+ * Bumped by every change. A read that was already on its way when the
+ * change landed may carry the old counts, so it is handed to whoever
+ * asked for it but not kept.
+ */
+let generation = 0;
+
+async function cachedRead<T extends LicenseEnvelope>(
+  action: string,
+  params: Record<string, string | number>,
+  ttl: number,
+): Promise<T> {
+  const key = `${action}\u0000${JSON.stringify(Object.entries(params).sort())}`;
+
+  const hit = answers.get(key);
+  if (hit && hit.expires > Date.now()) return structuredClone(hit.value) as T;
+
+  // Callers arriving while a request is out share it rather than each
+  // sending their own: a refresh asks for both lists at once, and several
+  // tabs refreshing on the same ping would otherwise multiply that.
+  let pending = inFlight.get(key);
+  if (!pending) {
+    const started = generation;
+    const request = sendToLicenseApi<LicenseEnvelope>(action, params)
+      .then((value) => {
+        // Only a success is kept. A failure envelope describes a moment,
+        // and repeating it for five minutes would turn a blip into an
+        // outage; a thrown error never reaches here at all.
+        if (value.success === true && started === generation) {
+          answers.set(key, { action, value, expires: Date.now() + ttl });
+        }
+        return value;
+      })
+      .finally(() => {
+        if (inFlight.get(key)?.request === request) inFlight.delete(key);
+      });
+    pending = { action, request };
+    inFlight.set(key, pending);
+  }
+
+  // A copy each, so no caller can edit the answer another one is handed.
+  return structuredClone(await pending.request) as T;
+}
+
+/** Drops the cached counts, and any read of them already on its way. */
+function forgetCounts(): void {
+  generation += 1;
+  for (const [key, entry] of answers) {
+    if (COUNT_ACTIONS.has(entry.action)) answers.delete(key);
+  }
+  for (const [key, entry] of inFlight) {
+    if (COUNT_ACTIONS.has(entry.action)) inFlight.delete(key);
+  }
+}
+
+/** The request itself, uncached. Everything goes through callLicenseApi. */
+async function sendToLicenseApi<T extends LicenseEnvelope>(
+  action: string,
+  params: Record<string, string | number>,
 ): Promise<T> {
   if (!API_KEY || !APP_ID) {
     throw new HttpError(

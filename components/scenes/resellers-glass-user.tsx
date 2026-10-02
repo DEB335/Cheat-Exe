@@ -62,7 +62,7 @@ export function GlassUser({ tone = "aurora" }: { tone?: PaletteInput }) {
           <stop offset="1" stopColor={rgb(p.a)} stopOpacity="0" />
         </linearGradient>
         <filter id={id("bloom")} x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur stdDeviation="3.2" />
+          <feGaussianBlur stdDeviation="1.9" />
         </filter>
         <filter id={id("soft")} x="-40%" y="-40%" width="180%" height="180%">
           <feGaussianBlur stdDeviation="1.1" />
@@ -70,7 +70,7 @@ export function GlassUser({ tone = "aurora" }: { tone?: PaletteInput }) {
       </defs>
 
       {/* Neon bloom round both solids. */}
-      <g filter={url("bloom")} opacity="0.85">
+      <g filter={url("bloom")} opacity="0.42">
         <circle {...HEAD} fill={rgb(p.b)} stroke={rgb(p.a)} strokeWidth="3" />
         <path d={BODY} fill={rgb(p.b)} stroke={rgb(p.a)} strokeWidth="3" />
       </g>
@@ -93,7 +93,7 @@ export function GlassUser({ tone = "aurora" }: { tone?: PaletteInput }) {
 
       {/* Where the light leaves: a burning crescent low on the right of each. */}
       <g fill="none" stroke={url("exit")} strokeLinecap="round">
-        <g filter={url("soft")} strokeWidth="3.4" opacity="0.8">
+        <g filter={url("soft")} strokeWidth="3.4" opacity="0.4">
           <path d="M69 33.6 A19.7 19.7 0 0 1 44.9 47.5" />
           <path d="M74.6 61.8 C81.5 66.5 84.8 73 84.8 81.3 Q84.8 88.3 77.8 88.3 L44 88.3" />
         </g>

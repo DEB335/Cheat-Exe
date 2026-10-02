@@ -125,12 +125,12 @@ const TITLE_LIT = `${GLOW_CLIP} -mx-2.5 -my-2 px-2.5 py-2 lg:-mx-3 lg:px-3 ${TIT
 
 const EYEBROW_TONES: Record<EyebrowTone, string> = {
   violet:
-    "text-[#b99dff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5),0_0_10px_rgba(139,92,246,0.55)] lt:text-[#6d28d9] lt:[text-shadow:none]",
-  cyan: "text-[#62e4ff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5),0_0_10px_rgba(34,211,238,0.45)] lt:text-[#0e7490] lt:[text-shadow:none]",
-  blue: "text-[#7fb2ff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5),0_0_10px_rgba(59,130,246,0.5)] lt:text-[#1d4ed8] lt:[text-shadow:none]",
+    "text-[#b99dff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5)] lt:text-[#6d28d9] lt:[text-shadow:none]",
+  cyan: "text-[#62e4ff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5)] lt:text-[#0e7490] lt:[text-shadow:none]",
+  blue: "text-[#7fb2ff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5)] lt:text-[#1d4ed8] lt:[text-shadow:none]",
   // Violet running into blue, as "LICENSE GENERATOR" is drawn.
   indigo:
-    "bg-linear-to-r from-[#c7a4ff] to-[#7f9dff] bg-clip-text text-transparent drop-shadow-[0_0_8px_rgba(139,92,246,0.55)] lt:from-[#6d28d9] lt:to-[#1d4ed8] lt:drop-shadow-none",
+    "bg-linear-to-r from-[#c7a4ff] to-[#7f9dff] bg-clip-text text-transparent lt:from-[#6d28d9] lt:to-[#1d4ed8]",
 };
 
 /**
@@ -147,7 +147,7 @@ const EYEBROW_TONES: Record<EyebrowTone, string> = {
 const LIT_TEXT = [
   "bg-[linear-gradient(90deg,var(--ta),var(--tb)_25%,var(--tc)_50%,var(--tb)_75%,var(--ta))]",
   "bg-[length:200%_100%] bg-left bg-clip-text text-transparent [text-shadow:none]",
-  "[filter:drop-shadow(0_2px_8px_rgba(0,0,0,0.45))_drop-shadow(0_0_11px_var(--tg))]",
+  "[filter:drop-shadow(0_2px_8px_rgba(0,0,0,0.45))_drop-shadow(0_0_7px_var(--tg))]",
   "transition-[background-position] duration-[1600ms] ease-smooth group-hover/title:bg-right",
   "lt:[filter:none]",
 ].join(" ");
@@ -155,15 +155,15 @@ const LIT_TEXT = [
 /** Stops per ramp, with deeper ones for light mode where a pastel would wash out. */
 const RAMPS: Record<TitleGradient, string> = {
   "cyan-violet-pink":
-    "[--ta:#67e8f9] [--tb:#a78bfa] [--tc:#f58ad6] [--tg:rgba(167,139,250,0.5)] lt:[--ta:#0891b2] lt:[--tb:#7c3aed] lt:[--tc:#db2777]",
+    "[--ta:#67e8f9] [--tb:#a78bfa] [--tc:#f58ad6] [--tg:rgba(167,139,250,0.2)] lt:[--ta:#0891b2] lt:[--tb:#7c3aed] lt:[--tc:#db2777]",
   "pink-violet-blue":
-    "[--ta:#ff86d6] [--tb:#c4a1ff] [--tc:#9fd0ff] [--tg:rgba(196,161,255,0.45)] lt:[--ta:#db2777] lt:[--tb:#7c3aed] lt:[--tc:#2563eb]",
+    "[--ta:#ff86d6] [--tb:#c4a1ff] [--tc:#9fd0ff] [--tg:rgba(196,161,255,0.18)] lt:[--ta:#db2777] lt:[--tb:#7c3aed] lt:[--tc:#2563eb]",
   "blue-violet":
-    "[--ta:#5ea4ff] [--tb:#8b8dff] [--tc:#bb8cff] [--tg:rgba(99,102,241,0.55)] lt:[--ta:#2563eb] lt:[--tb:#4f46e5] lt:[--tc:#7c3aed]",
+    "[--ta:#5ea4ff] [--tb:#8b8dff] [--tc:#bb8cff] [--tg:rgba(99,102,241,0.22)] lt:[--ta:#2563eb] lt:[--tb:#4f46e5] lt:[--tc:#7c3aed]",
   "blue-magenta":
-    "[--ta:#4f95ff] [--tb:#9a7bff] [--tc:#d06bff] [--tg:rgba(139,92,246,0.55)] lt:[--ta:#1d4ed8] lt:[--tb:#6d28d9] lt:[--tc:#a21caf]",
+    "[--ta:#4f95ff] [--tb:#9a7bff] [--tc:#d06bff] [--tg:rgba(139,92,246,0.22)] lt:[--ta:#1d4ed8] lt:[--tb:#6d28d9] lt:[--tc:#a21caf]",
   "pink-violet":
-    "[--ta:#ff7ad0] [--tb:#d38bff] [--tc:#a78bfa] [--tg:rgba(236,72,153,0.42)] lt:[--ta:#db2777] lt:[--tb:#9333ea] lt:[--tc:#7c3aed]",
+    "[--ta:#ff7ad0] [--tb:#d38bff] [--tc:#a78bfa] [--tg:rgba(236,72,153,0.17)] lt:[--ta:#db2777] lt:[--tb:#9333ea] lt:[--tc:#7c3aed]",
 };
 
 function PageHeading({ page, title }: { page: PageTitle; title: string }) {
@@ -194,7 +194,7 @@ function PageHeading({ page, title }: { page: PageTitle; title: string }) {
           aria-hidden
           className={cn(
             "mr-2.5 inline-block h-[0.8em] w-[3px] rounded-full align-[-0.05em] lg:-ml-[13px]",
-            "bg-linear-to-b from-[#6fb1ff] to-[#8b5cf6] shadow-[0_0_8px_rgba(96,165,250,0.85)]",
+            "bg-linear-to-b from-[#6fb1ff] to-[#8b5cf6] shadow-[0_0_5px_rgba(96,165,250,0.38)]",
             "lt:from-[#2563eb] lt:to-[#6d28d9] lt:shadow-none",
           )}
         />
@@ -283,11 +283,11 @@ function TitleUnderline() {
         className={cn(
           "absolute inset-0 rounded-full",
           "bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.9)_16%,#eadcff_32%,rgba(96,165,250,0.85)_62%,transparent)]",
-          "[filter:drop-shadow(0_0_4px_rgba(167,139,250,0.9))]",
+          "[filter:drop-shadow(0_0_3px_rgba(167,139,250,0.45))]",
           "lt:bg-[linear-gradient(90deg,transparent,#7c3aed_16%,#6d28d9_32%,#2563eb_62%,transparent)] lt:[filter:none]",
         )}
       />
-      <span className="absolute top-1/2 left-[24%] h-[7px] w-[38px] -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,#ffffff,rgba(167,139,250,0.7)_45%,transparent)] lt:hidden" />
+      <span className="absolute top-1/2 left-[24%] h-[7px] w-[38px] -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.8),rgba(167,139,250,0.4)_45%,transparent)] lt:hidden" />
     </span>
   );
 }
@@ -302,10 +302,10 @@ function TitleUnderline() {
 
 const EMBLEM_GLOW: Record<TitleIcon, string> = {
   "key-cube":
-    "[filter:drop-shadow(0_0_10px_rgba(192,38,211,0.45))_drop-shadow(0_4px_14px_rgba(59,130,246,0.35))] group-hover/title:[filter:drop-shadow(0_0_14px_rgba(217,70,239,0.65))_drop-shadow(0_4px_18px_rgba(59,130,246,0.5))]",
+    "[filter:drop-shadow(0_0_6px_rgba(192,38,211,0.18))_drop-shadow(0_4px_8px_rgba(59,130,246,0.14))] group-hover/title:[filter:drop-shadow(0_0_7px_rgba(217,70,239,0.25))_drop-shadow(0_4px_8px_rgba(59,130,246,0.19))]",
   "shield-key":
-    "[filter:drop-shadow(0_0_10px_rgba(139,92,246,0.55))_drop-shadow(0_4px_14px_rgba(59,130,246,0.3))] group-hover/title:[filter:drop-shadow(0_0_14px_rgba(167,139,250,0.75))_drop-shadow(0_4px_18px_rgba(59,130,246,0.45))]",
-  gear: "[filter:drop-shadow(0_0_8px_rgba(96,165,250,0.7))] group-hover/title:[filter:drop-shadow(0_0_12px_rgba(129,140,248,0.9))]",
+    "[filter:drop-shadow(0_0_6px_rgba(139,92,246,0.22))_drop-shadow(0_4px_8px_rgba(59,130,246,0.12))] group-hover/title:[filter:drop-shadow(0_0_7px_rgba(167,139,250,0.3))_drop-shadow(0_4px_8px_rgba(59,130,246,0.17))]",
+  gear: "[filter:drop-shadow(0_0_5px_rgba(96,165,250,0.28))] group-hover/title:[filter:drop-shadow(0_0_7px_rgba(129,140,248,0.38))]",
 };
 
 function TitleEmblem({ kind, className }: { kind: TitleIcon; className: string }) {
@@ -323,12 +323,12 @@ function TitleEmblem({ kind, className }: { kind: TitleIcon; className: string }
     >
       {/* A soft pool of light behind the glass. Static: a gradient fill,
           nothing that repaints. */}
-      <span className="absolute inset-[-22%] rounded-full bg-[radial-gradient(closest-side,rgba(139,92,246,0.3),rgba(59,130,246,0.12)_55%,transparent)] lt:hidden" />
+      <span className="absolute inset-[-22%] rounded-full bg-[radial-gradient(closest-side,rgba(139,92,246,0.16),rgba(59,130,246,0.06)_55%,transparent)] lt:hidden" />
       <span
         className={cn(
           "relative block size-full transition-[filter] duration-500",
           EMBLEM_GLOW[kind],
-          "lt:[filter:drop-shadow(0_3px_8px_rgba(79,70,229,0.28))] lt:group-hover/title:[filter:drop-shadow(0_3px_10px_rgba(79,70,229,0.4))]",
+          "lt:[filter:drop-shadow(0_3px_5px_rgba(79,70,229,0.13))] lt:group-hover/title:[filter:drop-shadow(0_3px_6px_rgba(79,70,229,0.18))]",
         )}
       >
         {kind === "key-cube" ? <KeyCubeArt /> : kind === "shield-key" ? <ShieldKeyArt /> : <GearArt />}
@@ -641,6 +641,7 @@ function QuickSearch() {
           )}
         </div>
       )}
+      <span aria-hidden className="glow-ring-track" />
     </div>
   );
 }
@@ -738,10 +739,11 @@ function Notifications() {
             className={cn(
               "absolute top-[6px] right-[6px] size-2 rounded-full lg:top-[6px] lg:right-[7px] lg:size-[10px]",
               "bg-[radial-gradient(circle_at_42%_38%,#ffe4ec_0,#ff5c85_32%,#ff1f5a_68%)]",
-              "shadow-[0_0_6px_rgba(255,31,90,0.9),0_0_14px_rgba(255,31,90,0.55)]",
+              "shadow-[0_0_4px_rgba(255,31,90,0.45),0_0_8px_rgba(255,31,90,0.25)]",
             )}
           />
         )}
+        <span aria-hidden className="glow-ring-track" />
       </button>
 
       {open && (
@@ -882,7 +884,7 @@ function ProfileMenu() {
           </span>
         </div>
         <div className="flex items-center gap-1.5 lg:gap-[9px]">
-          <div className="size-8 shrink-0 overflow-hidden rounded-full border-2 border-[#cf2130] bg-black shadow-[0_0_10px_rgba(235,30,48,0.5),0_0_22px_rgba(235,30,48,0.18)] lg:size-[46px]">
+          <div className="size-8 shrink-0 overflow-hidden rounded-full border-2 border-[#cf2130] bg-black shadow-[0_0_6px_rgba(235,30,48,0.22),0_0_13px_rgba(235,30,48,0.08)] lg:size-[46px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={profile.avatar} alt="" className="size-full object-cover" />
           </div>
@@ -893,6 +895,7 @@ function ProfileMenu() {
             )}
           />
         </div>
+        <span aria-hidden className="glow-ring-track" />
       </div>
 
       {open && (

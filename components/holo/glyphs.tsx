@@ -62,10 +62,10 @@ export function HoloGlyph({ glyph, p, id, url, x, y, size }: GlyphProps) {
           <stop offset="1" stopColor="#fff" stopOpacity="0" />
         </linearGradient>
         <filter id={id("g-bloom")} x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="2.2" />
+          <feGaussianBlur stdDeviation="1.3" />
         </filter>
       </defs>
-      <g filter={url("g-bloom")} opacity="0.95">
+      <g filter={url("g-bloom")} opacity="0.45">
         <GlyphShape glyph={glyph} fill={rgb(glyph === "user" ? p.b : p.a)} stroke={rgb(p.b)} bloom />
       </g>
       <GlyphShape

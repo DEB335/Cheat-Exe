@@ -51,7 +51,7 @@ export function ActionCard({
         {/* The tone wash behind the glyph brightens on hover (opacity only). */}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-0 rounded-[20px] bg-[radial-gradient(60%_110%_at_12%_60%,rgba(var(--tone),0.24),transparent_72%)] opacity-50 transition-opacity duration-300 group-hover/action:opacity-100 lt:opacity-25 lt:group-hover/action:opacity-50"
+          className="pointer-events-none absolute inset-0 rounded-[20px] bg-[radial-gradient(60%_110%_at_12%_60%,rgba(var(--tone),0.24),transparent_72%)] opacity-50 transition-opacity duration-300 group-hover/action:opacity-70 lt:opacity-25 lt:group-hover/action:opacity-35"
         />
         <ActionGlyph
           kind={glyph}

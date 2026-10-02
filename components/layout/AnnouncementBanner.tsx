@@ -49,11 +49,11 @@ export function AnnouncementBanner() {
         className={cn(
           "relative flex items-start gap-3 overflow-hidden rounded-2xl px-4 py-3.5 sm:px-5",
           "border border-[rgba(34,211,238,0.35)] bg-[rgba(34,211,238,0.07)]",
-          "shadow-[0_0_25px_rgba(34,211,238,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]",
-          "backdrop-blur-[10px] lt:bg-[rgba(34,211,238,0.08)]",
+          "shadow-[0_0_15px_rgba(34,211,238,0.054),inset_0_1px_0_rgba(255,255,255,0.05)]",
+          "lt:bg-[rgba(34,211,238,0.08)]",
         )}
       >
-        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-[rgba(34,211,238,0.3)] bg-[rgba(34,211,238,0.12)] text-[#22d3ee] shadow-[0_0_12px_rgba(34,211,238,0.35)]">
+        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border border-[rgba(34,211,238,0.3)] bg-[rgba(34,211,238,0.12)] text-[#22d3ee] shadow-[0_0_7px_rgba(34,211,238,0.16)]">
           <MegaphoneIcon className="size-4" />
         </span>
 

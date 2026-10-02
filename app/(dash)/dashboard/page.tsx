@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 
 import { DevicesBanner } from "@/components/dashboard/DevicesBanner";
 import { PerformanceCard } from "@/components/dashboard/PerformanceCard";
@@ -38,8 +39,13 @@ export default function OverviewPage() {
     ...ownerOnly({ key: "resellers", label: "Total Resellers", value: metrics.resellers, accent: "orange", icon: <BriefcaseIcon className="size-6" /> }),
   ];
 
-  const series = tiles.map((t) => t.value);
-  const labels = tiles.map((t) => t.label);
+  // Kept by value: the chart replays its one-second draw-in whenever it is
+  // handed a new array, so a fresh copy of the same numbers on every
+  // render made any unrelated update look like new data arriving.
+  const seriesKey = tiles.map((t) => t.value).join(",");
+  const labelsKey = tiles.map((t) => t.label).join("\n");
+  const series = useMemo(() => seriesKey.split(",").map(Number), [seriesKey]);
+  const labels = useMemo(() => labelsKey.split("\n"), [labelsKey]);
 
   return (
     <>

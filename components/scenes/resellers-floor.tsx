@@ -97,7 +97,7 @@ export function ResellerFloor() {
             <rect width="100" height="100" fill={url("fade")} />
           </mask>
           <filter id={id("bloom")} x="-10%" y="-60%" width="120%" height="220%">
-            <feGaussianBlur stdDeviation="0.9" />
+            <feGaussianBlur stdDeviation="0.55" />
           </filter>
         </defs>
 
@@ -109,7 +109,7 @@ export function ResellerFloor() {
 
         {/* Rings round the pedestal, beyond the kit's own floor rings. */}
         <g fill="none">
-          <ellipse cx="50" cy={FLOOR_Y} rx="46.5" ry={46.5 * SQUASH} stroke={url("across")} strokeWidth="1.2" filter={url("bloom")} opacity="0.8" />
+          <ellipse cx="50" cy={FLOOR_Y} rx="46.5" ry={46.5 * SQUASH} stroke={url("across")} strokeWidth="1.2" filter={url("bloom")} opacity="0.4" />
           <ellipse cx="50" cy={FLOOR_Y} rx="46.5" ry={46.5 * SQUASH} stroke={url("across")} strokeWidth="0.45" />
           <ellipse
             cx="50"

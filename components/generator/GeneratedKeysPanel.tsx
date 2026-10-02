@@ -52,7 +52,7 @@ export function GeneratedKeysPanel({
       <KeyConsole text={consoleText} className="flex-1 xl:min-h-[250px]" />
 
       {keys.length > 0 ? (
-        <div className="relative z-10 mt-5 rounded-[16px] border border-[rgba(52,211,120,0.42)] p-4 [background:linear-gradient(180deg,rgba(52,211,120,0.11),rgba(52,211,120,0.03)),rgba(3,6,22,0.7)] shadow-[0_0_22px_-10px_rgba(52,211,120,0.85),inset_0_1px_0_rgba(255,255,255,0.05)] lt:border-emerald-200 lt:[background:#f0fdf4] lt:shadow-none">
+        <div className="relative z-10 mt-5 rounded-[16px] border border-[rgba(52,211,120,0.42)] p-4 [background:linear-gradient(180deg,rgba(52,211,120,0.11),rgba(52,211,120,0.03)),rgba(3,6,22,0.7)] shadow-[0_0_13px_-5px_rgba(52,211,120,0.38),inset_0_1px_0_rgba(255,255,255,0.05)] lt:border-emerald-200 lt:[background:#f0fdf4] lt:shadow-none">
           <div className="mb-3 flex items-center justify-between gap-3">
             <span className="text-[12px] font-extrabold tracking-[1.2px] text-[#6ef3a5] uppercase lt:text-emerald-700">
               {keys.length} key{keys.length === 1 ? "" : "s"}
@@ -81,7 +81,7 @@ export function GeneratedKeysPanel({
                 key={key}
                 className="flex items-center justify-between gap-2 rounded-[8px] pl-2 transition-colors duration-200 hover:bg-[rgba(52,211,120,0.08)] lt:hover:bg-emerald-100/60"
               >
-                <span className="truncate font-mono text-[14px] font-semibold text-[#6ef3a5] [text-shadow:0_0_8px_rgba(52,211,120,0.4)] lt:text-emerald-700 lt:[text-shadow:none]">
+                <span className="truncate font-mono text-[14px] font-semibold text-[#6ef3a5] lt:text-emerald-700">
                   {key}
                 </span>
                 <NeonButton

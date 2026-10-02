@@ -48,14 +48,16 @@ function asJson(value: Database) {
   return value as unknown as JsonArg;
 }
 
-/** Fills in anything a stored document is missing, and migrates legacy shapes. */
-async function normalise(stored: Partial<Database> & { adminPass?: string }): Promise<Database> {
-  let adminPassHash = stored.adminPassHash;
-  if (!adminPassHash) {
-    // A document carried over from the old plaintext file store.
-    adminPassHash = await bcrypt.hash(stored.adminPass ?? DEFAULT_ADMIN_PASS, 10);
-  }
-
+/**
+ * Every field a stored document may be missing, filled with its empty
+ * value. Shared by the whole-document read and the partial one, so the
+ * two can never disagree about what an absent field means.
+ *
+ * adminPassHash is not here: its default is a bcrypt hash, which costs
+ * real time and is only worth computing for a document that will be
+ * written back.
+ */
+function withDefaults(stored: Partial<Database>): Omit<Database, "adminPassHash"> {
   return {
     cheatExeUsers: stored.cheatExeUsers ?? {},
     cheatExeKeyHistory: stored.cheatExeKeyHistory ?? [],
@@ -66,9 +68,19 @@ async function normalise(stored: Partial<Database> & { adminPass?: string }): Pr
     cheatExeMessages: stored.cheatExeMessages ?? [],
     cheatExeWhitelistOwners: stored.cheatExeWhitelistOwners ?? {},
     adminUser: stored.adminUser ?? DEFAULT_ADMIN_USER,
-    adminPassHash,
     profile: { ...DEFAULT_PROFILE, ...stored.profile },
   };
+}
+
+/** Fills in anything a stored document is missing, and migrates legacy shapes. */
+async function normalise(stored: Partial<Database> & { adminPass?: string }): Promise<Database> {
+  let adminPassHash = stored.adminPassHash;
+  if (!adminPassHash) {
+    // A document carried over from the old plaintext file store.
+    adminPassHash = await bcrypt.hash(stored.adminPass ?? DEFAULT_ADMIN_PASS, 10);
+  }
+
+  return { ...withDefaults(stored), adminPassHash };
 }
 
 /** Reads the current state, seeding a fresh database on first run. */
@@ -86,6 +98,51 @@ export async function readDb(): Promise<Database> {
     on conflict (id) do nothing
   `;
   return fresh;
+}
+
+/** Everything but the hash, which is left to readDb. */
+type Sliceable = Omit<Database, "adminPassHash">;
+
+/** A field that can be read on its own. */
+export type SliceField = keyof Sliceable;
+
+/**
+ * Reads only the named top-level fields of the state.
+ *
+ * The state is one JSONB document, and nearly all of its weight is the
+ * key history -- which is never trimmed -- and the audit log. The checks
+ * every request runs (is this account still allowed in, is this device
+ * banned, is this session still listed) read neither, yet each one used
+ * to pull the whole document across the wire and parse it, and the
+ * session poll alone does that every five seconds for every open tab.
+ * Postgres still decompresses the row to pick the fields out, but only
+ * these come back: with twenty thousand keys of history that is a few
+ * kilobytes instead of a couple of megabytes, per poll.
+ *
+ * The result holds the named fields and nothing else. The rest are
+ * absent rather than empty, so a slice handed to code that reads more
+ * than it asked for fails loudly instead of answering from an empty list
+ * -- which, for a quota or a ban, would be the wrong direction to fail.
+ */
+export async function readSlice<K extends SliceField>(
+  fields: readonly K[],
+): Promise<Pick<Sliceable, K>> {
+  const db = sql();
+  const rows = await db<{ data: Partial<Database> | null }[]>`
+    select (
+      select jsonb_object_agg(field, data -> field)
+      from unnest(${[...fields]}::text[]) as field
+    ) as data
+    from app_state where id = 1
+  `;
+
+  // First run: readDb seeds the document, and its answer covers any slice.
+  const source: Sliceable =
+    rows.length > 0 ? withDefaults(rows[0]!.data ?? {}) : await readDb();
+
+  const slice = {} as Pick<Sliceable, K>;
+  for (const field of fields) slice[field] = source[field];
+  return slice;
 }
 
 /**
@@ -156,7 +213,7 @@ export function toPublic(db: Database): PublicDatabase {
 
 /** Case-insensitive lookup, matching the original login behaviour. */
 export function findReseller(
-  db: Database,
+  db: Pick<Database, "cheatExeUsers">,
   username: string,
 ): { key: string; user: Reseller } | null {
   const lower = username.toLowerCase();
@@ -175,7 +232,7 @@ export function findReseller(
  * on the next request rather than twelve hours later.
  */
 export function accountBlock(
-  db: Database,
+  db: Pick<Database, "adminUser" | "cheatExeBannedUsers" | "cheatExeUsers">,
   username: string,
   role: "OWNER" | "RESELLER",
 ): "banned" | "suspended" | "pending" | "expired" | "deleted" | null {

@@ -15,11 +15,11 @@ const OPTIONS: Array<{ value: RoleFilter; label: string }> = [
 
 /** Neon-blue glass shared by the search field and the filter button. */
 const GLASS = cn(
-  "border border-[rgba(59,130,246,0.55)] backdrop-blur-md",
+  "border border-[rgba(59,130,246,0.55)]",
   "bg-[linear-gradient(180deg,rgba(12,24,64,0.78),rgba(5,11,36,0.88))]",
-  "shadow-[0_0_14px_-4px_rgba(59,130,246,0.65),inset_0_1px_0_rgba(255,255,255,0.07)]",
+  "shadow-[0_0_8px_-2px_rgba(59,130,246,0.29),inset_0_1px_0_rgba(255,255,255,0.07)]",
   "transition-[border-color,box-shadow,background-color] duration-300 ease-smooth",
-  "lt:border-blue-300 lt:bg-none lt:bg-white lt:shadow-[0_6px_16px_-10px_rgba(59,130,246,0.55)]",
+  "lt:border-blue-300 lt:bg-none lt:bg-white lt:shadow-[0_4px_10px_-6px_rgba(59,130,246,0.25)]",
 );
 
 /** Search and role filter above the live devices table. Both are controlled. */
@@ -67,12 +67,11 @@ export function DeviceToolbar({
 
   return (
     <div className={cn("flex min-w-0 items-center gap-3", className)}>
-      {/* The input's backdrop blur makes it its own layer, painted over
-          anything before it -- the icon and clear button sit above on z. */}
+      {/* The icon and clear button sit above the input on z. */}
       <div className="relative min-w-0 flex-1">
         <SearchIcon
           aria-hidden
-          className="pointer-events-none absolute top-1/2 left-3.5 z-[1] size-4 -translate-y-1/2 text-[#8ec5ff] drop-shadow-[0_0_5px_rgba(59,130,246,0.7)] lt:text-blue-500 lt:drop-shadow-none"
+          className="pointer-events-none absolute top-1/2 left-3.5 z-[1] size-4 -translate-y-1/2 text-[#8ec5ff] drop-shadow-[0_0_3px_rgba(59,130,246,0.28)] lt:text-blue-500 lt:drop-shadow-none"
         />
         <input
           type="text"
@@ -88,7 +87,7 @@ export function DeviceToolbar({
             "h-11 w-full rounded-xl pr-9 pl-10 text-[13.5px] text-fg outline-none",
             "placeholder:text-[#8fa6d6] lt:placeholder:text-muted",
             "focus:border-[rgba(96,165,250,0.95)]",
-            "focus:shadow-[0_0_0_3px_rgba(59,130,246,0.2),0_0_22px_-2px_rgba(59,130,246,0.8),inset_0_1px_0_rgba(255,255,255,0.09)]",
+            "focus:shadow-[0_0_0_3px_rgba(59,130,246,0.2),0_0_13px_-1px_rgba(59,130,246,0.36),inset_0_1px_0_rgba(255,255,255,0.09)]",
             "lt:focus:border-blue-500 lt:focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]",
           )}
         />
@@ -116,16 +115,16 @@ export function DeviceToolbar({
             GLASS,
             "relative flex size-11 cursor-pointer items-center justify-center rounded-xl text-[#8ec5ff]",
             "hover:border-[rgba(96,165,250,0.95)] hover:text-white",
-            "hover:shadow-[0_0_20px_-2px_rgba(59,130,246,0.8),inset_0_1px_0_rgba(255,255,255,0.1)]",
+            "hover:shadow-[0_0_12px_-1px_rgba(59,130,246,0.36),inset_0_1px_0_rgba(255,255,255,0.1)]",
             "active:translate-y-px lt:text-blue-600 lt:hover:border-blue-500 lt:hover:text-blue-700",
             (open || filtered) && "border-[rgba(96,165,250,0.95)] text-white lt:border-blue-500 lt:text-blue-700",
           )}
         >
-          <FilterIcon className="size-[17px] drop-shadow-[0_0_5px_rgba(59,130,246,0.7)] lt:drop-shadow-none" />
+          <FilterIcon className="size-[17px] drop-shadow-[0_0_3px_rgba(59,130,246,0.28)] lt:drop-shadow-none" />
           {filtered && (
             <span
               aria-hidden
-              className="absolute top-2 right-2 size-2 rounded-full bg-[#60a5fa] shadow-[0_0_8px_rgba(96,165,250,0.95)] lt:bg-blue-500 lt:shadow-none"
+              className="absolute top-2 right-2 size-2 rounded-full bg-[#60a5fa] shadow-[0_0_5px_rgba(96,165,250,0.43)] lt:bg-blue-500 lt:shadow-none"
             />
           )}
         </button>

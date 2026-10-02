@@ -162,7 +162,9 @@ export function AuditStreaks() {
         <span
           key={i}
           className={styles.streak}
-          style={{ left: `${s.x}%`, height: `${s.h}%`, animationDuration: `${s.dur}s`, animationDelay: `${-s.at}s` }}
+          style={
+            { left: `${s.x}%`, height: `${s.h}%`, "--rise-time": `${s.dur}s`, animationDelay: `${-s.at}s` } as CSSProperties
+          }
         />
       ))}
     </>

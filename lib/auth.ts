@@ -4,7 +4,7 @@ import { cookies, headers } from "next/headers";
 import { cache } from "react";
 
 import { matchBan } from "./bans";
-import { accountBlock, findReseller, readDb } from "./db";
+import { accountBlock, findReseller, readDb, readSlice } from "./db";
 import { lockedToAnotherDevice } from "./device-lock";
 import { deviceIdentity } from "./device";
 import { PACKAGE_NAMES } from "./packages";
@@ -27,11 +27,43 @@ export class HttpError extends Error {
 }
 
 /**
- * One read per request, shared by every caller in it. Without this the
- * account check below would double the query count on routes that go on
- * to read the database themselves.
+ * The whole document, read once per server-component render.
+ *
+ * Only once per *render*: React's cache keys on the render in progress,
+ * and a route handler has none, so there every call is a fresh query.
+ * A route that needs both the checks and the whole document should take
+ * them from requireUserWithDb, which does both off one read.
  */
 export const loadDb = cache(async (): Promise<Database> => readDb());
+
+/**
+ * What requireUser's checks read: the owner's name, the reseller
+ * records, the banned vault and the device ban list. Nothing else, so
+ * the key history and the audit log -- which are most of the document --
+ * stay in the database on every authenticated request.
+ */
+export const ACCESS_FIELDS = [
+  "adminUser",
+  "cheatExeUsers",
+  "cheatExeBannedUsers",
+  "cheatExeBans",
+] as const;
+
+export type AccessState = Pick<Database, (typeof ACCESS_FIELDS)[number]>;
+
+const loadAccess = cache(async (): Promise<AccessState> => readSlice(ACCESS_FIELDS));
+
+/**
+ * matchBan and lockedToAnotherDevice take the whole Database but read
+ * only the ban list and the reseller records, which every slice from
+ * ACCESS_FIELDS carries. The fields a slice leaves out are absent, not
+ * empty: if either function ever starts reading one, it throws and the
+ * request is refused, rather than passing because a list came back
+ * empty.
+ */
+export function asDatabase(state: AccessState): Database {
+  return state as Database;
+}
 
 const BLOCK_MESSAGE = {
   banned: "Your account has been terminated.",
@@ -50,10 +82,27 @@ const BLOCK_MESSAGE = {
  * route runs through here, so it now stops at the next request.
  */
 export async function requireUser(): Promise<SessionUser> {
+  return (await authorize(loadAccess)).user;
+}
+
+/**
+ * requireUser for a route that goes on to read the whole document
+ * anyway. The checks run against that one read, where requireUser
+ * followed by loadDb would query twice -- loadDb's cache does not reach
+ * into route handlers.
+ */
+export async function requireUserWithDb(): Promise<{ user: SessionUser; db: Database }> {
+  return authorize(readDb);
+}
+
+/** The checks behind both of the above, against whichever read they hand it. */
+async function authorize<T extends AccessState>(
+  load: () => Promise<T>,
+): Promise<{ user: SessionUser; db: T }> {
   const user = await getSessionUser();
   if (!user) throw new HttpError(401, "Not authenticated");
 
-  const db = await loadDb();
+  const db = await load();
   // Same reasoning as the block check below, one field over. `packages`
   // is a copy taken at sign-in and signed into the token, so a grant the
   // owner revoked mid-session stayed in force for the rest of that
@@ -73,17 +122,17 @@ export async function requireUser(): Promise<SessionUser> {
     const { hwid, fingerprint } = await deviceIdentity();
     const marks = { ip: await clientIp(), hwid, fingerprint };
 
-    if (matchBan(db, marks)) {
+    if (matchBan(asDatabase(db), marks)) {
       throw new HttpError(403, "This device has been blocked.");
     }
     // Catches a session that was valid when it opened and then had its
     // lock reset and re-claimed by a different machine.
-    if (lockedToAnotherDevice(db, user.username, marks)) {
+    if (lockedToAnotherDevice(asDatabase(db), user.username, marks)) {
       throw new HttpError(403, "This account is locked to another device.");
     }
   }
 
-  return live;
+  return { user: live, db };
 }
 
 /**
@@ -96,7 +145,7 @@ export async function requireUser(): Promise<SessionUser> {
  * list rather than the token's copy keeps this honest if it is ever
  * called somewhere that has not made that check.
  */
-export function livePackages(db: Database, user: SessionUser): string[] {
+export function livePackages(db: Pick<Database, "cheatExeUsers">, user: SessionUser): string[] {
   if (user.role === "OWNER") return PACKAGE_NAMES;
   return findReseller(db, user.username)?.user.packages ?? [];
 }
@@ -106,9 +155,14 @@ export function livePackages(db: Database, user: SessionUser): string[] {
  * now. Route handlers get this from requireUser; a layout that only
  * needs to render cannot use that, since it throws rather than
  * redirects.
+ *
+ * The owner's answer never depends on the database (see livePackages),
+ * so their render does not wait on it at all; a reseller's reads just
+ * the reseller records.
  */
 export async function withLivePackages(user: SessionUser): Promise<SessionUser> {
-  const db = await loadDb();
+  if (user.role === "OWNER") return { ...user, packages: PACKAGE_NAMES };
+  const db = await readSlice(["cheatExeUsers"]);
   return { ...user, packages: livePackages(db, user) };
 }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { loadDb, requireUser } from "@/lib/auth";
+import { requireUserWithDb } from "@/lib/auth";
 import { route } from "@/lib/api-helpers";
 import { toPublic } from "@/lib/db";
 import { toPublicMessages } from "@/lib/messages";
@@ -12,8 +12,9 @@ import type { PublicDatabase } from "@/lib/types";
  * the banned vault, so devtools cannot reveal them.
  */
 export const GET = route(async () => {
-  const user = await requireUser();
-  const raw = await loadDb();
+  // The checks and the payload off one read -- requireUser then loadDb
+  // would fetch the whole document twice.
+  const { user, db: raw } = await requireUserWithDb();
   const db = toPublic(raw);
 
   // Announcements go to everyone -- that is the point of them -- but the

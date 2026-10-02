@@ -46,9 +46,9 @@
   transform: translateX(-50%);
   background: radial-gradient(
     closest-side,
-    rgb(var(--holo-b) / 0.4),
-    rgb(var(--holo-c) / 0.16) 48%,
-    rgb(var(--holo-a) / 0.05) 72%,
+    rgb(var(--holo-b) / 0.2),
+    rgb(var(--holo-c) / 0.08) 48%,
+    rgb(var(--holo-a) / 0.025) 72%,
     transparent
   );
 }
@@ -62,7 +62,7 @@
 
 .bob {
   position: relative;
-  animation: vault-bob 6.5s ease-in-out infinite;
+  animation: vault-bob 26s ease-in-out infinite; /* 4 x 6.5s */
 }
 
 /* ---- Shield: the vault's banned-user emblem ------------------------ */
@@ -142,16 +142,16 @@
     radial-gradient(circle at 34% 28%, rgb(224 238 255 / 0.75), rgb(147 197 253 / 0.28) 16%, transparent 36%),
     radial-gradient(circle at 42% 40%, rgb(59 130 246 / 0.55), rgb(49 72 214 / 0.42) 55%, rgb(67 56 202 / 0.5) 82%, rgb(139 92 246 / 0.55));
   box-shadow:
-    0 0 5cqh rgb(59 130 246 / 0.55),
-    0 0 16cqh rgb(99 102 241 / 0.35),
+    0 0 3cqh rgb(59 130 246 / 0.25),
+    0 0 9.6cqh rgb(99 102 241 / 0.16),
     inset -3cqh -4cqh 9cqh rgb(30 20 110 / 0.55),
-    inset 1.5cqh 1.5cqh 5cqh rgb(147 197 253 / 0.45);
+    inset 1.5cqh 1.5cqh 5cqh rgb(147 197 253 / 0.22);
 }
 
 /* The sphere's wireframe (see GlobeGraticule): faint sky-blue lines with
    a little glow on the dark panel, under the globe's own lattice. */
 .graticule {
-  filter: drop-shadow(0 0 1.2cqh rgb(96 165 250 / 0.8));
+  filter: drop-shadow(0 0 0.7cqh rgb(96 165 250 / 0.36));
 }
 .graticule g {
   stroke: rgb(147 197 253 / 0.3);
@@ -165,7 +165,7 @@
 }
 
 .orbitBloom {
-  opacity: 0.75;
+  opacity: 0.36;
 }
 
 /* A circle the ring's width, squashed and tilted into the ellipse by
@@ -182,15 +182,9 @@
   clip-path: inset(50% -30% -30% -30%);
 }
 
-.beadSpin {
-  position: absolute;
-  inset: 0;
-  animation: orbit-spin var(--lap) linear infinite;
-  animation-delay: var(--lap-at);
-}
-
-/* On the rim at the top; spins back as its parent spins on, and undoes
-   the squash, so it stays a round bead. */
+/* On the rim at the top. One transform swings it round the circle's
+   centre (--r below it) and turns it back, then undoes the squash, so
+   it rides the ellipse as a round bead: three laps per iteration. */
 .bead {
   position: absolute;
   left: 50%;
@@ -199,8 +193,8 @@
   aspect-ratio: 1;
   margin: -1.3cqw 0 0 -1.3cqw;
   border-radius: 50%;
-  background: radial-gradient(closest-side, #fff 0 24%, rgb(var(--bead)) 46%, rgb(var(--bead) / 0.35) 70%, transparent);
-  animation: orbit-bead var(--lap) linear infinite;
+  background: radial-gradient(closest-side, #fff 0 24%, rgb(var(--bead)) 46%, rgb(var(--bead) / 0.17) 70%, transparent);
+  animation: orbit-bead calc(var(--lap) * 3) linear infinite;
   animation-delay: var(--lap-at);
 }
 
@@ -212,9 +206,9 @@
   aspect-ratio: 1;
   transform: translate(-50%, -50%) scale(0.4);
   opacity: 0;
-  background: radial-gradient(closest-side, #fff 0 10%, rgb(var(--holo-hot) / 0.85) 20%, rgb(var(--holo-a) / 0.3) 42%, transparent 70%);
+  background: radial-gradient(closest-side, #fff 0 10%, rgb(var(--holo-hot) / 0.85) 20%, rgb(var(--holo-a) / 0.14) 42%, transparent 70%);
   border-radius: 50%;
-  animation: glint-twinkle 4.6s ease-in-out infinite;
+  animation: glint-twinkle 27.6s ease-in-out infinite; /* 6 x 4.6s */
 }
 .glint::before,
 .glint::after {
@@ -233,9 +227,9 @@
   position: absolute;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(var(--holo-hot)) 0 25%, rgb(var(--holo-b) / 0.6) 55%, transparent);
+  background: radial-gradient(closest-side, rgb(var(--holo-hot)) 0 25%, rgb(var(--holo-b) / 0.3) 55%, transparent);
   opacity: 0;
-  animation: mote-rise 7s ease-in-out infinite;
+  animation: mote-rise 28s ease-in-out infinite; /* 4 x 7s */
 }
 
 /* ---- Router ------------------------------------------------------ */
@@ -261,7 +255,7 @@
   top: 40%;
   height: 90%;
   border-radius: 50%;
-  background: radial-gradient(closest-side, rgb(var(--holo-b) / 0.55), rgb(var(--holo-c) / 0.18) 55%, transparent);
+  background: radial-gradient(closest-side, rgb(var(--holo-b) / 0.27), rgb(var(--holo-c) / 0.09) 55%, transparent);
 }
 
 .routerLean,
@@ -275,7 +269,7 @@
   transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .routerIdle {
-  animation: router-idle 7s ease-in-out infinite;
+  animation: router-idle 28s ease-in-out infinite; /* 4 x 7s */
 }
 
 /* A point at the box's centre that the faces are built round:
@@ -304,7 +298,7 @@
   background: linear-gradient(160deg, rgb(196 190 255), rgb(128 116 244) 45%, rgb(84 74 214));
   box-shadow:
     inset 0 0 4cqw rgb(255 255 255 / 0.35),
-    0 0 5cqw rgb(var(--holo-b) / 0.6);
+    0 0 3cqw rgb(var(--holo-b) / 0.27);
 }
 .rFront {
   left: -39cqw;
@@ -313,7 +307,7 @@
   height: 15cqw;
   transform: translateZ(20cqw);
   background: linear-gradient(180deg, rgb(98 88 226), rgb(58 50 170) 60%, rgb(42 36 136));
-  box-shadow: 0 0 4cqw rgb(var(--holo-c) / 0.55);
+  box-shadow: 0 0 2.4cqw rgb(var(--holo-c) / 0.25);
 }
 .rSide {
   left: -20cqw;
@@ -342,7 +336,7 @@
   height: 24%;
   border-radius: 999px;
   background: rgb(255 255 255 / 0.5);
-  box-shadow: 0 0 2cqw rgb(255 255 255 / 0.6);
+  box-shadow: 0 0 1.2cqw rgb(255 255 255 / 0.27);
 }
 .rPorts {
   position: absolute;
@@ -369,9 +363,10 @@
   border-radius: 50%;
   background: radial-gradient(closest-side, #fff 0 30%, rgb(var(--led)) 62%, rgb(var(--led) / 0.4));
   box-shadow:
-    0 0 2cqw rgb(var(--led)),
-    0 0 5cqw rgb(var(--led) / 0.6);
-  animation: led-blink 2s steps(1, end) infinite;
+    0 0 1.2cqw rgb(var(--led) / 0.45),
+    0 0 3cqw rgb(var(--led) / 0.27);
+  /* --blink per light, inline; 10 blinks per iteration. */
+  animation: led-blink calc(var(--blink) * 10) steps(1, end) infinite;
 }
 
 /* ---- Wifi -------------------------------------------------------- */
@@ -382,10 +377,10 @@
   top: -3%;
   width: 16%;
   aspect-ratio: 48 / 40;
-  animation: wifi-float 5.2s ease-in-out infinite;
+  animation: wifi-float 26s ease-in-out infinite; /* 5 x 5.2s */
 }
 .wifiArc {
-  animation: wifi-wave 2.4s ease-in-out infinite;
+  animation: wifi-wave 24s ease-in-out infinite; /* 10 x 2.4s */
 }
 
 /* ---- Circuit floor ----------------------------------------------- */
@@ -402,7 +397,8 @@
   height: 0;
   opacity: 0;
   transform: rotate(var(--angle));
-  animation: trace-run 3s linear infinite;
+  /* --run-time per trace, inline; 10 runs per iteration. */
+  animation: trace-run calc(var(--run-time) * 10) linear infinite;
 }
 .pulse::before {
   content: "";
@@ -413,7 +409,7 @@
   height: 0.9cqw;
   border-radius: 999px;
   background: linear-gradient(90deg, transparent, rgb(var(--pulse)) 60%, #fff);
-  box-shadow: 0 0 1.4cqw rgb(var(--pulse));
+  box-shadow: 0 0 0.85cqw rgb(var(--pulse) / 0.45);
 }
 
 /* ---- Light mode -------------------------------------------------- */
@@ -429,7 +425,7 @@
     radial-gradient(circle at 34% 28%, rgb(255 255 255 / 0.7), transparent 34%),
     radial-gradient(circle at 42% 40%, rgb(147 197 253 / 0.55), rgb(129 140 248 / 0.45) 60%, rgb(167 139 250 / 0.55));
   box-shadow:
-    0 0 5cqh rgb(99 102 241 / 0.3),
+    0 0 3cqh rgb(99 102 241 / 0.14),
     inset 0 0 0 1px rgb(99 102 241 / 0.4);
 }
 :global(body.light-mode) .graticule {
@@ -439,7 +435,7 @@
   stroke: rgb(99 102 241 / 0.42);
 }
 :global(body.light-mode) .orbitBloom {
-  opacity: 0.25;
+  opacity: 0.12;
 }
 :global(body.light-mode) .orbitCore {
   display: none;
@@ -448,18 +444,18 @@
   opacity: 0.7;
 }
 :global(body.light-mode) .glint {
-  background: radial-gradient(closest-side, rgb(var(--holo-b)) 0 14%, rgb(var(--holo-a) / 0.35) 40%, transparent 70%);
+  background: radial-gradient(closest-side, rgb(var(--holo-b)) 0 14%, rgb(var(--holo-a) / 0.16) 40%, transparent 70%);
 }
 :global(body.light-mode) .glint::before,
 :global(body.light-mode) .glint::after {
   background: linear-gradient(90deg, transparent, rgb(var(--holo-b) / 0.9) 50%, transparent) 50% 50% / 100% 9% no-repeat;
 }
 :global(body.light-mode) .mote {
-  background: radial-gradient(closest-side, rgb(var(--holo-b)) 0 25%, rgb(var(--holo-a) / 0.4) 55%, transparent);
+  background: radial-gradient(closest-side, rgb(var(--holo-b)) 0 25%, rgb(var(--holo-a) / 0.18) 55%, transparent);
 }
 :global(body.light-mode) .rTop {
   background: linear-gradient(160deg, rgb(237 233 254), rgb(196 181 253) 55%, rgb(167 139 250));
-  box-shadow: inset 0 0 4cqw rgb(255 255 255 / 0.5);
+  box-shadow: inset 0 0 4cqw rgb(255 255 255 / 0.25);
   border-color: rgb(124 58 237 / 0.55);
 }
 :global(body.light-mode) .rFront {
@@ -474,56 +470,93 @@
 
 /* ---- Motion ------------------------------------------------------ */
 
+/* Each loop is written out several times inside one long iteration
+   (the count is the multiplier on its duration above). The motion is
+   the same, but Chrome wakes the main thread, and re-styles every
+   running animation, at each iteration boundary (React listens for
+   animationiteration on the root), so long iterations keep these loops
+   on the compositor. Where a loop jumps back to its start, the jump sits
+   0.01% early, while the element is transparent. */
+
 @keyframes vault-bob {
   0%,
+  25%,
+  50%,
+  75%,
   100% {
     transform: translateY(0);
   }
-  50% {
+  12.5%,
+  37.5%,
+  62.5%,
+  87.5% {
     transform: translateY(-6px);
   }
 }
 
-@keyframes orbit-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
+/* Three laps round the circle's centre, turning back as it goes. */
 @keyframes orbit-bead {
   from {
-    transform: rotate(0deg) scaleY(var(--unsquash));
+    transform: translateY(var(--r)) rotate(0deg) translateY(calc(-1 * var(--r))) rotate(0deg) scaleY(var(--unsquash));
   }
   to {
-    transform: rotate(-360deg) scaleY(var(--unsquash));
+    transform: translateY(var(--r)) rotate(1080deg) translateY(calc(-1 * var(--r))) rotate(-1080deg)
+      scaleY(var(--unsquash));
   }
 }
 
 @keyframes glint-twinkle {
   0%,
+  16.667%,
+  33.333%,
+  50%,
+  66.667%,
+  83.333%,
   100% {
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.35) rotate(0deg);
   }
-  40% {
+  6.667%,
+  23.333%,
+  40%,
+  56.667%,
+  73.333%,
+  90% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1) rotate(25deg);
   }
-  70% {
+  11.667%,
+  28.333%,
+  45%,
+  61.667%,
+  78.333%,
+  95% {
     opacity: 0.25;
     transform: translate(-50%, -50%) scale(0.55) rotate(40deg);
   }
 }
 
 @keyframes mote-rise {
-  0% {
+  0%,
+  25%,
+  50%,
+  75% {
     opacity: 0;
     transform: translate(-50%, 30%);
   }
-  30%,
-  60% {
+  7.5%,
+  15%,
+  32.5%,
+  40%,
+  57.5%,
+  65%,
+  82.5%,
+  90% {
     opacity: 0.9;
   }
+  24.99%,
+  49.99%,
+  74.99%,
   100% {
     opacity: 0;
     transform: translate(-50%, -260%);
@@ -532,59 +565,161 @@
 
 @keyframes router-idle {
   0%,
+  25%,
+  50%,
+  75%,
   100% {
     transform: translateY(0) rotateY(0deg);
   }
-  50% {
+  12.5%,
+  37.5%,
+  62.5%,
+  87.5% {
     transform: translateY(-4%) rotateY(-5deg);
   }
 }
 
 @keyframes led-blink {
   0%,
+  4.2%,
+  10%,
+  14.2%,
+  20%,
+  24.2%,
+  30%,
+  34.2%,
+  40%,
+  44.2%,
+  50%,
+  54.2%,
+  60%,
+  64.2%,
+  70%,
+  74.2%,
+  80%,
+  84.2%,
+  90%,
+  94.2%,
   100% {
     opacity: 1;
   }
-  30% {
+  3%,
+  13%,
+  23%,
+  33%,
+  43%,
+  53%,
+  63%,
+  73%,
+  83%,
+  93% {
     opacity: 0.35;
   }
-  42% {
-    opacity: 1;
-  }
-  74% {
+  7.4%,
+  17.4%,
+  27.4%,
+  37.4%,
+  47.4%,
+  57.4%,
+  67.4%,
+  77.4%,
+  87.4%,
+  97.4% {
     opacity: 0.55;
   }
 }
 
 @keyframes wifi-float {
   0%,
+  20%,
+  40%,
+  60%,
+  80%,
   100% {
     transform: translateY(0);
   }
-  50% {
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
     transform: translateY(-8%);
   }
 }
 
 @keyframes wifi-wave {
   0%,
+  10%,
+  20%,
+  30%,
+  40%,
+  50%,
+  60%,
+  70%,
+  80%,
+  90%,
   100% {
     opacity: 0.55;
   }
-  35% {
+  3.5%,
+  13.5%,
+  23.5%,
+  33.5%,
+  43.5%,
+  53.5%,
+  63.5%,
+  73.5%,
+  83.5%,
+  93.5% {
     opacity: 1;
   }
 }
 
 @keyframes trace-run {
-  0% {
+  0%,
+  10%,
+  20%,
+  30%,
+  40%,
+  50%,
+  60%,
+  70%,
+  80%,
+  90% {
     opacity: 0;
     transform: rotate(var(--angle)) translateX(0);
   }
-  15%,
-  80% {
+  1.5%,
+  8%,
+  11.5%,
+  18%,
+  21.5%,
+  28%,
+  31.5%,
+  38%,
+  41.5%,
+  48%,
+  51.5%,
+  58%,
+  61.5%,
+  68%,
+  71.5%,
+  78%,
+  81.5%,
+  88%,
+  91.5%,
+  98% {
     opacity: 1;
   }
+  9.99%,
+  19.99%,
+  29.99%,
+  39.99%,
+  49.99%,
+  59.99%,
+  69.99%,
+  79.99%,
+  89.99%,
   100% {
     opacity: 0;
     transform: rotate(var(--angle)) translateX(var(--run));
@@ -598,14 +733,14 @@
 .root[data-holo-paused] *,
 .root[data-holo-paused] *::before,
 .root[data-holo-paused] *::after {
-  animation-play-state: paused;
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .root *,
   .root *::before,
   .root *::after {
-    animation-play-state: paused;
+    animation-play-state: paused !important;
   }
   .routerLean {
     transition: none;

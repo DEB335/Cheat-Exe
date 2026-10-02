@@ -189,32 +189,37 @@ export function VaultPanel() {
 
       {searchOpen ? (
         <div className="relative z-10 mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
-          <NeonInput
-            id={SEARCH_ID}
-            autoFocus
-            size="sm"
-            tone="slate"
-            aria-label="Search the vault by user, IP or device"
-            placeholder="Search user/IP..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") closeSearch();
-            }}
-            leftIcon={<SearchIcon />}
-            rightSlot={
-              <NeonButton
-                tone="slate"
-                variant="ghost"
-                size="xs"
-                aria-label="Close search"
-                title="Close search"
-                icon={<CloseIcon />}
-                onClick={closeSearch}
-              />
-            }
-            className="glow-ring min-w-[min(100%,260px)] flex-1 rounded-[12px] hover:glow-ring-fast sm:max-w-[560px]"
-          />
+          {/* The ring sits on a wrapper of our own: NeonInput takes no
+              children, and the compositor-turned track has to be one. */}
+          <div className="glow-ring min-w-[min(100%,260px)] flex-1 rounded-[12px] hover:glow-ring-fast sm:max-w-[560px]">
+            <NeonInput
+              id={SEARCH_ID}
+              autoFocus
+              size="sm"
+              tone="slate"
+              aria-label="Search the vault by user, IP or device"
+              placeholder="Search user/IP..."
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") closeSearch();
+              }}
+              leftIcon={<SearchIcon />}
+              rightSlot={
+                <NeonButton
+                  tone="slate"
+                  variant="ghost"
+                  size="xs"
+                  aria-label="Close search"
+                  title="Close search"
+                  icon={<CloseIcon />}
+                  onClick={closeSearch}
+                />
+              }
+              className="w-full"
+            />
+            <span aria-hidden className="glow-ring-track" />
+          </div>
           {/* Always rendered, so the live region is in place before the
               first keystroke and each new count is announced. */}
           <span aria-live="polite" className="text-[13px] text-[#a9b8e0] lt:text-slate-500">

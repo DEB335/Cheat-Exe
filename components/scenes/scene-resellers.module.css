@@ -39,9 +39,9 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(34% 17% at 20% 78%, rgb(var(--holo-c) / 0.34), transparent 72%),
-    radial-gradient(34% 17% at 80% 78%, rgb(var(--holo-a) / 0.28), transparent 72%),
-    radial-gradient(44% 40% at 50% 46%, rgb(var(--holo-b) / 0.2), transparent 72%);
+    radial-gradient(34% 17% at 20% 78%, rgb(var(--holo-c) / 0.16), transparent 72%),
+    radial-gradient(34% 17% at 80% 78%, rgb(var(--holo-a) / 0.13), transparent 72%),
+    radial-gradient(44% 40% at 50% 46%, rgb(var(--holo-b) / 0.1), transparent 72%);
 }
 
 /* ---- Floor ------------------------------------------------------- */
@@ -209,10 +209,12 @@
   }
 }
 
-/* Off screen or in a hidden tab (usePauseWhenHidden). Last, so it wins
-   over the animations above at equal specificity. */
-.root[data-holo-paused] * {
-  animation-play-state: paused;
+/* Off screen or in a hidden tab (usePauseWhenHidden), pseudo-elements
+   included. Important, so no later rule restarts one. */
+.root[data-holo-paused] *,
+.root[data-holo-paused] *::before,
+.root[data-holo-paused] *::after {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

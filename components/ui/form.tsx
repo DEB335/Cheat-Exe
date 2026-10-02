@@ -108,10 +108,10 @@ export function PackageToggle({
         checked
           ? [
               "border-[#4a4e91] bg-[linear-gradient(to_bottom,#1b1c3f,#4a4e91)] text-white",
-              "shadow-[0_0_15px_rgba(74,78,145,0.35)]",
+              "shadow-[0_0_9px_rgba(74,78,145,0.16)]",
               "hover:scale-[1.08] hover:border-[#5b67b7]",
               "hover:bg-[linear-gradient(to_bottom,#2c2f63,#5b67b7)]",
-              "hover:shadow-[0_0_20px_rgba(91,103,183,0.45)]",
+              "hover:shadow-[0_0_11px_rgba(91,103,183,0.22)]",
             ]
           : [
               "border-white/8 bg-white/2 text-white/65",
@@ -131,7 +131,7 @@ export function PackageToggle({
           "relative inline-block size-3.5 shrink-0 rounded-full border transition-all duration-250",
           checked
             ? [
-                "border-transparent shadow-[0_0_8px_rgba(0,221,235,0.5)]",
+                "border-transparent shadow-[0_0_5px_rgba(0,221,235,0.23)]",
                 "bg-[linear-gradient(144deg,#af40ff,#5b42f3_50%,#00ddeb)]",
                 "after:absolute after:top-[2px] after:left-[4.5px] after:block after:h-[5px] after:w-[2.5px]",
                 "after:rotate-45 after:border-white after:[border-width:0_1.5px_1.5px_0] after:content-['']",
@@ -172,7 +172,8 @@ export function PackageCard({
         selected
           ? [
               "glow-ring-on -translate-y-1 scale-[1.02] border-accent",
-              "bg-[rgba(255,31,90,0.05)] shadow-[0_10px_20px_var(--accent-red-glow)]",
+              // The red glow under it at ~half (--accent-red-glow at 0.45x).
+              "bg-[rgba(255,31,90,0.05)] shadow-[0_6px_12px_rgba(255,31,90,0.08)] lt:shadow-[0_6px_12px_rgba(230,40,67,0.054)]",
             ]
           : [
               "border-line bg-white/1",
@@ -182,6 +183,8 @@ export function PackageCard({
     >
       <h4 className="mb-1 text-[13px] font-bold text-fg">{name}</h4>
       <p className="text-[11px] font-medium text-muted">{description}</p>
+      {/* The red ring, turned by the compositor (see glow-ring in globals.css). */}
+      <span aria-hidden className="glow-ring-track" />
     </button>
   );
 }

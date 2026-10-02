@@ -5,9 +5,9 @@ import styles from "./scene-generator-console.module.css";
 type LineKind = "request" | "error" | "output";
 
 const LINE_TONES: Record<LineKind, string> = {
-  request: "text-[#8fe9ff] [text-shadow:0_0_8px_rgba(34,211,238,0.4)] lt:text-cyan-700",
-  error: "text-[#ff8aa0] [text-shadow:0_0_8px_rgba(255,45,85,0.45)] lt:text-rose-600",
-  output: "text-[#4df0a0] [text-shadow:0_0_8px_rgba(52,211,120,0.45)] lt:text-emerald-700",
+  request: "text-[#8fe9ff] lt:text-cyan-700",
+  error: "text-[#ff8aa0] lt:text-rose-600",
+  output: "text-[#4df0a0] lt:text-emerald-700",
 };
 
 /**
@@ -47,7 +47,7 @@ export function KeyConsole({ text, className }: { text: string; className?: stri
       className={cn(
         "relative z-10 min-h-[240px] overflow-hidden rounded-[18px]",
         "[background:linear-gradient(rgba(99,102,241,0.07)_1px,transparent_1px)_0_0/28px_28px,linear-gradient(90deg,rgba(99,102,241,0.07)_1px,transparent_1px)_0_0/28px_28px,linear-gradient(180deg,rgba(2,4,16,0.96),rgba(4,6,24,0.94))]",
-        "shadow-[0_0_26px_-8px_rgba(99,102,241,0.8),0_0_44px_-20px_rgba(34,211,238,0.7),inset_0_0_40px_rgba(0,0,0,0.7)]",
+        "shadow-[0_0_16px_-5px_rgba(99,102,241,0.36),0_0_24px_-10px_rgba(34,211,238,0.32),inset_0_0_40px_rgba(0,0,0,0.7)]",
         "lt:[background:#f8fafc] lt:shadow-[inset_0_1px_3px_rgba(15,23,42,0.08)]",
         className,
       )}
@@ -76,7 +76,7 @@ export function KeyConsole({ text, className }: { text: string; className?: stri
               </span>
               <span
                 className={cn(
-                  "pr-5 pl-4 font-semibold whitespace-pre-wrap [overflow-wrap:anywhere] lt:[text-shadow:none]",
+                  "pr-5 pl-4 font-semibold whitespace-pre-wrap [overflow-wrap:anywhere]",
                   LINE_TONES[kinds[i]],
                 )}
               >
@@ -84,7 +84,7 @@ export function KeyConsole({ text, className }: { text: string; className?: stri
                 {last ? (
                   <span
                     aria-hidden
-                    className={`${styles.caret} ml-1 inline-block h-[1.1em] w-[2px] bg-current align-[-0.2em] shadow-[0_0_8px_currentColor] lt:shadow-none`}
+                    className={`${styles.caret} ml-1 inline-block h-[1.1em] w-[2px] bg-current align-[-0.2em] shadow-[0_0_5px_color-mix(in_srgb,currentColor_45%,transparent)] lt:shadow-none`}
                   />
                 ) : null}
               </span>

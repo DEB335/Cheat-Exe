@@ -70,11 +70,11 @@ export function HoloKey({ tone = "blue", halo = true, className }: HoloKeyProps)
                     <stop offset="1" stopColor={rgb(p.a)} />
                   </linearGradient>
                   <filter id={id("bloom")} x="-15%" y="-40%" width="130%" height="180%">
-                    <feGaussianBlur stdDeviation="3.4" />
+                    <feGaussianBlur stdDeviation="2" />
                   </filter>
                 </defs>
                 <path d={KEY} fillRule="evenodd" fill={url("glass")} />
-                <path d={KEY} fillRule="evenodd" fill="none" stroke={rgb(p.b)} strokeWidth="10" filter={url("bloom")} />
+                <path d={KEY} fillRule="evenodd" fill="none" stroke={rgb(p.b)} strokeOpacity="0.48" strokeWidth="10" filter={url("bloom")} />
                 <path d={KEY} fillRule="evenodd" fill="none" stroke={url("tube")} strokeWidth="5.2" strokeLinejoin="round" />
                 <path
                   d={KEY}

@@ -129,10 +129,10 @@ function IdPrint() {
     <svg className={styles.print} viewBox="0 0 142 100">
       <defs>
         <filter id={id("glow")} x="-20%" y="-40%" width="140%" height="180%">
-          <feGaussianBlur stdDeviation="3" />
+          <feGaussianBlur stdDeviation="1.8" />
         </filter>
       </defs>
-      <g filter={url("glow")} opacity="0.7">
+      <g filter={url("glow")} opacity="0.35">
         {marks}
       </g>
       {marks}

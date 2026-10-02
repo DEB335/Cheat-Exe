@@ -89,13 +89,13 @@ export function HoloPedestal({ tone = "aurora", size, beam = true, grid = false,
             <stop offset="1" stopColor="#0d1142" />
           </radialGradient>
           <radialGradient id={id("hot")} cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor="#fff" stopOpacity="0.95" />
-            <stop offset="0.25" stopColor={rgb(p.hot)} stopOpacity="0.7" />
-            <stop offset="0.6" stopColor={rgb(p.a)} stopOpacity="0.25" />
+            <stop offset="0" stopColor="#fff" stopOpacity="0.5" />
+            <stop offset="0.25" stopColor={rgb(p.hot)} stopOpacity="0.34" />
+            <stop offset="0.6" stopColor={rgb(p.a)} stopOpacity="0.12" />
             <stop offset="1" stopColor={rgb(p.a)} stopOpacity="0" />
           </radialGradient>
           <filter id={id("bloom")} x="-10%" y="-40%" width="120%" height="180%">
-            <feGaussianBlur stdDeviation="2.2" />
+            <feGaussianBlur stdDeviation="1.3" />
           </filter>
         </defs>
 
@@ -118,7 +118,7 @@ export function HoloPedestal({ tone = "aurora", size, beam = true, grid = false,
         <path className={styles.pedDark} d={side(STEP, STEP_DEPTH)} fill={url("side")} />
         <path d={side(STEP, STEP_DEPTH)} fill={url("sheen")} />
         <path d={frontArc(STEP, STEP_DEPTH)} fill="none" stroke={rgb(p.c)} strokeOpacity="0.55" strokeWidth="0.8" />
-        <path d={frontArc(STEP)} fill="none" stroke={url("rim")} strokeWidth="3" filter={url("bloom")} />
+        <path d={frontArc(STEP)} fill="none" stroke={url("rim")} strokeOpacity="0.5" strokeWidth="3" filter={url("bloom")} />
         <path d={frontArc(STEP)} fill="none" stroke={url("rim")} strokeWidth="1.1" />
         <ellipse cx={STEP.cx} cy={STEP.cy} rx={STEP.rx - 8} ry={STEP.ry - 2} fill="none" stroke={rgb(p.b)} strokeOpacity="0.35" strokeWidth="0.6" />
 
@@ -131,7 +131,7 @@ export function HoloPedestal({ tone = "aurora", size, beam = true, grid = false,
 
         {/* Concentric rings on the face, one of them burning bright. */}
         <ellipse cx="120" cy="67" rx="60" ry="14.3" fill="none" stroke={rgb(p.c)} strokeOpacity="0.5" strokeWidth="0.7" />
-        <ellipse cx="120" cy="67" rx="47" ry="11.2" fill="none" stroke={url("rim")} strokeWidth="3" filter={url("bloom")} />
+        <ellipse cx="120" cy="67" rx="47" ry="11.2" fill="none" stroke={url("rim")} strokeOpacity="0.5" strokeWidth="3" filter={url("bloom")} />
         <ellipse cx="120" cy="67" rx="47" ry="11.2" fill="none" stroke={rgb(p.hot)} strokeOpacity="0.9" strokeWidth="1" />
         <ellipse cx="120" cy="67" rx="34" ry="8.1" fill="none" stroke={rgb(p.b)} strokeOpacity="0.55" strokeWidth="0.7" />
         <ellipse cx="120" cy="67" rx="21" ry="5" fill="none" stroke={rgb(p.a)} strokeOpacity="0.8" strokeWidth="0.9" />
@@ -139,7 +139,7 @@ export function HoloPedestal({ tone = "aurora", size, beam = true, grid = false,
 
         {/* The rim: bloom under a crisp gradient edge, brightest in front. */}
         <path d={backArc(TOP)} fill="none" stroke={url("rim")} strokeOpacity="0.6" strokeWidth="0.9" />
-        <path d={frontArc(TOP)} fill="none" stroke={url("rim")} strokeWidth="3.6" filter={url("bloom")} />
+        <path d={frontArc(TOP)} fill="none" stroke={url("rim")} strokeOpacity="0.5" strokeWidth="3.6" filter={url("bloom")} />
         <path d={frontArc(TOP)} fill="none" stroke={url("rim")} strokeWidth="1.4" />
         <path d={frontArc(TOP)} fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="0.5" />
       </svg>

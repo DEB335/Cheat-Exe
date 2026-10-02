@@ -133,14 +133,14 @@ export function Sparkline({
         strokeWidth={1.75}
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="drop-shadow-[0_0_3px_rgba(var(--stat),0.9)] lt:drop-shadow-none"
+        className="drop-shadow-[0_0_3px_rgba(var(--stat),0.4)] lt:drop-shadow-none"
       />
       <circle
         cx={endX}
         cy={endY}
         r={2.25}
         fill="#fff"
-        className="drop-shadow-[0_0_4px_rgb(var(--stat))] transition-transform duration-300 ease-back [transform-box:fill-box] [transform-origin:center] group-hover:scale-150 lt:fill-[rgb(var(--stat))]"
+        className="drop-shadow-[0_0_3px_rgba(var(--stat),0.45)] transition-transform duration-300 ease-back [transform-box:fill-box] [transform-origin:center] group-hover:scale-150 lt:fill-[rgb(var(--stat))]"
       />
     </svg>
   );

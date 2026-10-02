@@ -32,9 +32,9 @@ const DOT_TONES = {
 } as const;
 
 const DOT_COLORS = {
-  green: "bg-[#10b981] shadow-[0_0_6px_rgba(16,185,129,0.9)]",
-  red: "bg-[#ef4444] shadow-[0_0_6px_rgba(239,68,68,0.9)]",
-  blue: "bg-[#60a5fa] shadow-[0_0_6px_rgba(96,165,250,0.9)]",
+  green: "bg-[#10b981] shadow-[0_0_4px_rgba(16,185,129,0.4)]",
+  red: "bg-[#ef4444] shadow-[0_0_4px_rgba(239,68,68,0.4)]",
+  blue: "bg-[#60a5fa] shadow-[0_0_4px_rgba(96,165,250,0.4)]",
 } as const;
 
 /**
@@ -102,7 +102,7 @@ export function PackageBadge({ children }: { children: React.ReactNode }) {
 /** Glowing crimson outline chip used in the reseller table. */
 export function GlowingPackageBadge({ children }: { children: React.ReactNode }) {
   return (
-    <span className="m-0.5 inline-block rounded-full border border-[rgba(230,40,67,0.4)] bg-[rgba(230,40,67,0.03)] px-2.5 py-[3px] text-[9.5px] font-[750] tracking-[0.8px] whitespace-nowrap text-[#ef4444] uppercase shadow-[0_0_6px_rgba(230,40,67,0.1)]">
+    <span className="m-0.5 inline-block rounded-full border border-[rgba(230,40,67,0.4)] bg-[rgba(230,40,67,0.03)] px-2.5 py-[3px] text-[9.5px] font-[750] tracking-[0.8px] whitespace-nowrap text-[#ef4444] uppercase shadow-[0_0_4px_rgba(230,40,67,0.05)]">
       {children}
     </span>
   );

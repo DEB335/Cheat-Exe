@@ -57,7 +57,7 @@
   width: 2px;
   border-radius: 999px;
   background: linear-gradient(to top, rgb(var(--holo-hot)), rgb(var(--holo-c) / 0.7) 30%, rgb(var(--holo-a) / 0.3) 65%, transparent);
-  box-shadow: 0 0 8px rgb(var(--holo-c) / 0.9);
+  box-shadow: 0 0 5px rgb(var(--holo-c) / 0.4);
   transform-origin: bottom;
   opacity: 0.4;
   animation: streak-flicker 5.6s ease-in-out infinite;
@@ -65,7 +65,7 @@
 
 .curtain > span:nth-child(3n + 2) {
   background: linear-gradient(to top, rgb(var(--holo-hot)), rgb(var(--holo-a) / 0.7) 30%, rgb(var(--holo-b) / 0.3) 65%, transparent);
-  box-shadow: 0 0 8px rgb(var(--holo-a) / 0.85);
+  box-shadow: 0 0 5px rgb(var(--holo-a) / 0.38);
   animation-duration: 7.2s;
 }
 
@@ -139,9 +139,9 @@
     linear-gradient(140deg, rgb(255 255 255 / 0.46), rgb(255 255 255 / 0.1) 36%, transparent 58%),
     linear-gradient(160deg, rgb(var(--holo-c) / 0.78), rgb(var(--holo-b) / 0.58) 55%, rgb(var(--holo-a) / 0.5));
   box-shadow:
-    0 0 6cqw rgb(var(--holo-c) / 0.75),
-    0 0 1.6cqw rgb(var(--holo-hot) / 0.6),
-    inset 0 0 4cqw rgb(var(--holo-hot) / 0.32);
+    0 0 3.6cqw rgb(var(--holo-c) / 0.34),
+    0 0 1.6cqw rgb(var(--holo-hot) / 0.27),
+    inset 0 0 4cqw rgb(var(--holo-hot) / 0.16);
 }
 
 /* A second pane a little behind the first gives the glass its edge
@@ -178,9 +178,9 @@
   letter-spacing: 0.02em;
   color: #fff;
   text-shadow:
-    0 0 1.2cqw rgb(255 255 255 / 0.8),
-    0 0 4cqw rgb(var(--holo-c) / 0.95),
-    0 0 8cqw rgb(var(--holo-a) / 0.6);
+    0 0 1.2cqw rgb(255 255 255 / 0.4),
+    0 0 2.4cqw rgb(var(--holo-c) / 0.38),
+    0 0 4.8cqw rgb(var(--holo-a) / 0.24);
   transform: translateZ(2cqw);
 }
 
@@ -196,7 +196,7 @@
   background:
     linear-gradient(140deg, rgb(255 255 255 / 0.85), rgb(255 255 255 / 0.45) 50%, transparent),
     linear-gradient(160deg, rgb(var(--holo-c) / 0.3), rgb(var(--holo-b) / 0.2) 55%, rgb(var(--holo-a) / 0.26));
-  box-shadow: 0 1.5cqw 5cqw -1.5cqw rgb(var(--holo-b) / 0.55);
+  box-shadow: 0 1.5cqw 3cqw -1.5cqw rgb(var(--holo-b) / 0.27);
 }
 :global(body.light-mode) .glassBack {
   background: rgb(var(--holo-b) / 0.1);
@@ -207,7 +207,7 @@
   color: rgb(67 56 202);
 }
 :global(body.light-mode) .uidText {
-  text-shadow: 0 0 3cqw rgb(var(--holo-a) / 0.35);
+  text-shadow: 0 0 1.8cqw rgb(var(--holo-a) / 0.16);
 }
 
 /* ---- Motion ------------------------------------------------------ */
@@ -237,9 +237,12 @@
   }
 }
 
-/* Off screen or in a hidden tab (usePauseWhenHidden). */
-.root[data-holo-paused] * {
-  animation-play-state: paused;
+/* Off screen or in a hidden tab (usePauseWhenHidden), pseudo-elements
+   included. Important, so no later rule restarts one. */
+.root[data-holo-paused] *,
+.root[data-holo-paused] *::before,
+.root[data-holo-paused] *::after {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

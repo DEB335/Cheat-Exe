@@ -52,14 +52,14 @@ export function NeonCta({
         "group/cta relative isolate inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full p-[1.5px] select-none",
         lg ? "h-[60px] min-w-[260px]" : "h-[50px] min-w-[200px]",
         "[background:linear-gradient(90deg,#8fc8ff_0%,#b9a7ff_38%,#f39dff_72%,#ffb8a0_100%)]",
-        "shadow-[0_0_14px_rgba(129,140,248,0.55),0_0_32px_-6px_rgba(236,72,255,0.55),0_10px_26px_-12px_rgba(59,130,246,0.8)]",
+        "shadow-[0_0_8px_rgba(129,140,248,0.25),0_0_19px_-3px_rgba(236,72,255,0.25)]",
         "transition-[translate,scale,filter,box-shadow] duration-300 ease-smooth",
         "hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-[1.12]",
-        "hover:shadow-[0_0_20px_rgba(129,140,248,0.75),0_0_44px_-6px_rgba(236,72,255,0.7),0_14px_30px_-12px_rgba(59,130,246,0.9)]",
+        "hover:shadow-[0_0_8px_rgba(129,140,248,0.34),0_0_22px_-3px_rgba(236,72,255,0.33)]",
         "active:translate-y-0 active:scale-[0.98] active:duration-100",
         "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c4b5fd]",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:saturate-[0.6] disabled:hover:translate-y-0 disabled:hover:scale-100 disabled:hover:brightness-100",
-        "lt:shadow-[0_8px_22px_-10px_rgba(99,102,241,0.7)]",
+        "lt:shadow-[0_6px_14px_-7px_rgba(99,102,241,0.32)]",
         className,
       )}
     >
@@ -67,9 +67,9 @@ export function NeonCta({
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-x-[10%] -bottom-3 -z-10 h-6 rounded-full opacity-70 blur-[14px]",
+          "pointer-events-none absolute inset-x-[10%] -bottom-3 -z-10 h-6 rounded-full opacity-[0.32] blur-[8px]",
           "bg-[linear-gradient(90deg,#3b82f6,#8b5cf6_50%,#ff3df2)] transition-opacity duration-300",
-          "group-hover/cta:opacity-100 lt:opacity-35",
+          "group-hover/cta:opacity-[0.45] lt:opacity-[0.16] lt:group-hover/cta:opacity-[0.22]",
         )}
       />
       <span
@@ -77,7 +77,7 @@ export function NeonCta({
           "relative flex h-full w-full items-center justify-center overflow-hidden rounded-full",
           lg ? "gap-3.5 px-9" : "gap-3 px-7",
           "[background:linear-gradient(90deg,#2346e6_0%,#4a37e4_36%,#7a2fe2_68%,#c03ad8_100%)]",
-          "shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-12px_20px_-10px_rgba(30,0,70,0.55),inset_0_0_20px_rgba(255,255,255,0.08)]",
+          "shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-12px_20px_-10px_rgba(30,0,70,0.55),inset_0_0_20px_rgba(255,255,255,0.04)]",
         )}
       >
         {/* Gloss across the top half. */}
@@ -91,7 +91,7 @@ export function NeonCta({
           <span
             aria-hidden
             className={cn(
-              "relative flex shrink-0 text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.7)]",
+              "relative flex shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.28)]",
               lg ? "[&>svg]:size-6" : "[&>svg]:size-5",
             )}
           >
@@ -100,7 +100,7 @@ export function NeonCta({
         ) : null}
         <span
           className={cn(
-            "relative font-display font-bold whitespace-nowrap text-white uppercase [text-shadow:0_0_12px_rgba(255,255,255,0.45)]",
+            "relative font-display font-bold whitespace-nowrap text-white uppercase [text-shadow:0_0_7px_rgba(255,255,255,0.18)]",
             lg ? "text-[16px] tracking-[3px]" : "text-[14px] tracking-[2.4px]",
           )}
         >
@@ -138,21 +138,21 @@ const VARIANTS: Record<NeonButtonVariant, string> = {
   // Header actions: Refresh History, Clear Vault, Copy, Lookup.
   outline: cn(
     "border border-[rgba(var(--tone),0.7)] bg-[rgba(var(--tone),0.09)] text-[rgb(var(--tone-hi))]",
-    "shadow-[0_0_14px_-4px_rgba(var(--tone),0.65),inset_0_0_12px_rgba(var(--tone),0.14)]",
+    "shadow-[0_0_8px_-2px_rgba(var(--tone),0.3),inset_0_0_12px_rgba(var(--tone),0.07)]",
     "hover:border-[rgb(var(--tone-hi))] hover:bg-[rgba(var(--tone),0.2)] hover:text-white",
-    "hover:shadow-[0_0_22px_-2px_rgba(var(--tone),0.8),inset_0_0_16px_rgba(var(--tone),0.24)]",
-    "lt:border-[rgba(var(--tone),0.55)] lt:bg-white lt:text-[var(--tone-lt)] lt:shadow-[0_2px_8px_-3px_rgba(var(--tone),0.45)]",
-    "lt:hover:border-[rgb(var(--tone))] lt:hover:bg-[rgba(var(--tone),0.08)] lt:hover:text-[var(--tone-lt)] lt:hover:shadow-[0_4px_12px_-4px_rgba(var(--tone),0.55)]",
+    "hover:shadow-[0_0_10px_-2px_rgba(var(--tone),0.4),inset_0_0_14px_rgba(var(--tone),0.1)]",
+    "lt:border-[rgba(var(--tone),0.55)] lt:bg-white lt:text-[var(--tone-lt)] lt:shadow-[0_2px_5px_-2px_rgba(var(--tone),0.2)]",
+    "lt:hover:border-[rgb(var(--tone))] lt:hover:bg-[rgba(var(--tone),0.08)] lt:hover:text-[var(--tone-lt)] lt:hover:shadow-[0_3px_7px_-2px_rgba(var(--tone),0.26)]",
   ),
   // Row actions: Suspend, Perms, Pass, Renew, Reset HWID, Delete, Extend.
   filled: cn(
     "border border-[rgba(var(--tone-hi),0.7)] text-white",
     "[background:linear-gradient(180deg,rgba(var(--tone),0.5),rgba(var(--tone),0.2))]",
-    "shadow-[0_0_16px_-4px_rgba(var(--tone),0.85),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_0_12px_rgba(var(--tone),0.3)]",
+    "shadow-[0_0_10px_-2px_rgba(var(--tone),0.38),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_0_12px_rgba(var(--tone),0.15)]",
     "hover:border-[rgb(var(--tone-hi))] hover:[background:linear-gradient(180deg,rgba(var(--tone),0.68),rgba(var(--tone),0.32))]",
-    "hover:shadow-[0_0_24px_-2px_rgba(var(--tone),0.95),inset_0_1px_0_rgba(255,255,255,0.34),inset_0_0_14px_rgba(var(--tone),0.36)]",
+    "hover:shadow-[0_0_12px_-2px_rgba(var(--tone),0.5),inset_0_1px_0_rgba(255,255,255,0.34),inset_0_0_14px_rgba(var(--tone),0.2)]",
     "lt:border-[rgba(var(--tone),0.55)] lt:[background:rgba(var(--tone),0.12)] lt:text-[var(--tone-lt)] lt:shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]",
-    "lt:hover:border-[rgb(var(--tone))] lt:hover:[background:rgba(var(--tone),0.2)] lt:hover:text-[var(--tone-lt)] lt:hover:shadow-[0_4px_12px_-4px_rgba(var(--tone),0.55)]",
+    "lt:hover:border-[rgb(var(--tone))] lt:hover:[background:rgba(var(--tone),0.2)] lt:hover:text-[var(--tone-lt)] lt:hover:shadow-[0_3px_7px_-2px_rgba(var(--tone),0.26)]",
   ),
   // Bare glyph or text in the tone, for dense spots (copy in a cell).
   ghost: cn(

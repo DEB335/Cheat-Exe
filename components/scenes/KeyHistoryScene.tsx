@@ -109,15 +109,20 @@ export function KeyHistoryAmbient({ className }: { className?: string }) {
   );
 }
 
+/** Seconds per lap of the emblem's ring (the CSS's 7s). */
+const LAP = 7;
+
 /**
  * Three sparkles riding the emblem's orbit ring. `d` offsets each one's
- * lap (s, negative so they start spread round it), `s` scales it.
+ * lap (s, negative so they start spread round it), `s` scales it. The
+ * arms share one turning wrapper, so each arm is just held at its
+ * offset's angle -- the same place a lap `d` seconds ahead would put it.
  */
 const SPARKS = [
   { d: 0, s: 1 },
   { d: -3.1, s: 0.7 },
   { d: -6.4, s: 0.85 },
-] as const;
+].map((p) => ({ ...p, a: (-p.d / LAP) * 360 }));
 
 /**
  * The key history panel's header emblem: a glass hex shield bearing a
@@ -175,13 +180,15 @@ export function KeyHistoryEmblem({ className }: { className?: string }) {
           <span />
         </div>
         <div className={styles.sparks}>
-          {SPARKS.map((p) => (
-            <div key={p.d} className={styles.arm} style={{ "--d": `${p.d}s` } as CSSProperties}>
-              <span className={styles.spark} style={{ "--s": p.s } as CSSProperties}>
-                <i />
-              </span>
-            </div>
-          ))}
+          <div className={styles.lap}>
+            {SPARKS.map((p) => (
+              <div key={p.d} className={styles.arm} style={{ "--d": `${p.d}s`, "--a": `${p.a.toFixed(2)}deg` } as CSSProperties}>
+                <span className={styles.spark} style={{ "--s": p.s } as CSSProperties}>
+                  <i />
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

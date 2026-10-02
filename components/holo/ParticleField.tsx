@@ -5,7 +5,7 @@ import { useEffect, useRef, type RefObject } from "react";
 import { cn } from "@/lib/utils";
 import { pageZoom } from "@/lib/zoom";
 
-import { findPointerHost, REDUCED_MOTION } from "./hooks";
+import { findPointerHost, onFrame, REDUCED_MOTION } from "./hooks";
 import { lighten, mix, PALETTES, resolvePalette, type PaletteInput, type PaletteName, type RGB } from "./palettes";
 
 /*
@@ -22,6 +22,11 @@ import { lighten, mix, PALETTES, resolvePalette, type PaletteInput, type Palette
  * stay in lockstep without talking to each other; every glow is a
  * sprite rendered once and stamped with drawImage; and nothing uses
  * Math.random, so the layout is the same on every mount.
+ *
+ * Cost: every field ticks on the page's one shared 30fps clock
+ * (onFrame), pointed at or not. All of a field's sprites live in one atlas
+ * canvas, so a frame's few hundred stamps are one texture the GPU can
+ * batch rather than hundreds of separate texture draws.
  */
 
 export type FieldShape = "orbit" | "column" | "dome";
@@ -58,7 +63,7 @@ export interface ParticleFieldProps {
    * cross-fade between the two, so the seam never shows.
    */
   layer?: FieldLayer;
-  /** Element whose pointer drives the lean and the full frame rate. Defaults to the nearest ancestor that takes the pointer. */
+  /** Element whose pointer drives the lean. Defaults to the nearest ancestor that takes the pointer. */
   hostRef?: RefObject<HTMLElement | null>;
   /** Layout seed; two fields with the same props and seed draw the same particles. */
   seed?: number;
@@ -86,8 +91,9 @@ interface Particle {
   a: number;
   /** Orbit: height off the orbit plane. Dome: height on the unit sphere. */
   h: number;
-  /** Orbit: extra inclination of this particle's orbit plane. */
-  incl: number;
+  /** Orbit: extra inclination of this particle's orbit plane, as its cosine and sine. */
+  ci: number;
+  si: number;
   /** Angular speed factor (inner orbits run faster). */
   spin: number;
   /** Column/ambient: starting height fraction and rise per second. */
@@ -140,8 +146,6 @@ const SEAM = 0.14;
 /** Extra brightness while the pointer is over the host. */
 const HOVER_GAIN = 0.3;
 
-/** 30fps while settled: the drift is slow enough that more frames buy nothing. */
-const IDLE_FRAME_MS = 1000 / 30;
 const MAX_DPR = 2;
 const TAU = Math.PI * 2;
 
@@ -193,11 +197,12 @@ export function ParticleField({
     let height = 1;
     let ox = 0;
     let oy = 0;
-    let raf = 0;
+    let unsubscribe: (() => void) | null = null;
     let last = 0;
-    let lastDraw = 0;
     let onScreen = true;
     const born = performance.now();
+    // The sprite atlas for the current theme; swapped when the theme flips.
+    let atlas = getAtlas(colors, false);
 
     // Pointer state: where it is (real screen px), whether it is over
     // the host, and the eased lean (-1..1) toward it.
@@ -234,10 +239,10 @@ export function ParticleField({
       }
     };
 
-    const stamp = (img: HTMLCanvasElement, x: number, y: number, d: number, alpha: number) => {
+    const stamp = (cell: Cell, x: number, y: number, d: number, alpha: number) => {
       if (alpha < 0.004 || x + d < 0 || x - d > width || y + d < 0 || y - d > height) return;
       ctx.globalAlpha = Math.min(1, alpha);
-      ctx.drawImage(img, x - d / 2, y - d / 2, d, d);
+      ctx.drawImage(atlas.canvas, cell.x, cell.y, cell.size, cell.size, x - d / 2, y - d / 2, d, d);
     };
 
     /** The whole field at time t (seconds): nothing carries over from the last frame. */
@@ -252,7 +257,8 @@ export function ParticleField({
       // the particles are painted as plain colour instead.
       ctx.globalCompositeOperation = light ? "source-over" : "lighter";
 
-      const sprites = colors.map((c) => getSprites(c, light));
+      if (atlas.light !== light) atlas = getAtlas(colors, light);
+      const sprites = atlas.sets;
       const U = radius * Math.min(width, height);
       const m = t * speed;
       const gain = fade * (1 + HOVER_GAIN * energy) * (light ? 0.8 : 1);
@@ -289,11 +295,9 @@ export function ParticleField({
           const ox0 = Math.cos(a) * p.r;
           const oz0 = Math.sin(a) * p.r;
           const oy0 = p.h + Math.sin(t * p.sway + p.phase) * SWAY;
-          const ci = Math.cos(p.incl);
-          const si = Math.sin(p.incl);
           x = ox0;
-          y = oy0 * ci - oz0 * si;
-          z = oy0 * si + oz0 * ci;
+          y = oy0 * p.ci - oz0 * p.si;
+          z = oy0 * p.si + oz0 * p.ci;
         } else if (shape === "column") {
           const a = p.a + m * SPIN_COLUMN;
           const v = (p.v + p.rise * m) % 1;
@@ -355,7 +359,7 @@ export function ParticleField({
         const blur = Math.max(0, coc - FOCUS_BAND) * 2;
         const d = p.size * s;
         const alpha = p.alpha * tw * (0.45 + 0.55 * depth) * g;
-        stamp(set.soft, px, py, d * (3.4 + blur * 1.6), (alpha * 0.6) / (1 + blur * 0.5));
+        stamp(set.soft, px, py, d * (3.4 + blur * 1.6), (alpha * 0.3) / (1 + blur * 0.5));
         if (blur < 0.9) stamp(set.sharp, px, py, d * 1.6, alpha * (1 - blur / 0.9));
       } else if (p.kind === STAR) {
         // Mostly a faint point, flaring into a cross every few seconds.
@@ -367,7 +371,7 @@ export function ParticleField({
       } else {
         const pulse = 0.8 + 0.2 * Math.sin(t * p.twinkle + p.phase);
         const d = p.size * s * (0.7 + coc * 0.6);
-        stamp(set.bokeh, px, py, d, p.alpha * pulse * (0.55 + 0.45 * depth) * g * (light ? 0.5 : 1));
+        stamp(set.bokeh, px, py, d, p.alpha * pulse * (0.55 + 0.45 * depth) * g * (light ? 0.25 : 0.5));
       }
     };
 
@@ -391,8 +395,10 @@ export function ParticleField({
       targetY = clamp((pointer.y - fy) / (area.height / 2));
     };
 
-    const frame = (now: number) => {
-      raf = requestAnimationFrame(frame);
+    // One tick of the shared clock. The easing runs on real elapsed time
+    // and the field on the absolute clock, so the motion is the same
+    // speed at any frame rate.
+    const tick = (now: number) => {
       const dt = last ? Math.min(0.1, (now - last) / 1000) : 0;
       last = now;
 
@@ -401,24 +407,17 @@ export function ParticleField({
       leanX += (targetX - leanX) * k;
       leanY += (targetY - leanY) * k;
       energy += ((hovered ? 1 : 0) - energy) * k;
-      const easing =
-        Math.abs(targetX - leanX) + Math.abs(targetY - leanY) > 0.002 || Math.abs((hovered ? 1 : 0) - energy) > 0.01;
-      const fade = Math.min(1, (now - born) / 1000 / FADE_IN);
-
-      // Full rate while pointed at or settling; 30fps once idle.
-      if (!hovered && !easing && fade >= 1 && now - lastDraw < IDLE_FRAME_MS) return;
-      lastDraw = now;
-      draw(clock(now), fade);
+      draw(clock(now), Math.min(1, (now - born) / 1000 / FADE_IN));
     };
 
     const start = () => {
-      if (raf) return;
+      if (unsubscribe) return;
       last = 0;
-      raf = requestAnimationFrame(frame);
+      unsubscribe = onFrame(tick);
     };
     const stop = () => {
-      cancelAnimationFrame(raf);
-      raf = 0;
+      unsubscribe?.();
+      unsubscribe = null;
     };
 
     const sync = () => {
@@ -556,7 +555,8 @@ function buildField(shape: FieldShape, density: number, seed: number, colorCount
         r,
         a: rand() * TAU,
         h,
-        incl,
+        ci: Math.cos(incl),
+        si: Math.sin(incl),
         spin: 0.75 + 0.45 / Math.max(0.5, r),
         v: rand(),
         rise: (bokeh ? 0.004 : 0.008) + rand() * 0.012,
@@ -576,7 +576,8 @@ function buildField(shape: FieldShape, density: number, seed: number, colorCount
         r: 0,
         a: 0,
         h: 0,
-        incl: 0,
+        ci: 1,
+        si: 0,
         spin: 0,
         v: rand(),
         rise: 0.006 + rand() * 0.01,
@@ -607,14 +608,66 @@ function gaussian(rand: () => number) {
   return (rand() + rand() + rand() - 1.5) * 2;
 }
 
-interface SpriteSet {
-  sharp: HTMLCanvasElement;
-  soft: HTMLCanvasElement;
-  bokeh: HTMLCanvasElement;
-  star: HTMLCanvasElement;
+/** A sprite's square in its atlas, in atlas px. */
+interface Cell {
+  x: number;
+  y: number;
+  size: number;
 }
 
-const spriteCache = new Map<string, SpriteSet>();
+interface SpriteSet {
+  sharp: Cell;
+  soft: Cell;
+  bokeh: Cell;
+  star: Cell;
+}
+
+interface Atlas {
+  canvas: HTMLCanvasElement;
+  /** One set per colour, in the colour list's order. */
+  sets: SpriteSet[];
+  light: boolean;
+}
+
+/** Transparent px between cells, so filtering at a cell's edge never picks up its neighbour. */
+const GUTTER = 2;
+const atlasCache = new Map<string, Atlas>();
+
+/**
+ * Every sprite a field draws, for every colour, packed into one canvas:
+ * a row per colour of sharp | soft | bokeh | star. Stamping from a
+ * single texture lets the GPU batch a whole frame's stamps, where a
+ * separate canvas per sprite forced a texture switch on nearly every
+ * one. Fields with the same colours share an atlas.
+ */
+function getAtlas(colors: readonly RGB[], light: boolean): Atlas {
+  const key = `${colors.map((c) => c.join(",")).join("|")}${light ? "L" : "D"}`;
+  let atlas = atlasCache.get(key);
+  if (atlas) return atlas;
+  const sprites = colors.map((c) => renderSprites(c, light));
+  const order = ["sharp", "soft", "bokeh", "star"] as const;
+  const rowHeight = Math.max(...order.map((k) => sprites[0]![k].height)) + GUTTER;
+  const canvas = document.createElement("canvas");
+  canvas.width = order.reduce((w, k) => w + sprites[0]![k].width + GUTTER, GUTTER);
+  canvas.height = colors.length * rowHeight + GUTTER;
+  const g = canvas.getContext("2d");
+  const sets = sprites.map((set, row) => {
+    let x = GUTTER;
+    const y = GUTTER + row * rowHeight;
+    const cells = {} as SpriteSet;
+    for (const k of order) {
+      const img = set[k];
+      // A 1:1 copy at whole px: the atlas holds exactly the sprite's pixels.
+      g?.drawImage(img, x, y);
+      cells[k] = { x, y, size: img.width };
+      x += img.width + GUTTER;
+    }
+    return cells;
+  });
+  atlas = { canvas, sets, light };
+  atlasCache.set(key, atlas);
+  return atlas;
+}
 
 /**
  * Glows rendered once per colour (and theme) and stamped with drawImage,
@@ -622,19 +675,16 @@ const spriteCache = new Map<string, SpriteSet>();
  * frame. The light-mode set swaps the white-hot cores for the colour
  * itself: white on the pale glass would simply disappear.
  */
-function getSprites(c: RGB, light: boolean): SpriteSet {
-  const key = `${c.join(",")}${light ? "L" : "D"}`;
-  let set = spriteCache.get(key);
-  if (set) return set;
+function renderSprites(c: RGB, light: boolean): Record<keyof SpriteSet, HTMLCanvasElement> {
   const hot = light ? mix(c, [20, 16, 60], 0.15) : lighten(c, 0.6);
   const core = light ? hot : ([255, 255, 255] as const);
-  set = {
-    // A white-hot pinpoint with a thin halo.
+  return {
+    // A white-hot pinpoint with a faint, thin halo.
     sharp: radial(32, [
       [0, rgba(core, 1)],
       [0.18, rgba(hot, 1)],
-      [0.42, rgba(c, 0.38)],
-      [0.7, rgba(c, 0.1)],
+      [0.42, rgba(c, 0.18)],
+      [0.7, rgba(c, 0.05)],
       [1, rgba(c, 0)],
     ]),
     // The same light, defocused.
@@ -654,8 +704,6 @@ function getSprites(c: RGB, light: boolean): SpriteSet {
     ]),
     star: starSprite(c, hot, core),
   };
-  spriteCache.set(key, set);
-  return set;
 }
 
 function radial(size: number, stops: readonly (readonly [number, string])[]) {
@@ -684,8 +732,8 @@ function starSprite(c: RGB, hot: RGB, core: RGB) {
 
   const halo = g.createRadialGradient(r, r, 0, r, r, r * 0.42);
   halo.addColorStop(0, rgba(core, 0.95));
-  halo.addColorStop(0.2, rgba(hot, 0.6));
-  halo.addColorStop(0.55, rgba(c, 0.16));
+  halo.addColorStop(0.2, rgba(hot, 0.3));
+  halo.addColorStop(0.55, rgba(c, 0.08));
   halo.addColorStop(1, rgba(c, 0));
   g.fillStyle = halo;
   g.fillRect(0, 0, size, size);

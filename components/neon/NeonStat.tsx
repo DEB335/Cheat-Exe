@@ -61,12 +61,12 @@ export function NeonStat({
         "group glow-ring relative flex min-h-[104px] min-w-0 items-center gap-4 rounded-[18px] border px-5 py-4 sm:gap-5",
         "border-[rgba(var(--tone),0.5)]",
         "[background:radial-gradient(90%_120%_at_0%_50%,rgba(var(--tone),0.2),transparent_65%),radial-gradient(60%_80%_at_100%_100%,rgba(var(--tone),0.1),transparent_70%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0)_40%),linear-gradient(160deg,rgba(10,14,44,0.88),rgba(6,8,30,0.92))]",
-        "shadow-[0_0_22px_-8px_rgba(var(--tone),0.7),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_0_24px_rgba(var(--tone),0.1)]",
+        "shadow-[0_0_13px_-4px_rgba(var(--tone),0.32),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_0_24px_rgba(var(--tone),0.05)]",
         "transition-[translate,scale,box-shadow,border-color] duration-[400ms] ease-smooth",
         "hover:glow-ring-on hover:-translate-y-1.5 hover:scale-[1.02] hover:border-[rgba(var(--tone-hi),0.85)]",
-        "hover:shadow-[0_18px_36px_-18px_rgba(var(--tone),0.8),0_0_30px_-6px_rgba(var(--tone),0.8),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_0_30px_rgba(var(--tone),0.16)]",
+        "hover:shadow-[0_12px_22px_-12px_rgba(var(--tone),0.36),0_0_16px_-4px_rgba(var(--tone),0.44),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_0_26px_rgba(var(--tone),0.07)]",
         "lt:border-[rgba(var(--tone),0.4)] lt:[background:linear-gradient(160deg,rgba(255,255,255,0.95),rgba(var(--tone),0.06))]",
-        "lt:shadow-[0_8px_22px_-14px_rgba(var(--tone),0.6)] lt:hover:shadow-[0_18px_36px_-18px_rgba(var(--tone),0.6)] lt:hover:border-[rgba(var(--tone),0.7)]",
+        "lt:shadow-[0_6px_14px_-8px_rgba(var(--tone),0.27)] lt:hover:shadow-[0_10px_20px_-10px_rgba(var(--tone),0.36)] lt:hover:border-[rgba(var(--tone),0.7)]",
         className,
       )}
     >
@@ -94,8 +94,8 @@ export function NeonStat({
           className={cn(
             "mt-1.5 font-display text-[30px] leading-none font-bold tabular-nums",
             tintValue
-              ? "text-[rgb(var(--tone-hi))] [text-shadow:0_0_16px_rgba(var(--tone),0.6)] lt:text-[var(--tone-lt)] lt:[text-shadow:none]"
-              : "text-white [text-shadow:0_0_18px_rgba(var(--tone),0.45)] lt:text-slate-900 lt:[text-shadow:none]",
+              ? "text-[rgb(var(--tone-hi))] [text-shadow:0_0_8px_rgba(var(--tone),0.24)] lt:text-[var(--tone-lt)] lt:[text-shadow:none]"
+              : "text-white [text-shadow:0_0_8px_rgba(var(--tone),0.18)] lt:text-slate-900 lt:[text-shadow:none]",
           )}
         >
           {value}
@@ -112,6 +112,10 @@ export function NeonStat({
       {spark !== undefined ? (
         <Sparkline values={spark} label={sparkLabel} className="h-10 w-[112px] shrink max-sm:hidden" />
       ) : null}
+
+      {/* The hover ring, turned by the compositor (see glow-ring in
+          globals.css). Absolute, so the flex gap never counts it. */}
+      <span aria-hidden className="glow-ring-track" />
     </div>
   );
 }

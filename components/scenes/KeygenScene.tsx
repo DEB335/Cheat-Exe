@@ -218,11 +218,11 @@ function KeyGlyph() {
           <stop offset="1" style={{ stopColor: "var(--kg-glyph-hot)" }} />
         </linearGradient>
         <filter id={id("bloom")} x="-30%" y="-60%" width="160%" height="220%">
-          <feGaussianBlur stdDeviation="3.4" />
+          <feGaussianBlur stdDeviation="2" />
         </filter>
       </defs>
       <g transform="rotate(-38 50 50)">
-        <g filter={url("bloom")} opacity="0.95">
+        <g filter={url("bloom")} opacity="0.45">
           <KeyShape paint="var(--kg-glyph-bloom)" grow={2.4} />
         </g>
         <KeyShape paint="var(--kg-glyph-hot)" grow={1.5} />
@@ -274,7 +274,7 @@ function Orbit({ half }: { half: "back" | "front" }) {
             <stop offset="1" stopColor={`rgb(${triplet(CYAN)})`} />
           </linearGradient>
           <filter id={id("bloom")} x="-10%" y="-60%" width="120%" height="220%">
-            <feGaussianBlur stdDeviation="2.6" />
+            <feGaussianBlur stdDeviation="1.6" />
           </filter>
         </defs>
         {half === "back" ? (
@@ -291,7 +291,7 @@ function Orbit({ half }: { half: "back" | "front" }) {
           />
         ) : null}
         <g transform="rotate(12 100 100)" fill="none" strokeLinecap="round">
-          <path d={arc} stroke={url("tube")} strokeWidth="9" filter={url("bloom")} />
+          <path d={arc} stroke={url("tube")} strokeOpacity="0.47" strokeWidth="9" filter={url("bloom")} />
           <path d={arc} stroke={url("tube")} strokeWidth="4.4" />
           <path d={arc} stroke="#fff" strokeOpacity="0.65" strokeWidth="1.1" />
         </g>

@@ -36,7 +36,7 @@ export function KeyInfoPanel({ info }: { info: KeyInfo }) {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <KeyIcon
           aria-hidden
-          className="size-5 shrink-0 text-[#6ef3a5] drop-shadow-[0_0_6px_rgba(16,185,129,0.8)] lt:text-emerald-600 lt:drop-shadow-none"
+          className="size-5 shrink-0 text-[#6ef3a5] drop-shadow-[0_0_5px_rgba(16,185,129,0.32)] lt:text-emerald-600 lt:drop-shadow-none"
         />
         <span className="min-w-0 font-mono text-[15px] font-semibold break-all text-[#6ef3a5] lt:text-emerald-700">
           {info.key}

@@ -144,6 +144,72 @@ export function usePointerLean(ref: RefObject<HTMLElement | null>, hostRef?: Ref
 }
 
 /**
+ * One animation clock for every particle canvas on the page, at 30fps.
+ *
+ * The canvases' motion is slow enough that more frames buy nothing
+ * visible, and on an integrated GPU every canvas frame is paid for
+ * twice: drawing it and compositing the page again. So the clock runs
+ * at 30fps whether or not the pointer is on a canvas, and sleeps on a
+ * timer between frames -- the page is not woken 60 times a second for
+ * frames that would draw nothing. Every canvas draws on the same tick,
+ * so a stage's back and front layers land in the same composited frame
+ * instead of alternating between two.
+ *
+ * Subscribers draw on every tick, with the frame's timestamp, and must
+ * keep their motion on elapsed time rather than per-frame steps. Returns
+ * the unsubscribe.
+ */
+export function onFrame(tick: (now: number) => void): () => void {
+  frames.subs.add(tick);
+  frames.wake();
+  return () => {
+    frames.subs.delete(tick);
+    if (!frames.subs.size) frames.sleep();
+  };
+}
+
+const FRAME_MS = 1000 / 30;
+
+const frames = (() => {
+  const subs = new Set<(now: number) => void>();
+  let raf = 0;
+  let timer = 0;
+
+  const run = (now: number) => {
+    raf = 0;
+    for (const tick of subs) tick(now);
+    if (!subs.size) return;
+    // Wake three quarters of the way to the next frame and take the
+    // vsync after it: at 60Hz that is exactly every other frame, and the
+    // frames in between are never requested.
+    const spent = performance.now() - now;
+    timer = window.setTimeout(
+      () => {
+        timer = 0;
+        raf = requestAnimationFrame(run);
+      },
+      Math.max(0, FRAME_MS * 0.75 - spent),
+    );
+  };
+
+  return {
+    subs,
+    /** Start the clock, or bring a sleeping one forward to the next frame. */
+    wake() {
+      if (raf) return;
+      window.clearTimeout(timer);
+      timer = 0;
+      raf = requestAnimationFrame(run);
+    },
+    sleep() {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(timer);
+      raf = timer = 0;
+    },
+  };
+})();
+
+/**
  * SVG ids must be unique on the page, and useId's punctuation is not
  * safe inside url(#...), so keep only the plain characters.
  */

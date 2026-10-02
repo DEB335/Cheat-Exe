@@ -96,8 +96,8 @@ export function ActionGlyph({ kind, className }: { kind: ActionGlyphKind; classN
         <svg className={styles.disc} viewBox="0 0 72 30">
           <defs>
             <radialGradient id={id("pool")}>
-              <stop offset="0" stopColor={rgb(p.b)} stopOpacity="0.55" />
-              <stop offset="0.6" stopColor={rgb(p.c)} stopOpacity="0.16" />
+              <stop offset="0" stopColor={rgb(p.b)} stopOpacity="0.27" />
+              <stop offset="0.6" stopColor={rgb(p.c)} stopOpacity="0.08" />
               <stop offset="1" stopColor={rgb(p.c)} stopOpacity="0" />
             </radialGradient>
             <radialGradient id={id("face")}>
@@ -125,7 +125,7 @@ export function ActionGlyph({ kind, className }: { kind: ActionGlyphKind; classN
                   <stop offset="1" stopColor={rgb(p.b)} />
                 </linearGradient>
                 <filter id={id("bloom")} x="-40%" y="-40%" width="180%" height="180%">
-                  <feGaussianBlur stdDeviation="2.4" />
+                  <feGaussianBlur stdDeviation="1.4" />
                 </filter>
               </defs>
               {glass ? <path d={glass} className={styles.glass} /> : null}

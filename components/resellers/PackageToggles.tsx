@@ -68,10 +68,10 @@ export function PackageToggles({
                 ? [
                     "border-[rgba(var(--tone-hi),0.85)] text-white",
                     "[background:linear-gradient(180deg,rgba(var(--tone),0.44),rgba(var(--tone),0.14))]",
-                    "shadow-[0_0_18px_-4px_rgba(var(--tone),0.9),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_0_14px_rgba(var(--tone),0.24)]",
-                    "hover:shadow-[0_0_24px_-3px_rgba(var(--tone),1),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_0_16px_rgba(var(--tone),0.3)]",
+                    "shadow-[0_0_11px_-2px_rgba(var(--tone),0.4),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_0_14px_rgba(var(--tone),0.12)]",
+                    "hover:shadow-[0_0_14px_-2px_rgba(var(--tone),0.54),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_0_16px_rgba(var(--tone),0.15)]",
                     "lt:border-[rgb(var(--tone))] lt:[background:rgba(var(--tone),0.14)] lt:text-[var(--tone-lt)] lt:shadow-none",
-                    "lt:hover:shadow-[0_4px_12px_-4px_rgba(var(--tone),0.55)]",
+                    "lt:hover:shadow-[0_3px_7px_-2px_rgba(var(--tone),0.25)]",
                   ]
                 : [
                     "border-[rgba(var(--tone),0.3)] bg-[rgba(8,11,36,0.55)] text-[#8f9bc4]",
@@ -93,7 +93,7 @@ export function PackageToggles({
                 "shrink-0",
                 size === "md" ? "size-[18px]" : "size-[15px]",
                 on
-                  ? "text-[rgb(var(--tone-hi))] drop-shadow-[0_0_6px_rgba(var(--tone),0.95)] lt:text-[var(--tone-lt)] lt:drop-shadow-none"
+                  ? "text-[rgb(var(--tone-hi))] drop-shadow-[0_0_5px_rgba(var(--tone),0.38)] lt:text-[var(--tone-lt)] lt:drop-shadow-none"
                   : "text-[rgba(var(--tone-hi),0.5)] lt:text-[rgba(var(--tone),0.55)]",
               )}
             />

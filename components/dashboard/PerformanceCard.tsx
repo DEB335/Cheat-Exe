@@ -52,7 +52,7 @@ export function PerformanceCard({ values, labels }: { values: number[]; labels: 
               className={cn(
                 "relative size-[52px] shrink-0 rounded-2xl p-px",
                 "bg-[linear-gradient(150deg,rgba(124,92,255,0.8)_0%,rgba(80,70,220,0.35)_45%,rgba(255,45,122,0.7)_100%)]",
-                "shadow-[0_0_18px_rgba(110,80,255,0.25)]",
+                "shadow-[0_0_11px_rgba(110,80,255,0.11)]",
                 "transition-transform duration-[400ms] ease-back group-hover/perf:scale-105 group-hover/perf:-rotate-3",
                 "lt:shadow-none",
               )}
@@ -70,11 +70,11 @@ export function PerformanceCard({ values, labels }: { values: number[]; labels: 
                 <BarChartIcon
                   stroke={`url(#${gradientId})`}
                   strokeWidth={3.6}
-                  className="size-[25px] drop-shadow-[0_0_6px_rgba(255,45,122,0.5)]"
+                  className="size-[25px] drop-shadow-[0_0_4px_rgba(255,45,122,0.2)]"
                 />
               </div>
               {/* The small glowing bead on the tile's rim. */}
-              <span className="absolute -top-[4px] right-[12px] size-[9px] rounded-full bg-[#4f6bff] shadow-[0_0_10px_3px_rgba(79,107,255,0.7)]" />
+              <span className="absolute -top-[4px] right-[12px] size-[9px] rounded-full bg-[#4f6bff] shadow-[0_0_6px_1.5px_rgba(79,107,255,0.32)]" />
             </div>
             <div>
               <h3 className="font-display text-[20px] leading-tight font-bold text-fg">System Performance</h3>

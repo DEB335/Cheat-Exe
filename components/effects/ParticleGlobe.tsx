@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
+import { onFrame } from "@/components/holo/hooks";
 import { cn } from "@/lib/utils";
 import { pageZoom } from "@/lib/zoom";
 
@@ -24,11 +25,10 @@ const SPIN_HOVER = 0.55;
 const LEAN = 0.32;
 
 /**
- * 30fps while idle. The drift is slow enough that the extra frames buy
- * nothing visible; the full display rate comes back while it is hovered,
- * when the spin is fast enough to need it.
+ * Frames come from the page's shared 30fps particle clock (onFrame),
+ * hovered or not; the motion runs on elapsed time, so its speed does not
+ * depend on the rate.
  */
-const IDLE_FRAME_MS = 1000 / 30;
 const MAX_DPR = 2;
 
 /** Camera distance in sphere radii; lower is a stronger perspective. */
@@ -105,7 +105,8 @@ interface ParticleGlobeProps {
  *
  * Decorative only, and it acts like it: no clicks, one still frame for
  * reduced-motion users, and the loop stops whenever the tab is hidden or
- * the canvas is scrolled off screen.
+ * the canvas is scrolled off screen. Anything wholly outside the canvas
+ * -- most of the globe, in the short dashboard banner -- is never drawn.
  */
 export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius = 0.42 }: ParticleGlobeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -120,6 +121,21 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const glows = new Map<RGB, HTMLCanvasElement>([PINK, VIOLET, BLUE].map((c) => [c, glowSprite(c)]));
+    // Each chip colour's fill and rim, built once rather than per chip per frame.
+    const inks = new Map<RGB, { fill: string; rim: string; node: string }>(
+      [PINK, VIOLET, BLUE].map((c) => [
+        c,
+        {
+          fill: `rgba(${c[0]}, ${c[1]}, ${c[2]}, 0.45)`,
+          rim: `rgba(${lighten(c)}, 0.75)`,
+          node: `rgba(${lighten(c)}, 0.95)`,
+        },
+      ]),
+    );
+    const ringInks = RINGS.map(({ alpha: a }) => ({
+      front: `rgba(170, 110, 255, ${a})`,
+      back: `rgba(170, 110, 255, ${a * 0.3})`,
+    }));
 
     // ---- Geometry, built once -------------------------------------------
     const points: Vec3[] = [];
@@ -193,10 +209,12 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
     let hovered = false;
     let time = 0;
 
-    let raf = 0;
+    let unsubscribe: (() => void) | null = null;
     let last = 0;
-    let lastDraw = 0;
     let onScreen = false;
+    // The body and atmosphere fills depend only on the size and theme, so
+    // they are built when either changes rather than every frame.
+    let fills: { body: CanvasGradient; rim: CanvasGradient; light: boolean } | null = null;
 
     // Scratch output of project(): screen x, y, depth (+ toward the viewer)
     // and perspective scale. Reused so the hot loop allocates nothing.
@@ -261,7 +279,25 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
       R = height * radius;
       ox = width * cx;
       oy = height * cy;
+      fills = null;
     };
+
+    const buildFills = (light: boolean) => {
+      const body = ctx.createRadialGradient(ox - R * 0.3, oy - R * 0.45, R * 0.1, ox, oy, R);
+      body.addColorStop(0, light ? "rgba(99, 102, 241, 0.14)" : "rgba(28, 48, 150, 0.18)");
+      body.addColorStop(0.7, light ? "rgba(99, 102, 241, 0.07)" : "rgba(8, 18, 72, 0.3)");
+      body.addColorStop(1, light ? "rgba(99, 102, 241, 0.12)" : "rgba(28, 36, 128, 0.26)");
+      const rim = ctx.createRadialGradient(ox, oy, R * 0.86, ox, oy, R * 1.16);
+      rim.addColorStop(0, "rgba(90, 100, 255, 0)");
+      rim.addColorStop(0.47, light ? "rgba(99, 102, 241, 0.14)" : "rgba(98, 84, 250, 0.17)");
+      rim.addColorStop(0.55, light ? "rgba(99, 102, 241, 0.08)" : "rgba(80, 100, 255, 0.07)");
+      rim.addColorStop(1, "rgba(88, 110, 255, 0)");
+      return { body, rim, light };
+    };
+
+    /** Whether a box of half-size `pad` round (x, y) misses the canvas entirely. */
+    const offCanvas = (x: number, y: number, pad: number) =>
+      x + pad < 0 || x - pad > width || y + pad < 0 || y - pad > height;
 
     const strokeLines = (lines: Vec3[][], onSurface: boolean, front: string, back: string | null, widthPx: number) => {
       const frontPath = new Path2D();
@@ -270,11 +306,17 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
         let px = 0;
         let py = 0;
         let pz = 0;
-        line.forEach((p, i) => {
+        for (let i = 0; i < line.length; i++) {
+          const p = line[i]!;
           if (onSurface) surface(p);
           else view(p[0], p[1], p[2]);
           const { x, y, z } = out;
-          if (i > 0) {
+          // A segment with both ends past the same edge cannot cross the
+          // canvas, so it is left out of the path.
+          if (
+            i > 0 &&
+            !((x < -1 && px < -1) || (x > width + 1 && px > width + 1) || (y < -1 && py < -1) || (y > height + 1 && py > height + 1))
+          ) {
             const mz = (z + pz) / 2;
             const behind = onSurface ? mz < 0 : hidden((x + px) / 2, (y + py) / 2, mz);
             const path = behind ? backPath : frontPath;
@@ -286,7 +328,7 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
           px = x;
           py = y;
           pz = z;
-        });
+        }
       }
       ctx.lineWidth = widthPx;
       if (backPath && back) {
@@ -298,18 +340,22 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
     };
 
     const drawGlow = (color: RGB, x: number, y: number, size: number, alpha: number) => {
+      if (offCanvas(x, y, size / 2)) return;
       ctx.globalAlpha = alpha;
       ctx.drawImage(glows.get(color)!, x - size / 2, y - size / 2, size, size);
       ctx.globalAlpha = 1;
     };
 
     const drawPill = (color: RGB, x: number, y: number, s: number, alpha: number) => {
+      // The glow is the widest part.
+      if (offCanvas(x, y, 13 * s)) return;
       const w = 11 * s;
       const h = 6.5 * s;
-      drawGlow(color, x, y, 26 * s, 0.45 * alpha);
+      const ink = inks.get(color)!;
+      drawGlow(color, x, y, 26 * s, 0.22 * alpha);
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.45)`;
-      ctx.strokeStyle = `rgba(${lighten(color)}, 0.75)`;
+      ctx.fillStyle = ink.fill;
+      ctx.strokeStyle = ink.rim;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2);
@@ -321,9 +367,10 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
     };
 
     const drawNode = (color: RGB, x: number, y: number, s: number, alpha: number) => {
-      drawGlow(color, x, y, 24 * s, 0.5 * alpha);
+      if (offCanvas(x, y, 12 * s)) return;
+      drawGlow(color, x, y, 24 * s, 0.24 * alpha);
       ctx.globalAlpha = alpha;
-      ctx.strokeStyle = `rgba(${lighten(color)}, 0.95)`;
+      ctx.strokeStyle = inks.get(color)!.node;
       ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.arc(x, y, 3.2 * s, 0, Math.PI * 2);
@@ -335,27 +382,24 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
       ctx.globalAlpha = 1;
     };
 
+    const shades = [0.05, 0.12, 0.28, 0.5].map((a) => `rgba(150, 170, 255, ${a})`);
+    // Each lattice point's projection, reused every frame: x, y, size, depth bucket (-1 off canvas).
+    const dots = new Float32Array(points.length * 3);
+    const dotBucket = new Int8Array(points.length);
+
     const draw = () => {
       setAngles();
       ctx.clearRect(0, 0, width, height);
       const light = document.body.classList.contains("light-mode");
+      if (!fills || fills.light !== light) fills = buildFills(light);
 
       // Body and atmosphere: two radial fills, cheaper than any blur.
-      const body = ctx.createRadialGradient(ox - R * 0.3, oy - R * 0.45, R * 0.1, ox, oy, R);
-      body.addColorStop(0, light ? "rgba(99, 102, 241, 0.14)" : "rgba(28, 48, 150, 0.18)");
-      body.addColorStop(0.7, light ? "rgba(99, 102, 241, 0.07)" : "rgba(8, 18, 72, 0.3)");
-      body.addColorStop(1, light ? "rgba(99, 102, 241, 0.12)" : "rgba(28, 36, 128, 0.26)");
-      ctx.fillStyle = body;
+      ctx.fillStyle = fills.body;
       ctx.beginPath();
       ctx.arc(ox, oy, R, 0, Math.PI * 2);
       ctx.fill();
 
-      const rim = ctx.createRadialGradient(ox, oy, R * 0.86, ox, oy, R * 1.16);
-      rim.addColorStop(0, "rgba(90, 100, 255, 0)");
-      rim.addColorStop(0.47, light ? "rgba(99, 102, 241, 0.28)" : "rgba(98, 84, 250, 0.34)");
-      rim.addColorStop(0.55, light ? "rgba(99, 102, 241, 0.16)" : "rgba(80, 100, 255, 0.14)");
-      rim.addColorStop(1, "rgba(88, 110, 255, 0)");
-      ctx.fillStyle = rim;
+      ctx.fillStyle = fills.rim;
       ctx.beginPath();
       ctx.arc(ox, oy, R * 1.16, 0, Math.PI * 2);
       ctx.fill();
@@ -365,33 +409,37 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
 
       // Orbit rings, with the arc that passes behind the globe dimmed.
       ringLines.forEach((line, i) => {
-        const a = RINGS[i]!.alpha;
-        strokeLines([line], false, `rgba(170, 110, 255, ${a})`, `rgba(170, 110, 255, ${a * 0.3})`, 1);
+        strokeLines([line], false, ringInks[i]!.front, ringInks[i]!.back, 1);
       });
 
       // Network wiring between hubs, front only.
       strokeLines(edges, true, "rgba(125, 140, 255, 0.3)", "rgba(125, 140, 255, 0.06)", 0.8);
 
-      // Lattice points in four depth buckets: one fill per bucket, not per point.
-      const buckets = [new Path2D(), new Path2D(), new Path2D(), new Path2D()];
-      for (const p of points) {
-        surface(p);
+      // Lattice points in four depth buckets, one fill colour per bucket.
+      // Plain rects rather than one path per bucket: the GPU batches a
+      // run of rect fills into a single draw, where a path of dozens of
+      // separate squares has to be tessellated every frame.
+      for (let i = 0; i < points.length; i++) {
+        surface(points[i]!);
         const depth = (out.z + 1) / 2;
-        const b = Math.min(3, Math.floor(depth * 4));
         const size = (0.6 + depth * 0.9) * out.s;
-        buckets[b]!.rect(out.x - size / 2, out.y - size / 2, size, size);
+        dots[i * 3] = out.x - size / 2;
+        dots[i * 3 + 1] = out.y - size / 2;
+        dots[i * 3 + 2] = size;
+        dotBucket[i] = offCanvas(out.x, out.y, size) ? -1 : Math.min(3, Math.floor(depth * 4));
       }
-      const shades = [0.05, 0.12, 0.28, 0.5];
-      buckets.forEach((path, b) => {
-        ctx.fillStyle = `rgba(150, 170, 255, ${shades[b]})`;
-        ctx.fill(path);
-      });
+      for (let b = 0; b < 4; b++) {
+        ctx.fillStyle = shades[b]!;
+        for (let i = 0; i < points.length; i++) {
+          if (dotBucket[i] === b) ctx.fillRect(dots[i * 3]!, dots[i * 3 + 1]!, dots[i * 3 + 2]!, dots[i * 3 + 2]!);
+        }
+      }
 
       // Hubs glow on the front face.
       for (const h of hubs) {
         surface(h);
         if (out.z < 0.05) continue;
-        drawGlow(VIOLET, out.x, out.y, 10 * out.s, 0.75 * out.z);
+        drawGlow(VIOLET, out.x, out.y, 10 * out.s, 0.36 * out.z);
       }
 
       // Chips pinned to the surface, fading as they turn away.
@@ -413,10 +461,31 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
       }
     };
 
-    const frame = (now: number) => {
-      raf = requestAnimationFrame(frame);
+    // The pointer's position is only turned into a lean inside the
+    // frame, so a burst of pointer events costs at most one layout read.
+    const pointer = { x: 0, y: 0, dirty: false };
+    const aim = () => {
+      pointer.dirty = false;
+      if (!hovered) {
+        targetX = targetY = 0;
+        return;
+      }
+      // The rect and pointer are real screen px, the drawing is not, so
+      // map through the rect as a fraction of the canvas.
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const px = ((pointer.x - rect.left) / rect.width) * width;
+      const py = ((pointer.y - rect.top) / rect.height) * height;
+      targetX = clamp((px - ox) / (width / 2), -1, 1) * LEAN;
+      targetY = clamp((py - oy) / height, -1, 1) * LEAN * 0.6;
+    };
+
+    // One tick of the page's shared 30fps particle clock. Everything
+    // moves on elapsed time, so the spin is the same speed at any rate.
+    const tick = (now: number) => {
       const dt = Math.min(0.1, last ? (now - last) / 1000 : 0);
       last = now;
+      if (pointer.dirty) aim();
 
       const ease = 1 - Math.exp(-dt * 3);
       speed += ((hovered ? SPIN_HOVER : SPIN_IDLE) - speed) * ease;
@@ -424,25 +493,20 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
       leanY += (targetY - leanY) * ease;
       spin += speed * dt;
       time += dt;
-
-      // Settled and idle: 30fps is plenty for a slow drift.
-      const settled = !hovered && Math.abs(speed - SPIN_IDLE) < 0.01 && Math.abs(leanX) + Math.abs(leanY) < 0.005;
-      if (settled && now - lastDraw < IDLE_FRAME_MS) return;
-      lastDraw = now;
       draw();
     };
 
     const shouldRun = () => onScreen && !document.hidden && !reduced.matches;
 
     const start = () => {
-      if (raf || !shouldRun()) return;
+      if (unsubscribe || !shouldRun()) return;
       last = 0;
-      raf = requestAnimationFrame(frame);
+      unsubscribe = onFrame(tick);
     };
 
     const stop = () => {
-      cancelAnimationFrame(raf);
-      raf = 0;
+      unsubscribe?.();
+      unsubscribe = null;
     };
 
     const sync = () => {
@@ -454,22 +518,15 @@ export function ParticleGlobe({ className, hostRef, cx = 0.5, cy = 0.5, radius =
     };
 
     const onMove = (event: PointerEvent) => {
-      // The rect and pointer are real screen px, the drawing is not, so
-      // map through the rect as a fraction of the canvas.
-      const rect = canvas.getBoundingClientRect();
-      const px = ((event.clientX - rect.left) / rect.width) * width;
-      const py = ((event.clientY - rect.top) / rect.height) * height;
-      const nx = clamp((px - ox) / (width / 2), -1, 1);
-      const ny = clamp((py - oy) / height, -1, 1);
       hovered = true;
-      targetX = nx * LEAN;
-      targetY = ny * LEAN * 0.6;
+      pointer.x = event.clientX;
+      pointer.y = event.clientY;
+      pointer.dirty = true;
     };
 
     const onLeave = () => {
       hovered = false;
-      targetX = 0;
-      targetY = 0;
+      pointer.dirty = true;
     };
 
     const resize = new ResizeObserver(() => {

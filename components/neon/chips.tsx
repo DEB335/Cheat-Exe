@@ -54,9 +54,9 @@ export function NeonChip({
         "inline-flex shrink-0 items-center justify-center border leading-none font-bold whitespace-nowrap",
         "border-[rgba(var(--tone),0.65)] text-[rgb(var(--tone-hi))]",
         "bg-[linear-gradient(180deg,rgba(var(--tone),0.24),rgba(var(--tone),0.08))]",
-        "shadow-[0_0_12px_-4px_rgba(var(--tone),0.75),inset_0_1px_0_rgba(255,255,255,0.1)]",
-        "[&_svg]:shrink-0 [&_svg]:drop-shadow-[0_0_4px_rgba(var(--tone),0.9)]",
-        "lt:border-[rgba(var(--tone),0.45)] lt:bg-none lt:bg-[rgba(var(--tone),0.1)] lt:text-[var(--tone-lt)] lt:shadow-none lt:[&_svg]:drop-shadow-none",
+        "shadow-[0_0_7px_-2px_rgba(var(--tone),0.34),inset_0_1px_0_rgba(255,255,255,0.1)]",
+        "[&_svg]:shrink-0",
+        "lt:border-[rgba(var(--tone),0.45)] lt:bg-none lt:bg-[rgba(var(--tone),0.1)] lt:text-[var(--tone-lt)] lt:shadow-none",
         caps && "tracking-[0.6px] uppercase",
         square ? CHIP_SIZES[size].square : CHIP_SIZES[size].box,
         shape === "pill" ? "rounded-full" : "rounded-[7px]",
@@ -67,7 +67,7 @@ export function NeonChip({
         (dot ? (
           <span
             aria-hidden
-            className="size-1.5 shrink-0 rounded-full bg-[rgb(var(--tone-hi))] shadow-[0_0_6px_rgb(var(--tone))] lt:bg-[var(--tone-lt)] lt:shadow-none"
+            className="size-1.5 shrink-0 rounded-full bg-[rgb(var(--tone-hi))] shadow-[0_0_4px_rgba(var(--tone),0.45)] lt:bg-[var(--tone-lt)] lt:shadow-none"
           />
         ) : null)}
       {children}
@@ -170,7 +170,7 @@ export function StatusPill({
         caps && "tracking-[0.8px] uppercase",
         "border-[rgba(var(--tone),0.6)] text-[rgb(var(--tone-hi))]",
         "bg-[linear-gradient(180deg,rgba(var(--tone),0.3),rgba(var(--tone),0.1))]",
-        "shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-2px_4px_rgba(0,0,0,0.2),0_0_14px_-3px_rgba(var(--tone),0.7)]",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-2px_4px_rgba(0,0,0,0.2),0_0_8px_-2px_rgba(var(--tone),0.32)]",
         "lt:border-[rgba(var(--tone),0.45)] lt:bg-none lt:bg-[rgba(var(--tone),0.1)] lt:text-[var(--tone-lt)] lt:shadow-none",
         className,
       )}
@@ -179,7 +179,7 @@ export function StatusPill({
         {live ? (
           <span aria-hidden className="animate-status-ping absolute inset-0 rounded-full bg-[rgb(var(--tone))]" />
         ) : null}
-        <span className="relative size-2 rounded-full bg-[rgb(var(--tone-hi))] shadow-[0_0_7px_rgb(var(--tone))] lt:bg-[var(--tone-lt)] lt:shadow-none" />
+        <span className="relative size-2 rounded-full bg-[rgb(var(--tone-hi))] shadow-[0_0_4px_rgba(var(--tone),0.45)] lt:bg-[var(--tone-lt)] lt:shadow-none" />
       </span>
       {children}
     </span>

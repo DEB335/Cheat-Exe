@@ -64,7 +64,7 @@ export function KeyLookup({
           />
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-x-[36%] -bottom-2 h-4 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,rgba(139,92,246,0.8),transparent)] opacity-80 blur-[8px] transition-opacity duration-300 group-focus-within/key:opacity-100 lt:hidden"
+            className="pointer-events-none absolute inset-x-[36%] -bottom-2 h-4 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,rgba(139,92,246,0.36),transparent)] opacity-80 blur-[5px] transition-opacity duration-300 group-focus-within/key:opacity-100 lt:hidden"
           />
         </div>
         <NeonButton
@@ -78,7 +78,7 @@ export function KeyLookup({
           // Bolder and bluer than the kit's filled violet, as the mockup's
           // Lookup is. The kit's pale light-theme fill reads as disabled
           // beside the field, so the light theme gets a solid one too.
-          className="h-[58px] shrink-0 px-7 text-[17px] font-bold [background:linear-gradient(135deg,rgba(139,92,246,0.7),rgba(59,130,246,0.45))] shadow-[0_0_26px_-4px_rgba(99,102,241,0.9),inset_0_1px_0_rgba(255,255,255,0.3),inset_0_0_14px_rgba(139,92,246,0.35)] hover:[background:linear-gradient(135deg,rgba(139,92,246,0.88),rgba(59,130,246,0.62))] hover:shadow-[0_0_34px_-2px_rgba(99,102,241,1),inset_0_1px_0_rgba(255,255,255,0.36),inset_0_0_16px_rgba(139,92,246,0.4)] sm:h-[62px] sm:min-w-[170px] sm:text-[18px] lt:text-white lt:[background:linear-gradient(135deg,#8b5cf6,#6366f1)] lt:shadow-[0_8px_18px_-8px_rgba(99,102,241,0.8),inset_0_1px_0_rgba(255,255,255,0.35)] lt:hover:text-white lt:hover:[background:linear-gradient(135deg,#7c3aed,#4f46e5)] lt:hover:shadow-[0_10px_22px_-8px_rgba(99,102,241,0.9),inset_0_1px_0_rgba(255,255,255,0.35)] [&_svg]:size-5"
+          className="h-[58px] shrink-0 px-7 text-[17px] font-bold [background:linear-gradient(135deg,rgba(139,92,246,0.7),rgba(59,130,246,0.45))] shadow-[0_0_16px_-2px_rgba(99,102,241,0.4),inset_0_1px_0_rgba(255,255,255,0.3),inset_0_0_14px_rgba(139,92,246,0.18)] hover:[background:linear-gradient(135deg,rgba(139,92,246,0.88),rgba(59,130,246,0.62))] hover:shadow-[0_0_20px_-1px_rgba(99,102,241,0.54),inset_0_1px_0_rgba(255,255,255,0.36),inset_0_0_16px_rgba(139,92,246,0.2)] sm:h-[62px] sm:min-w-[170px] sm:text-[18px] lt:text-white lt:[background:linear-gradient(135deg,#8b5cf6,#6366f1)] lt:shadow-[0_5px_11px_-4px_rgba(99,102,241,0.36),inset_0_1px_0_rgba(255,255,255,0.35)] lt:hover:text-white lt:hover:[background:linear-gradient(135deg,#7c3aed,#4f46e5)] lt:hover:shadow-[0_6px_13px_-4px_rgba(99,102,241,0.45),inset_0_1px_0_rgba(255,255,255,0.35)] [&_svg]:size-5"
         >
           {checking ? "Checking..." : "Lookup"}
         </NeonButton>

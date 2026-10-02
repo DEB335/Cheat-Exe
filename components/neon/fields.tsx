@@ -83,7 +83,7 @@ const BOX = cn(
   "transition-[border-color,box-shadow] duration-300 ease-smooth",
   "hover:border-[rgba(var(--tone),0.7)]",
   "focus-within:border-[rgb(var(--tone-hi))] hover:focus-within:border-[rgb(var(--tone-hi))]",
-  "focus-within:shadow-[0_0_0_3px_rgba(var(--tone),0.18),0_0_22px_-4px_rgba(var(--tone),0.7),inset_0_1px_0_rgba(255,255,255,0.05)]",
+  "focus-within:shadow-[0_0_0_3px_rgba(var(--tone),0.18),0_0_13px_-2px_rgba(var(--tone),0.32),inset_0_1px_0_rgba(255,255,255,0.05)]",
   "lt:border-slate-300 lt:bg-none lt:bg-white lt:shadow-[inset_0_1px_2px_rgba(15,23,42,0.05)]",
   "lt:hover:border-[rgba(var(--tone),0.6)] lt:focus-within:border-[rgb(var(--tone))] lt:focus-within:shadow-[0_0_0_3px_rgba(var(--tone),0.15)]",
 );
@@ -102,7 +102,7 @@ function IconCell({ children }: { children: React.ReactNode }) {
       className={cn(
         "flex w-[54px] shrink-0 items-center justify-center border-r",
         "border-[rgba(var(--tone),0.42)] bg-[linear-gradient(180deg,rgba(var(--tone),0.26),rgba(var(--tone),0.08))]",
-        "text-[rgb(var(--tone-hi))] [&>svg]:size-[22px] [&>svg]:drop-shadow-[0_0_6px_rgba(var(--tone),0.9)]",
+        "text-[rgb(var(--tone-hi))] [&>svg]:size-[22px] [&>svg]:drop-shadow-[0_0_4px_rgba(var(--tone),0.36)]",
         "lt:bg-none lt:bg-[rgba(var(--tone),0.08)] lt:text-[var(--tone-lt)] lt:[&>svg]:drop-shadow-none",
       )}
     >
@@ -293,9 +293,9 @@ export function NeonInput({
           className={cn(
             "rounded-[14px] border border-[rgba(var(--tone),0.55)] px-3.5 pt-3 pb-3.5",
             "[background:radial-gradient(80%_120%_at_0%_0%,rgba(var(--tone),0.16),transparent_70%),linear-gradient(160deg,rgba(10,14,44,0.7),rgba(6,8,30,0.75))]",
-            "shadow-[0_0_20px_-8px_rgba(var(--tone),0.8),inset_0_1px_0_rgba(255,255,255,0.06)]",
+            "shadow-[0_0_12px_-4px_rgba(var(--tone),0.36),inset_0_1px_0_rgba(255,255,255,0.06)]",
             "transition-[border-color,box-shadow] duration-300 focus-within:border-[rgba(var(--tone-hi),0.9)]",
-            "focus-within:shadow-[0_0_26px_-6px_rgba(var(--tone),0.9),inset_0_1px_0_rgba(255,255,255,0.08)]",
+            "focus-within:shadow-[0_0_14px_-3px_rgba(var(--tone),0.48),inset_0_1px_0_rgba(255,255,255,0.08)]",
             "lt:border-[rgba(var(--tone),0.4)] lt:[background:rgba(var(--tone),0.05)] lt:shadow-none",
           )}
         >
@@ -307,7 +307,7 @@ export function NeonInput({
               {leftIcon ? (
                 <span
                   aria-hidden
-                  className="flex text-[rgb(var(--tone-hi))] drop-shadow-[0_0_6px_rgba(var(--tone),0.9)] lt:text-[var(--tone-lt)] lt:drop-shadow-none [&>svg]:size-5"
+                  className="flex text-[rgb(var(--tone-hi))] drop-shadow-[0_0_4px_rgba(var(--tone),0.36)] lt:text-[var(--tone-lt)] lt:drop-shadow-none [&>svg]:size-5"
                 >
                   {leftIcon}
                 </span>
@@ -520,7 +520,7 @@ export function NeonToggle({
           checked
             ? [
                 "border-[rgba(var(--tone-hi),0.8)] [background:linear-gradient(90deg,var(--tone-b),var(--tone-a))]",
-                "shadow-[0_0_16px_-2px_rgba(var(--tone),0.85),inset_0_1px_0_rgba(255,255,255,0.3)]",
+                "shadow-[0_0_10px_-1px_rgba(var(--tone),0.38),inset_0_1px_0_rgba(255,255,255,0.3)]",
               ]
             : "border-[rgba(148,163,204,0.35)] bg-[rgba(148,163,204,0.14)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)] lt:bg-slate-200",
         )}
@@ -530,7 +530,7 @@ export function NeonToggle({
           className={cn(
             "absolute top-[3px] left-[3px] size-[22px] rounded-full bg-white transition-[translate,box-shadow] duration-300 ease-back",
             checked
-              ? "translate-x-[26px] shadow-[0_0_10px_rgba(255,255,255,0.9),0_2px_4px_rgba(0,0,0,0.3)]"
+              ? "translate-x-[26px] shadow-[0_0_6px_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.3)]"
               : "shadow-[0_2px_4px_rgba(0,0,0,0.35)]",
           )}
         />
@@ -642,7 +642,7 @@ export function NeonSegmented<V extends string | number>({
                 ? [
                     "border-[rgb(var(--tone-hi))] text-white",
                     "[background:linear-gradient(180deg,rgba(var(--tone),0.62),rgba(var(--tone),0.26))]",
-                    "shadow-[0_0_18px_-2px_rgba(var(--tone),0.85),inset_0_1px_0_rgba(255,255,255,0.3)]",
+                    "shadow-[0_0_11px_-1px_rgba(var(--tone),0.38),inset_0_1px_0_rgba(255,255,255,0.3)]",
                     "lt:border-[rgb(var(--tone))] lt:[background:rgba(var(--tone),0.14)] lt:text-[var(--tone-lt)] lt:shadow-none",
                   ]
                 : option.tone

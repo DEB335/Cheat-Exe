@@ -61,7 +61,7 @@ export function NeonTable({
       className={cn(
         "relative min-w-0 rounded-[18px] border border-[rgba(110,118,245,0.32)] p-1.5 sm:p-2",
         "[background:linear-gradient(180deg,rgba(var(--tone),0.06),rgba(var(--tone),0)_120px),linear-gradient(180deg,rgba(5,8,30,0.62),rgba(4,6,24,0.7))]",
-        "shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_24px_-12px_rgba(var(--tone),0.6)]",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_14px_-6px_rgba(var(--tone),0.27)]",
         "lt:border-slate-200 lt:[background:rgba(255,255,255,0.7)] lt:shadow-none",
         className,
       )}
@@ -168,19 +168,19 @@ export function NeonRow({
 const LIT = cn(
   "[&>td]:bg-[rgba(var(--tone),0.12)]",
   "[&>td]:shadow-[inset_0_1px_0_rgba(var(--tone-hi),0.65),inset_0_-1px_0_rgba(var(--tone-hi),0.65)]",
-  "[&>td:first-child]:shadow-[inset_1px_0_0_rgba(var(--tone-hi),0.65),inset_0_1px_0_rgba(var(--tone-hi),0.65),inset_0_-1px_0_rgba(var(--tone-hi),0.65),inset_14px_0_18px_-14px_rgba(var(--tone),0.7)]",
+  "[&>td:first-child]:shadow-[inset_1px_0_0_rgba(var(--tone-hi),0.65),inset_0_1px_0_rgba(var(--tone-hi),0.65),inset_0_-1px_0_rgba(var(--tone-hi),0.65),inset_14px_0_18px_-14px_rgba(var(--tone),0.35)]",
   "[&>td:last-child]:shadow-[inset_-1px_0_0_rgba(var(--tone-hi),0.65),inset_0_1px_0_rgba(var(--tone-hi),0.65),inset_0_-1px_0_rgba(var(--tone-hi),0.65)]",
-  "shadow-[0_10px_26px_-14px_rgba(var(--tone),0.8)]",
+  "shadow-[0_6px_16px_-7px_rgba(var(--tone),0.36)]",
   "lt:[&>td]:bg-[rgba(var(--tone),0.07)] lt:shadow-none",
 );
 
 const HOVER_LIT = cn(
   "hover:[&>td]:bg-[rgba(var(--tone),0.1)]",
   "hover:[&>td]:shadow-[inset_0_1px_0_rgba(var(--tone-hi),0.6),inset_0_-1px_0_rgba(var(--tone-hi),0.6)]",
-  "hover:[&>td:first-child]:shadow-[inset_1px_0_0_rgba(var(--tone-hi),0.6),inset_0_1px_0_rgba(var(--tone-hi),0.6),inset_0_-1px_0_rgba(var(--tone-hi),0.6),inset_14px_0_18px_-14px_rgba(var(--tone),0.7)]",
+  "hover:[&>td:first-child]:shadow-[inset_1px_0_0_rgba(var(--tone-hi),0.6),inset_0_1px_0_rgba(var(--tone-hi),0.6),inset_0_-1px_0_rgba(var(--tone-hi),0.6),inset_14px_0_18px_-14px_rgba(var(--tone),0.35)]",
   "hover:[&>td:last-child]:shadow-[inset_-1px_0_0_rgba(var(--tone-hi),0.6),inset_0_1px_0_rgba(var(--tone-hi),0.6),inset_0_-1px_0_rgba(var(--tone-hi),0.6)]",
-  "hover:shadow-[0_10px_26px_-14px_rgba(var(--tone),0.8)]",
-  "lt:hover:[&>td]:bg-[rgba(var(--tone),0.06)] lt:hover:shadow-[0_10px_24px_-16px_rgba(var(--tone),0.5)]",
+  "hover:shadow-[0_6px_16px_-7px_rgba(var(--tone),0.36)]",
+  "lt:hover:[&>td]:bg-[rgba(var(--tone),0.06)] lt:hover:shadow-[0_6px_14px_-8px_rgba(var(--tone),0.22)]",
 );
 
 /**

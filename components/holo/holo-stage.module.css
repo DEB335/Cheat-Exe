@@ -47,9 +47,9 @@
   transform: translateX(-50%);
   background: radial-gradient(
     closest-side,
-    rgb(var(--holo-b) / 0.34),
-    rgb(var(--holo-c) / 0.14) 48%,
-    rgb(var(--holo-a) / 0.05) 70%,
+    rgb(var(--holo-b) / 0.16),
+    rgb(var(--holo-c) / 0.065) 48%,
+    rgb(var(--holo-a) / 0.025) 70%,
     transparent
   );
   z-index: 0;
@@ -123,9 +123,9 @@
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    rgb(var(--holo-b) / 0.5),
-    rgb(var(--holo-c) / 0.22) 45%,
-    rgb(var(--holo-a) / 0.08) 70%,
+    rgb(var(--holo-b) / 0.24),
+    rgb(var(--holo-c) / 0.1) 45%,
+    rgb(var(--holo-a) / 0.04) 70%,
     transparent
   );
   animation: holo-breathe 5.5s ease-in-out infinite;
@@ -158,9 +158,9 @@
   transform: translateX(-50%);
   background: linear-gradient(
     to top,
-    rgb(var(--holo-hot) / 0.42),
-    rgb(var(--holo-b) / 0.24) 22%,
-    rgb(var(--holo-c) / 0.08) 60%,
+    rgb(var(--holo-hot) / 0.2),
+    rgb(var(--holo-b) / 0.11) 22%,
+    rgb(var(--holo-c) / 0.04) 60%,
     transparent
   );
   clip-path: polygon(4% 100%, 96% 100%, 70% 0, 30% 0);
@@ -301,11 +301,17 @@
   }
 }
 
-/* Off screen or in a hidden tab (see usePauseWhenHidden). Last, so it
-   wins over the animations above at equal specificity. */
+/* Off screen or in a hidden tab (see usePauseWhenHidden). Important, so
+   it also holds the objects inside a stage, whose own animation
+   shorthands (holo-objects.module.css) would otherwise reset the play
+   state; pseudo-elements included. */
 .stage[data-holo-paused] *,
-.pedestal[data-holo-paused] * {
-  animation-play-state: paused;
+.stage[data-holo-paused] *::before,
+.stage[data-holo-paused] *::after,
+.pedestal[data-holo-paused] *,
+.pedestal[data-holo-paused] *::before,
+.pedestal[data-holo-paused] *::after {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

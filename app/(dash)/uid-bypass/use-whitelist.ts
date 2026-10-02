@@ -145,10 +145,40 @@ export function useWhitelist(auto: boolean): WhitelistState {
     }
   }, [apply, fail]);
 
+  // Only while someone can see the list. A hidden tab stops asking the
+  // provider, and on coming back catches up at once if a tick was missed,
+  // then carries on at the usual pace.
   useEffect(() => {
     if (!auto) return;
-    const timer = setInterval(() => void reload(), AUTO_REFRESH_MS);
-    return () => clearInterval(timer);
+
+    let timer = 0;
+    let last = Date.now();
+    const tick = () => {
+      last = Date.now();
+      void reload();
+    };
+    const start = () => {
+      if (!timer) timer = window.setInterval(tick, AUTO_REFRESH_MS);
+    };
+    const stop = () => {
+      window.clearInterval(timer);
+      timer = 0;
+    };
+    const onVisibility = () => {
+      if (document.hidden) {
+        stop();
+        return;
+      }
+      if (Date.now() - last >= AUTO_REFRESH_MS) tick();
+      start();
+    };
+
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [auto, reload]);
 
   return { entries, loading, error, maintenance, reason, reload, mutate };

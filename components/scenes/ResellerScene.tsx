@@ -13,15 +13,15 @@ import styles from "./scene-resellers.module.css";
  * Thin shafts of light rising off the floor behind the hologram, as in
  * the mockup: x and the foot's height are % of the rig, the colour is a
  * palette slot, and a few carry a glint climbing them. Each pulses on its
- * own period, so they never flash together.
+ * own period, so they never flash together. None stands between 27 and
+ * 73: the shield covers that band, and a beam there was never seen but
+ * still cost an animation every frame.
  */
 const BEAMS: { x: number; foot: number; h: number; tone: "a" | "b" | "c"; s: number; glint?: boolean }[] = [
   { x: 6, foot: 22, h: 44, tone: "c", s: 7.2 },
   { x: 12.5, foot: 30, h: 52, tone: "c", s: 5.6, glint: true },
   { x: 19, foot: 36, h: 38, tone: "b", s: 8.4 },
   { x: 26, foot: 42, h: 46, tone: "c", s: 6.3 },
-  { x: 33, foot: 45, h: 34, tone: "b", s: 9.1, glint: true },
-  { x: 67, foot: 45, h: 36, tone: "b", s: 7.7 },
   { x: 74, foot: 41, h: 48, tone: "a", s: 5.9, glint: true },
   { x: 81, foot: 35, h: 40, tone: "a", s: 8.8 },
   { x: 88, foot: 28, h: 54, tone: "b", s: 6.6 },

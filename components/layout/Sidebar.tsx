@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 
 import { emitClickWave } from "@/components/effects/ClickWave";
 import { AppsIcon, ChevronLeftIcon, ChevronRightIcon, LinkIcon } from "@/components/icons";
@@ -109,7 +109,51 @@ const GLYPHS: Partial<Record<string, Glyph>> = {
  */
 const SOLID_WHEN_ACTIVE = new Set<Glyph>([AppsIcon]);
 
-export function Sidebar({
+/** How long the links wait for the first data load before prefetching anyway. */
+const PREFETCH_FALLBACK_MS = 4000;
+
+/**
+ * Whether the nav links may start prefetching.
+ *
+ * Every tab is prefetched in full (see NavLink), and there are a dozen of
+ * them on screen from the first render -- a dozen server renders, each
+ * reading the session, fired the instant the panel hydrates, at exactly
+ * the moment the first /api/db is trying to come back. They wait until
+ * that load has landed and the browser is idle, so the data the screen is
+ * waiting on goes first; if the load never lands they go after a few
+ * seconds regardless.
+ */
+function usePrefetchReady(): boolean {
+  const loaded = useDashboard((s) => !s.loading);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (ready) return;
+    const go = () => setReady(true);
+    if (!loaded) {
+      const id = window.setTimeout(go, PREFETCH_FALLBACK_MS);
+      return () => window.clearTimeout(id);
+    }
+    if (typeof window.requestIdleCallback === "function") {
+      const id = window.requestIdleCallback(go, { timeout: 1500 });
+      return () => window.cancelIdleCallback(id);
+    }
+    const id = window.setTimeout(go, 200);
+    return () => window.clearTimeout(id);
+  }, [loaded, ready]);
+
+  return ready;
+}
+
+const countUnread = (messages: { read: boolean }[]) => {
+  let n = 0;
+  for (const m of messages) if (!m.read) n += 1;
+  return n;
+};
+
+// Memoised: the shell re-renders for reasons of its own (the session poll's
+// outcome, the mobile drawer), and none of them change the rail.
+export const Sidebar = memo(function Sidebar({
   mobileOpen,
   onCloseMobile,
 }: {
@@ -118,7 +162,13 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const user = useDashboard((s) => s.user);
-  const db = useDashboard((s) => s.db);
+  // The three counts the badges print, each its own selector, so the rail
+  // re-renders when a count moves rather than whenever anything in the
+  // snapshot does.
+  const deviceCount = useDashboard((s) => s.db.cheatExeDevices.length);
+  const bannedCount = useDashboard((s) => s.db.cheatExeBannedUsers.length);
+  const unreadCount = useDashboard((s) => countUnread(s.db.cheatExeMessages));
+  const prefetch = usePrefetchReady();
   const role: Role = user?.role ?? "RESELLER";
   // Grants as they stand, not as they were at sign-in -- a permission the
   // owner revokes pings, the ping refetches the account record, and the
@@ -141,11 +191,11 @@ export function Sidebar({
   };
 
   const badges: BadgeCounts = {
-    devices: db.cheatExeDevices.length,
-    banned: db.cheatExeBannedUsers.length,
+    devices: deviceCount,
+    banned: bannedCount,
     // Same count the header bell shows, read off the same list, so the
     // two can never disagree about how many are waiting.
-    messages: db.cheatExeMessages.filter((m) => !m.read).length,
+    messages: unreadCount,
   };
 
   const visibleGroups = NAV_GROUPS.filter(
@@ -273,6 +323,7 @@ export function Sidebar({
                         collapsed={collapsed}
                         active={pathname === item.href}
                         badge={item.badge ? badges[item.badge] : undefined}
+                        prefetch={prefetch}
                         onNavigate={onCloseMobile}
                         onTooltip={setTooltip}
                       />
@@ -287,6 +338,7 @@ export function Sidebar({
                 item={PROFILE_ITEM}
                 collapsed={collapsed}
                 active={pathname === PROFILE_ITEM.href}
+                prefetch={prefetch}
                 onNavigate={onCloseMobile}
                 onTooltip={setTooltip}
               />
@@ -305,6 +357,7 @@ export function Sidebar({
             <DragHandle collapsed={collapsed} onToggle={setCollapsedPreference} />
           </>
         )}
+        <span aria-hidden className="glow-ring-track" />
       </aside>
 
       {tooltip && collapsed && !mobileOpen ? (
@@ -321,7 +374,7 @@ export function Sidebar({
       ) : null}
     </>
   );
-}
+});
 
 /** Hairline between nav groups, inset to the label column. */
 function Divider() {
@@ -343,11 +396,14 @@ function tooltipFor(label: string, el: Element) {
   return { label, x: rect.right / zoom + 12, y: (rect.top + rect.height / 2) / zoom };
 }
 
-function NavLink({
+// Memoised so a hover tooltip or one badge moving re-renders the rail, not
+// all thirteen links in it.
+const NavLink = memo(function NavLink({
   item,
   collapsed,
   active,
   badge,
+  prefetch,
   onNavigate,
   onTooltip,
   className,
@@ -356,6 +412,8 @@ function NavLink({
   collapsed: boolean;
   active: boolean;
   badge?: number;
+  /** False until the first data load is in; see usePrefetchReady. */
+  prefetch: boolean;
   onNavigate: () => void;
   onTooltip: TooltipSetter;
   className?: string;
@@ -390,7 +448,7 @@ function NavLink({
       // the whole segment in up front is what makes a tab switch land
       // immediately. (Prefetching is production-only; `next dev` will
       // always show the round trip.)
-      prefetch
+      prefetch={prefetch}
       onMouseEnter={showTooltip}
       onMouseLeave={() => onTooltip(null)}
       onClick={handleClick}
@@ -406,13 +464,13 @@ function NavLink({
               active
                 ? [
                     "border-2 border-[rgb(var(--tab))] bg-[rgba(var(--tab),0.15)] text-[rgb(var(--tab))]",
-                    "shadow-[0_0_15px_rgba(var(--tab),0.85),inset_0_0_8px_rgba(var(--tab),0.4)]",
+                    "shadow-[0_0_9px_rgba(var(--tab),0.38),inset_0_0_8px_rgba(var(--tab),0.2)]",
                     "hover:bg-[rgba(var(--tab),0.22)]",
-                    "hover:shadow-[0_0_20px_rgba(var(--tab),0.95),inset_0_0_10px_rgba(var(--tab),0.5)]",
+                    "hover:shadow-[0_0_11px_rgba(var(--tab),0.5),inset_0_0_8px_rgba(var(--tab),0.26)]",
                   ]
                 : [
                     "text-muted hover:bg-[rgba(var(--tab),0.08)] hover:text-[rgb(var(--tab))]",
-                    "hover:shadow-[0_0_12px_rgba(var(--tab),0.35),inset_0_0_4px_rgba(var(--tab),0.15)]",
+                    "hover:shadow-[0_0_7px_rgba(var(--tab),0.16),inset_0_0_4px_rgba(var(--tab),0.08)]",
                   ],
             ]
           : [
@@ -430,8 +488,8 @@ function NavLink({
                     // edge on the border box behind it.
                     "text-white",
                     "[background:linear-gradient(90deg,#4a1553_0%,#33124f_5%,#28114f_11%,#1c1268_45%,#211a80_70%,#2b26a8_86%,#3530c6_95%,#4034df_100%)_padding-box,linear-gradient(90deg,#ff4d9a_0%,#e0439f_12%,#8a2fb8_32%,#4a2a9e_55%,#4f3ccc_78%,#6a5cff_100%)_border-box]",
-                    "shadow-[-5px_3px_18px_-6px_rgba(255,45,122,0.7),6px_0_20px_-6px_rgba(91,85,255,0.75),inset_10px_-6px_16px_-10px_rgba(255,45,122,0.45)]",
-                    "hover:shadow-[-5px_3px_22px_-5px_rgba(255,45,122,0.85),6px_0_24px_-5px_rgba(91,85,255,0.9),inset_10px_-6px_18px_-8px_rgba(255,45,122,0.55)]",
+                    "shadow-[-5px_3px_11px_-6px_rgba(255,45,122,0.32),6px_0_12px_-6px_rgba(91,85,255,0.34)]",
+                    "hover:shadow-[-5px_3px_13px_-6px_rgba(255,45,122,0.44),6px_0_14px_-6px_rgba(91,85,255,0.46)]",
                   ]
                 : [
                     // Gradient wipe sliding in from the left edge.
@@ -451,7 +509,7 @@ function NavLink({
             : [
                 "size-6 group-hover/nav:scale-115",
                 active
-                  ? "drop-shadow-[0_0_6px_rgba(255,77,157,0.55)]"
+                  ? "drop-shadow-[0_0_5px_rgba(255,77,157,0.22)]"
                   : "text-[#adc6f5] group-hover/nav:text-accent lt:text-muted lt:group-hover/nav:text-accent",
               ],
         )}
@@ -470,7 +528,7 @@ function NavLink({
         // should not vanish just because the sidebar is narrow.
         <span
           aria-hidden
-          className="absolute top-2 right-2 z-[2] size-2 rounded-full bg-[#e11d48] shadow-[0_0_6px_rgba(225,29,72,0.8)]"
+          className="absolute top-2 right-2 z-[2] size-2 rounded-full bg-[#e11d48] shadow-[0_0_4px_rgba(225,29,72,0.36)]"
         />
       ) : null}
       {!collapsed && (
@@ -483,7 +541,7 @@ function NavLink({
                 "relative z-[2] ml-auto flex shrink-0 items-center justify-center rounded-full",
                 "text-[12.5px] font-bold tabular-nums",
                 item.badge === "messages"
-                  ? "h-[26px] min-w-[26px] bg-[#9c1a4d] px-1.5 text-white shadow-[0_0_12px_rgba(225,29,72,0.35)] lt:bg-[#e11d48]"
+                  ? "h-[26px] min-w-[26px] bg-[#9c1a4d] px-1.5 text-white shadow-[0_0_7px_rgba(225,29,72,0.16)] lt:bg-[#e11d48]"
                   : item.badge === "banned"
                     ? "h-[22px] min-w-[34px] bg-[rgba(239,68,68,0.16)] px-2 text-[#f87171] lt:text-[#dc2626]"
                     : "h-[22px] min-w-[34px] bg-[#033d36] px-2 text-[#4ff3cf] lt:bg-[rgba(16,185,129,0.15)] lt:text-[#059669]",
@@ -496,7 +554,7 @@ function NavLink({
       )}
     </Link>
   );
-}
+});
 
 function LogoArea({ collapsed }: { collapsed: boolean }) {
   const avatar = useDashboard((s) => s.db.profile.avatar);
@@ -512,7 +570,7 @@ function LogoArea({ collapsed }: { collapsed: boolean }) {
         className={cn(
           "glow-ring hover:glow-ring-fast relative shrink-0 cursor-pointer overflow-hidden rounded-full",
           "border-[1.5px] border-[rgba(235,38,38,0.8)] transition-all duration-300",
-          "shadow-[0_0_14px_rgba(255,31,31,0.45),0_0_3px_rgba(255,40,40,0.6)]",
+          "shadow-[0_0_8px_rgba(255,31,31,0.2),0_0_3px_rgba(255,40,40,0.6)]",
           collapsed ? "size-11" : "size-14",
         )}
       >
@@ -520,6 +578,7 @@ function LogoArea({ collapsed }: { collapsed: boolean }) {
             configured remote loader for no benefit here. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={avatar} alt="" className="size-full object-cover" />
+        <span aria-hidden className="glow-ring-track" />
       </div>
       {!collapsed && (
         <div
@@ -570,7 +629,7 @@ function UserCard({ collapsed, onTooltip }: { collapsed: boolean; onTooltip: Too
         <div
           className={cn(
             "flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-input-bg",
-            "border-[1.5px] border-[rgba(235,38,38,0.8)] shadow-[0_0_12px_rgba(255,31,31,0.45),0_0_3px_rgba(255,40,40,0.6)]",
+            "border-[1.5px] border-[rgba(235,38,38,0.8)] shadow-[0_0_7px_rgba(255,31,31,0.2),0_0_3px_rgba(255,40,40,0.6)]",
             collapsed ? "size-9" : "size-[50px]",
           )}
         >
@@ -583,7 +642,7 @@ function UserCard({ collapsed, onTooltip }: { collapsed: boolean; onTooltip: Too
             <p
               className={cn(
                 "mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-[#36eec6] lt:text-green",
-                "before:mr-0.5 before:size-[9px] before:shrink-0 before:rounded-full before:bg-[#3dffd2] before:shadow-[0_0_8px_rgba(42,245,189,0.8)] before:content-['']",
+                "before:mr-0.5 before:size-[9px] before:shrink-0 before:rounded-full before:bg-[#3dffd2] before:shadow-[0_0_5px_rgba(42,245,189,0.36)] before:content-['']",
                 "lt:before:bg-green",
               )}
             >
