@@ -1,0 +1,383 @@
+/* ==================================================================
+   The login stage (app/login/page.tsx): a fixed, always-dark scene
+   holding the room, the lamp, the hint, the sign-in card and the music
+   toggle.
+
+   Scene units. Everything in the scene is drawn in design px of
+   lamp-on.png (1478 x 1064): N design px is calc(N * var(--u)). The
+   stage defines, for the room, the lamp and the card:
+     --u        one design px
+     --cx0/cy0  where the design canvas's top-left corner lands
+     --horizon  the wall/floor line, px from the top
+     --cu       the card's unit: --u, but never small enough to make the
+                card's text illegible
+   WIDE (the default) fits the whole canvas in the window and centres
+   it; the room fills whatever is left over. TALL (portrait) and SHORT
+   LANDSCAPE (a phone on its side) redefine them below.
+
+   Motion. data-lit on the stage drives every transition, and each
+   state carries its own timing, so pulling the cord again mid-way
+   simply turns everything round from where it is:
+     on   lamp glides at 350ms for 1500ms, card arrives at 900ms
+     off  card leaves at once in 420ms, lamp glides home at 150ms
+   ================================================================== */
+
+.stage {
+  --u: min(calc(var(--app-vh) * 100 / 1064), calc(var(--app-vw) * 100 / 1478));
+  --cx0: calc((var(--app-vw) * 100 - 1478 * var(--u)) / 2);
+  --cy0: calc((var(--app-vh) * 100 - 1064 * var(--u)) / 2);
+  --horizon: calc(var(--cy0) + 742 * var(--u));
+  --cu: max(var(--u), 0.8px);
+  --glide: cubic-bezier(0.65, 0, 0.35, 1);
+
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: #050505;
+  color-scheme: dark;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ------------------------------------------------------------------
+   The lamp, placed where lamp-on.png has it (x 307, y 214) and moved
+   from there. Off, it stands in the middle of the canvas, a touch
+   smaller and further forward, as lamp-off.png has it (bar top 288,
+   base bottom 839, centre 49.6%); on, it glides left and up to its
+   full size. Both states use the same transform list, so the
+   transition interpolates each part rather than a matrix.
+   ------------------------------------------------------------------ */
+.lampSlot {
+  position: absolute;
+  z-index: 1;
+  left: calc(var(--cx0) + 307 * var(--u));
+  top: calc(var(--cy0) + 214 * var(--u));
+  transform-origin: 50% 0;
+  transform: translate(calc(296 * var(--u)), calc(74 * var(--u))) scale(0.92);
+  transition: transform 1300ms var(--glide) 150ms;
+  will-change: transform;
+}
+.stage[data-lit="true"] .lampSlot {
+  transform: translate(0, 0) scale(1);
+  transition: transform 1500ms var(--glide) 350ms;
+}
+
+/* ------------------------------------------------------------------
+   "-- PULL THE STRING TO TOGGLE LOGIN", top left of the canvas. It
+   stays readable with the light off, a little dimmer.
+   ------------------------------------------------------------------ */
+.hint {
+  position: absolute;
+  z-index: 2;
+  left: calc(var(--cx0) + 122 * var(--u));
+  top: calc(var(--cy0) + 82 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: calc(35 * var(--cu));
+  margin: 0;
+  transform: translateY(-50%);
+  font-family: var(--font-sans);
+  font-size: calc(16 * var(--cu));
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.27em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #d8c3a0;
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 500ms ease;
+}
+.stage[data-lit="true"] .hint {
+  opacity: 1;
+  transition: opacity 900ms ease 150ms;
+}
+
+.hintDash {
+  flex: none;
+  width: calc(36 * var(--cu));
+  height: max(1.5px, calc(2.5 * var(--cu)));
+  border-radius: 2px;
+  background: #e9dc6c;
+  box-shadow: 0 0 calc(2 * var(--cu)) rgba(233, 220, 108, 0.6);
+}
+
+/* ------------------------------------------------------------------
+   The card. A full-screen layer holds it so that, where the card is
+   taller than the room left for it, the layer scrolls (never the page,
+   never sideways). The layer lets clicks through to the lamp.
+
+   WIDE places the card's centre where the design has it (1129.5, 510).
+   margin-block: auto centres it in the layer -- padding-bottom lifts
+   that centre from the canvas's 532 to 510 -- and, unlike centring
+   with flex alignment, falls back to top-aligned when it overflows.
+   ------------------------------------------------------------------ */
+.cardLayer {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(44 * var(--u));
+  overflow: hidden;
+  overscroll-behavior: contain;
+  pointer-events: none;
+  scrollbar-width: none;
+}
+.cardLayer::-webkit-scrollbar {
+  display: none;
+}
+
+.cardSlot {
+  flex: none;
+  width: calc(507 * var(--cu));
+  margin-block: auto;
+  /* Grows about its design centre when --cu outruns --u, but never off
+     the right-hand edge. */
+  margin-left: max(
+    16px,
+    min(
+      calc(var(--cx0) + 1129.5 * var(--u) - 253.5 * var(--cu)),
+      calc(var(--app-vw) * 100 - 507 * var(--cu) - 16px)
+    )
+  );
+}
+.stage[data-lit="true"] .cardSlot {
+  pointer-events: auto;
+}
+
+/* Off: faded and pushed right; it goes in 420ms, and only then stops
+   being rendered at all. */
+.cardMotion {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(calc(60 * var(--u))) scale(0.96);
+  transition:
+    opacity 420ms ease-in,
+    transform 420ms ease-in,
+    visibility 0s linear 420ms;
+  will-change: transform;
+}
+/* Pre-warm (usePrewarm in page.tsx): painted, invisibly, for a few
+   frames after load. Still inert and click-through meanwhile. */
+.stage[data-warm] .cardMotion {
+  visibility: visible;
+  opacity: 0.003;
+  transition: none;
+}
+.stage[data-lit="true"] .cardMotion {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition:
+    opacity 900ms var(--ease-smooth) 900ms,
+    transform 900ms var(--ease-smooth) 900ms,
+    visibility 0s;
+}
+
+/* ------------------------------------------------------------------
+   Music toggle: a small round pane of dark glass, top right.
+   ------------------------------------------------------------------ */
+.music {
+  position: absolute;
+  z-index: 5;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(18px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #f2c879;
+  background: radial-gradient(
+    circle at 32% 26%,
+    rgba(255, 236, 210, 0.16),
+    rgba(44, 32, 22, 0.6) 46%,
+    rgba(10, 8, 6, 0.82)
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 196, 120, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 18px -4px rgba(255, 170, 80, 0.4),
+    0 8px 18px -8px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  outline: none;
+  transition: transform 200ms ease;
+}
+.music:hover {
+  transform: translateY(-1px) scale(1.05);
+}
+.music:focus-visible {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 196, 120, 0.3),
+    0 0 0 2px rgba(255, 210, 150, 0.9),
+    0 0 18px -4px rgba(255, 170, 80, 0.4);
+}
+
+.musicIcon {
+  width: 19px;
+  height: 19px;
+}
+
+/* ------------------------------------------------------------------
+   TALL: portrait phones and tablets.
+
+   The lamp is sized to ~52% of the height and the floor sits at 80%.
+   On, it glides up and left and shrinks (--lamp-s) so its head, light
+   and capsule clear the card, which rises from the bottom as a sheet
+   in front of the lower lamp. The layer's top padding keeps the card
+   below the capsule, so the cord can always be pulled again; a card
+   taller than what remains scrolls.
+   ------------------------------------------------------------------ */
+@media (max-aspect-ratio: 1/1) {
+  .stage {
+    --W: calc(var(--app-vw) * 100);
+    --H: calc(var(--app-vh) * 100);
+    --u: min(calc(var(--H) * 0.52 / 551), calc(var(--W) * 0.6 / 258));
+    --horizon: calc(var(--H) * 0.8);
+    --cx0: calc((var(--W) - 1478 * var(--u)) / 2);
+    --cy0: calc(var(--horizon) - 742 * var(--u));
+    --card-w: min(calc(var(--W) - 32px), 440px);
+    --cu: calc(var(--card-w) / 507);
+    /* The lamp when on: its scale, the top of its bar, and its centre.
+       The bar sits at 10% of the height, or higher if the card (699
+       design px tall) needs the room, but never under the hint. */
+    --lamp-s: 0.8;
+    --lamp-on-top: max(
+      52px,
+      min(
+        calc(var(--H) - 40px - 699 * var(--cu) - 225 * var(--u) * var(--lamp-s)),
+        calc(var(--H) * 0.1)
+      )
+    );
+    /* Left of centre, but never so far left that the base (216 wide)
+       sticks out past the card's left edge: lifted off the floor, the
+       base must stay hidden behind the card. */
+    --lamp-on-cx: max(
+      calc(var(--W) * 0.28),
+      calc(129 * var(--u) * var(--lamp-s) + 14px),
+      calc((var(--W) - var(--card-w)) / 2 + 112 * var(--u) * var(--lamp-s))
+    );
+  }
+
+  .stage[data-lit="true"] .lampSlot {
+    transform: translate(
+        calc(var(--lamp-on-cx) - var(--W) / 2 + 303 * var(--u)),
+        calc(var(--lamp-on-top) - var(--cy0) - 214 * var(--u))
+      )
+      scale(var(--lamp-s));
+  }
+
+  .hint {
+    left: 50%;
+    top: max(18px, env(safe-area-inset-top));
+    gap: 10px;
+    transform: translateX(-50%);
+    font-size: min(11px, calc(var(--W) * 0.028));
+    letter-spacing: 0.26em;
+  }
+  .hintDash {
+    width: 18px;
+    height: 2px;
+  }
+
+  .music {
+    top: calc(max(18px, env(safe-area-inset-top)) + 26px);
+    right: max(14px, env(safe-area-inset-right));
+    width: 38px;
+    height: 38px;
+  }
+
+  .cardLayer {
+    align-items: center;
+    padding: calc(var(--lamp-on-top) + 225 * var(--u) * var(--lamp-s) + 12px) 16px
+      max(16px, env(safe-area-inset-bottom));
+  }
+  .stage[data-lit="true"] .cardLayer {
+    overflow-y: auto;
+  }
+
+  .cardSlot {
+    width: var(--card-w);
+    margin: auto 0 0;
+  }
+
+  .cardMotion {
+    transform: translateY(40px) scale(0.96);
+  }
+}
+
+/* ------------------------------------------------------------------
+   SHORT LANDSCAPE: a phone on its side. The WIDE composition, with the
+   card allowed a smaller unit and the layer free to scroll it.
+   ------------------------------------------------------------------ */
+@media (orientation: landscape) and (max-height: 520px) {
+  .stage {
+    --cu: max(var(--u), 0.62px);
+  }
+
+  /* Start the card under the hint row; the layer scrolls the rest. The
+     layer fades out at the top, so a scrolled card melts away before it
+     reaches the hint instead of slicing through it, and at the bottom,
+     so a card that runs on past the fold visibly does. A thin scrollbar
+     says the same wherever the platform shows one. */
+  .cardLayer {
+    padding: 48px 0 44px;
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 36px,
+      #000 54px,
+      #000 calc(100% - 40px),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 36px,
+      #000 54px,
+      #000 calc(100% - 40px),
+      transparent
+    );
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 200, 140, 0.35) transparent;
+  }
+  .stage[data-lit="true"] .cardLayer {
+    overflow-y: auto;
+  }
+
+  /* Keep clear of the music button in the top-right corner. */
+  .cardSlot {
+    margin-left: max(
+      16px,
+      min(
+        calc(var(--cx0) + 1129.5 * var(--u) - 253.5 * var(--cu)),
+        calc(var(--app-vw) * 100 - 507 * var(--cu) - 72px)
+      )
+    );
+  }
+}
+
+/* Less motion: the lamp jumps, the card and hint simply crossfade. */
+@media (prefers-reduced-motion: reduce) {
+  .stage .lampSlot {
+    transition: none !important;
+  }
+  .stage .cardMotion {
+    transform: none !important;
+    transition:
+      opacity 300ms ease,
+      visibility 0s linear 300ms !important;
+  }
+  .stage[data-lit="true"] .cardMotion {
+    transition:
+      opacity 300ms ease,
+      visibility 0s !important;
+  }
+  .stage .hint {
+    transition: opacity 300ms ease !important;
+  }
+}

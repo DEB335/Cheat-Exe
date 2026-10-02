@@ -1,0 +1,553 @@
+/* ==================================================================
+   The lamp room (LampRoom.tsx) -- wall, floor, horizon line, plant,
+   glass arc, window and floor bloom behind the lamp and the card.
+
+   Units: one design px of the 1478 x 1064 mock-up is --ru. The stage
+   sets --u / --cx0 / --cy0 / --horizon on an ancestor; the fallbacks
+   below reproduce its WIDE formulas so the room renders on its own.
+   A prop at design (X, Y) sits at
+     left: calc(var(--rx) + X * var(--ru))
+     top:  calc(var(--rh) + (Y - 742) * var(--ru))
+   (anchored on the horizon rather than the canvas top, so props stay
+   on the floor when the TALL layout moves the horizon). Wall and floor
+   are full-bleed; their colour stops are pinned to canvas x so the
+   warm-left / cool-right split lines up with the lamp and the card.
+
+   Motion: pre-painted layers, faded with opacity only.
+     warm  (wall wash, line, plant, arc)  1100ms ease-out from 150ms
+     cool  (window, blue floor bloom)     1200ms ease-out from 400ms
+     OFF   all                            500ms
+
+   Stacking: the root sets no z-index, so it is not a stacking context.
+   Everything paints under the lamp (the stage's z-index 1) except the
+   plant and pedestal (.front, z-index 2): they stand in front of the
+   wall the lamp's cone lights, so the cone must not paint over them.
+   The card (z-index 3) still covers them.
+   ================================================================== */
+
+.room {
+  --ru: var(--u, min(calc(var(--app-vh, 1vh) * 100 / 1064), calc(var(--app-vw, 1vw) * 100 / 1478)));
+  --rx: var(--cx0, calc((var(--app-vw, 1vw) * 100 - 1478 * var(--ru)) / 2));
+  --ry: var(--cy0, calc((var(--app-vh, 1vh) * 100 - 1064 * var(--ru)) / 2));
+  --rh: var(--horizon, calc(var(--ry) + 742 * var(--ru)));
+
+  /* Glossy floor texture: fine noise stretched into vertical streaks,
+     the way a polished floor smears what it reflects. Static. */
+  --streaks: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9 0.05' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #000;
+}
+
+.room > *,
+.layer > * {
+  position: absolute;
+}
+
+/* ---- OFF: a barely-there floor ------------------------------------ */
+
+/* Below the horizon the dark lifts just enough to read as a floor,
+   with a faint warm sheen where the lamp's capsule glow lands. */
+.floorDark {
+  left: 0;
+  right: 0;
+  top: var(--rh);
+  bottom: 0;
+  background:
+    radial-gradient(
+      calc(420 * var(--ru)) calc(130 * var(--ru)) at calc(var(--rx) + 739 * var(--ru)) calc(120 * var(--ru)),
+      rgba(64, 48, 34, 0.2),
+      rgba(64, 48, 34, 0) 100%
+    ),
+    linear-gradient(180deg, #000 0, #010101 calc(40 * var(--ru)), #030303 calc(120 * var(--ru)), #020202 100%);
+}
+.floorDark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--streaks);
+  opacity: 0.035;
+  mask-image: linear-gradient(180deg, transparent 0, #000 calc(60 * var(--ru)));
+}
+
+/* ---- The two light layers ----------------------------------------- */
+
+.layer {
+  inset: 0;
+  opacity: 0;
+  transition: opacity 500ms ease-in;
+}
+/* Pre-warm hook (usePrewarm in app/login/page.tsx): painted at an
+   invisible level for a few frames after load, so the first light-on
+   has nothing left to rasterise. */
+[data-warm] .layer {
+  opacity: 0.003;
+  transition: none;
+}
+.room[data-on="true"] .warm {
+  opacity: 1;
+  transition: opacity 1100ms cubic-bezier(0.22, 1, 0.36, 1) 150ms;
+}
+.room[data-on="true"] .cool {
+  opacity: 1;
+  transition: opacity 1200ms cubic-bezier(0.22, 1, 0.36, 1) 400ms;
+}
+.front {
+  z-index: 2;
+}
+
+/* ---- Warm: wall and floor ----------------------------------------- */
+
+/* Charcoal, warmed low on the left where the lamp and the pedestal
+   light it, lifting a touch at the top centre, cooling to deep navy
+   towards the window. */
+.wall {
+  inset: 0;
+  background:
+    radial-gradient(
+      calc(600 * var(--ru)) calc(430 * var(--ru)) at calc(var(--rx) + 250 * var(--ru)) calc(var(--rh) - 90 * var(--ru)),
+      rgba(110, 66, 24, 0.34),
+      rgba(110, 66, 24, 0) 100%
+    ),
+    radial-gradient(
+      calc(620 * var(--ru)) calc(360 * var(--ru)) at calc(var(--rx) + 640 * var(--ru)) calc(var(--ry) - 40 * var(--ru)),
+      rgba(40, 40, 46, 0.22),
+      rgba(40, 40, 46, 0) 100%
+    ),
+    linear-gradient(
+      90deg,
+      #0a0a0a calc(var(--rx) - 200 * var(--ru)),
+      #0c0c0c var(--rx),
+      #0f0f0f calc(var(--rx) + 160 * var(--ru)),
+      #13120f calc(var(--rx) + 430 * var(--ru)),
+      #161619 calc(var(--rx) + 700 * var(--ru)),
+      #12151c calc(var(--rx) + 860 * var(--ru)),
+      #0e131b calc(var(--rx) + 1100 * var(--ru)),
+      #0d1420 calc(var(--rx) + 1250 * var(--ru)),
+      #0b0f16 calc(var(--rx) + 1336 * var(--ru))
+    );
+}
+
+/* Glossy dark floor: warm brown under the plant and the lamp, neutral
+   in the middle, navy under the card; brighter right at the horizon
+   where it mirrors the lit wall. */
+.floor {
+  left: 0;
+  right: 0;
+  top: var(--rh);
+  bottom: 0;
+  background:
+    radial-gradient(
+      calc(330 * var(--ru)) calc(150 * var(--ru)) at calc(var(--rx) + 40 * var(--ru)) calc(50 * var(--ru)),
+      rgba(120, 74, 34, 0.3),
+      rgba(120, 74, 34, 0) 100%
+    ),
+    radial-gradient(
+      calc(560 * var(--ru)) calc(260 * var(--ru)) at calc(var(--rx) + 440 * var(--ru)) calc(20 * var(--ru)),
+      rgba(90, 58, 30, 0.26),
+      rgba(90, 58, 30, 0) 100%
+    ),
+    linear-gradient(180deg, rgba(34, 34, 42, 0.55) 0, rgba(34, 34, 42, 0) calc(90 * var(--ru))),
+    linear-gradient(
+      90deg,
+      #110f0e var(--rx),
+      #15120f calc(var(--rx) + 300 * var(--ru)),
+      #141318 calc(var(--rx) + 760 * var(--ru)),
+      #0d1019 calc(var(--rx) + 1000 * var(--ru)),
+      #0b0f1c calc(var(--rx) + 1300 * var(--ru)),
+      #0c1222 calc(var(--rx) + 1478 * var(--ru))
+    );
+}
+.floor::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--streaks);
+  opacity: 0.06;
+}
+
+/* Fine grain on the lit wall. */
+.grain {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--rh);
+  background: var(--grain);
+  opacity: 0.035;
+}
+
+/* ---- Warm: the line where wall meets floor ------------------------ */
+
+/* The line runs from the left screen edge; the glass arc (foot at
+   x 697) dims it to ~40 % at once, and it dies out before the card. */
+.wallGlow,
+.line,
+.lineSheen {
+  left: 0;
+  width: calc(var(--rx) + 900 * var(--ru));
+  mask-image: linear-gradient(
+    90deg,
+    #000 0,
+    #000 calc(var(--rx) + 690 * var(--ru)),
+    rgba(0, 0, 0, 0.34) calc(var(--rx) + 705 * var(--ru)),
+    rgba(0, 0, 0, 0.26) calc(var(--rx) + 800 * var(--ru)),
+    transparent calc(var(--rx) + 880 * var(--ru))
+  );
+}
+/* Warm band rising ~60 px up the wall from the line. */
+.wallGlow {
+  top: calc(var(--rh) - 60 * var(--ru));
+  height: calc(60 * var(--ru));
+  background: linear-gradient(
+    180deg,
+    rgba(205, 122, 38, 0) 0,
+    rgba(208, 124, 40, 0.2) 45%,
+    rgba(222, 136, 44, 0.45) 80%,
+    rgba(240, 156, 56, 0.75) 100%
+  );
+}
+/* Pale-gold 2 px core: ~2 px of falloff above, the sheen below. */
+.line {
+  top: calc(var(--rh) - max(1.8 * var(--ru), 1.4px));
+  height: max(3.6 * var(--ru), 2.8px);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 210, 106, 0) 0,
+    #ffe894 30%,
+    #fff2b2 50%,
+    #ffd26a 75%,
+    rgba(255, 196, 90, 0) 100%
+  );
+}
+.lineSheen {
+  top: var(--rh);
+  height: calc(30 * var(--ru));
+  background: linear-gradient(
+    180deg,
+    rgba(250, 176, 70, 0.9) 0,
+    rgba(232, 152, 56, 0.6) 20%,
+    rgba(200, 130, 50, 0.14) 55%,
+    rgba(200, 130, 50, 0) 100%
+  );
+}
+
+/* ---- Warm: plant, pedestal, glass arc ----------------------------- */
+
+/* SVG viewBox -160 380 330 430 in design px. */
+.plant {
+  left: calc(var(--rx) - 160 * var(--ru));
+  top: calc(var(--rh) + (380 - 742) * var(--ru));
+  width: calc(330 * var(--ru));
+  height: calc(430 * var(--ru));
+}
+
+/* SVG viewBox 680 560 400 200 in design px. */
+.arc {
+  left: calc(var(--rx) + 680 * var(--ru));
+  top: calc(var(--rh) + (560 - 742) * var(--ru));
+  width: calc(400 * var(--ru));
+  height: calc(200 * var(--ru));
+}
+
+.plantSvg,
+.arcSvg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* ---- Cool: the navy half of the room ------------------------------ */
+
+.wallCool {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: var(--rh);
+  background: radial-gradient(
+    calc(560 * var(--ru)) calc(760 * var(--ru)) at calc(var(--rx) + 1320 * var(--ru)) calc(var(--ry) + 330 * var(--ru)),
+    rgba(24, 40, 78, 0.5),
+    rgba(24, 40, 78, 0) 100%
+  );
+}
+.floorCool {
+  left: 0;
+  right: 0;
+  top: var(--rh);
+  bottom: 0;
+  background: radial-gradient(
+    calc(560 * var(--ru)) calc(340 * var(--ru)) at calc(var(--rx) + 1220 * var(--ru)) calc(220 * var(--ru)),
+    rgba(22, 32, 76, 0.42),
+    rgba(22, 32, 76, 0) 100%
+  );
+}
+
+/* The card's reflection on the gloss: an upside-down card of light
+   below its bottom edge -- amber streak under its warm left edge, blue
+   under its right edge, navy between, fading in from the top. */
+.bloom {
+  left: calc(var(--rx) + 876 * var(--ru));
+  width: calc(508 * var(--ru));
+  top: calc(var(--rh) + 144 * var(--ru));
+  bottom: 0;
+  border-radius: calc(40 * var(--ru)) calc(40 * var(--ru)) 0 0;
+  background:
+    /* the card's blue right side, strongest near its bottom corner */
+    radial-gradient(
+      calc(130 * var(--ru)) calc(80 * var(--ru)) at calc(100% - 20 * var(--ru)) calc(16 * var(--ru)),
+      rgba(36, 50, 184, 0.55),
+      rgba(36, 50, 184, 0) 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(140, 86, 48, 0.6) 0,
+      rgba(172, 106, 56, 1) 0.3%,
+      rgba(120, 74, 44, 0.55) 2.5%,
+      rgba(110, 68, 42, 0) 7%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(50, 58, 210, 0) 91%,
+      rgba(54, 62, 218, 0.55) 97%,
+      rgba(66, 74, 246, 1) 99%,
+      rgba(62, 70, 236, 0.4) 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(40, 28, 30, 0) 0,
+      rgba(40, 28, 30, 0.45) 2%,
+      rgba(28, 26, 40, 0.6) 14%,
+      rgba(24, 26, 48, 0.68) 48%,
+      rgba(26, 32, 82, 0.72) 80%,
+      rgba(36, 48, 150, 0.75) 95%,
+      rgba(36, 48, 150, 0) 100%
+    );
+  mask-image: linear-gradient(180deg, transparent 0, #000 calc(12 * var(--ru)), #000 30%, rgba(0, 0, 0, 0.62) 100%);
+}
+
+/* ---- Cool: the window at the right edge --------------------------- */
+
+/* From canvas x 1336 to the screen's right edge, top of the screen
+   down to the sill just below the horizon. Children are placed in
+   design px from the window's left edge; vertical colour stops are
+   room y (the window's top is the room's top). */
+.window {
+  left: calc(var(--rx) + 1336 * var(--ru));
+  right: 0;
+  top: 0;
+  height: calc(var(--rh) + 34 * var(--ru));
+}
+.window > * {
+  position: absolute;
+  top: 0;
+  height: calc(var(--rh) - 10 * var(--ru));
+}
+
+/* Bright edge of the glass, catching the light at the top. */
+.frameLine {
+  left: calc(-2 * var(--ru));
+  width: calc(16 * var(--ru));
+  background: linear-gradient(
+    90deg,
+    rgba(80, 140, 240, 0) 0,
+    rgba(80, 140, 240, 0.2) 28%,
+    #8bbcf8 46%,
+    #588eda 58%,
+    rgba(80, 140, 240, 0.2) 72%,
+    rgba(80, 140, 240, 0) 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    #000 0,
+    #000 calc(var(--ry) + 30 * var(--ru)),
+    rgba(0, 0, 0, 0.55) calc(var(--ry) + 160 * var(--ru)),
+    rgba(0, 0, 0, 0.16) calc(var(--ry) + 520 * var(--ru)),
+    rgba(0, 0, 0, 0.1) 100%
+  );
+}
+
+.paneNear {
+  left: calc(9 * var(--ru));
+  width: calc(66 * var(--ru));
+  background:
+    radial-gradient(
+      calc(40 * var(--ru)) calc(170 * var(--ru)) at 0 var(--ry),
+      rgba(82, 132, 214, 0.7),
+      rgba(82, 132, 214, 0) 100%
+    ),
+    linear-gradient(
+      180deg,
+      #172338 var(--ry),
+      #141f33 calc(var(--ry) + 200 * var(--ru)),
+      #0f1520 calc(var(--ry) + 420 * var(--ru)),
+      #121826 calc(var(--ry) + 620 * var(--ru)),
+      #1c2439 calc(var(--ry) + 732 * var(--ru))
+    );
+}
+
+.mullion {
+  left: calc(74 * var(--ru));
+  width: calc(10 * var(--ru));
+  border-left: 1px solid rgba(110, 150, 220, 0.16);
+  background: linear-gradient(90deg, #0d1320, #121a2a 50%, #0b111c);
+}
+
+/* Far pane: a band of blue near the top, a faint vertical smear of the
+   lamp's warm reflection low down, light pooling towards the sill. */
+.paneFar {
+  left: calc(84 * var(--ru));
+  right: 0;
+  background:
+    radial-gradient(
+      calc(20 * var(--ru)) calc(90 * var(--ru)) at calc(26 * var(--ru)) calc(var(--ry) + 540 * var(--ru)),
+      rgba(96, 74, 62, 0.3),
+      rgba(96, 74, 62, 0) 100%
+    ),
+    linear-gradient(
+      180deg,
+      #141d2e var(--ry),
+      #1c2b47 calc(var(--ry) + 60 * var(--ru)),
+      #29416c calc(var(--ry) + 120 * var(--ru)),
+      #22375f calc(var(--ry) + 165 * var(--ru)),
+      #162137 calc(var(--ry) + 250 * var(--ru)),
+      #131826 calc(var(--ry) + 420 * var(--ru)),
+      #171b26 calc(var(--ry) + 640 * var(--ru)),
+      #202c48 calc(var(--ry) + 700 * var(--ru)),
+      #33508a calc(var(--ry) + 732 * var(--ru))
+    );
+}
+
+/* The recess's lower frame: two faint uprights above the sill. */
+.recess {
+  left: calc(77 * var(--ru));
+  right: calc(-1px);
+  top: calc(var(--rh) - 112 * var(--ru));
+  height: calc(100 * var(--ru));
+  background:
+    linear-gradient(90deg, rgba(120, 150, 210, 0.22), rgba(120, 150, 210, 0) calc(3 * var(--ru))),
+    linear-gradient(
+      90deg,
+      transparent calc(126 * var(--ru)),
+      rgba(120, 150, 210, 0.2) calc(127 * var(--ru)),
+      transparent calc(130 * var(--ru))
+    );
+  mask-image: linear-gradient(180deg, transparent, #000 40%);
+}
+
+/* SVG viewBox 0 0 133 46, stretched: the ledge's top face sloping
+   towards the viewer, its lit front edge and the dark face below. */
+.sill {
+  left: calc(9 * var(--ru));
+  right: 0;
+  top: calc(var(--rh) - 12 * var(--ru));
+  height: calc(46 * var(--ru));
+}
+.sill svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Blue light from the window falling on the floor below it. */
+.windowSpill {
+  left: calc(var(--rx) + 1200 * var(--ru));
+  right: 0;
+  top: calc(var(--rh) + 34 * var(--ru));
+  height: calc(240 * var(--ru));
+  background: radial-gradient(
+    calc(300 * var(--ru)) calc(220 * var(--ru)) at calc(250 * var(--ru)) 0,
+    rgba(42, 62, 120, 0.2),
+    rgba(42, 62, 120, 0) 100%
+  );
+}
+
+/* ---- TALL: portrait phones and tablets ---------------------------- */
+
+/* The card is a bottom sheet in front of the room, so drop what would
+   clutter behind it: no arc, no card reflection; the plant shrinks to
+   the left edge on the floor and the window becomes a slim strip on
+   the right. The colour split goes by screen width instead of canvas. */
+@media (max-aspect-ratio: 1/1) {
+  .arc,
+  .bloom,
+  .mullion,
+  .paneFar,
+  .recess {
+    display: none;
+  }
+
+  .wall {
+    background:
+      radial-gradient(70% 34% at 10% calc(var(--rh) - 6%), rgba(110, 66, 24, 0.34), rgba(110, 66, 24, 0) 100%),
+      radial-gradient(90% 30% at 50% 0, rgba(46, 46, 54, 0.4), rgba(46, 46, 54, 0) 100%),
+      linear-gradient(90deg, #0f0f0f 0, #15130f 30%, #19191c 60%, #12161e 85%, #0c1018 100%);
+  }
+  .floor {
+    background:
+      radial-gradient(60% 120px at 10% 20px, rgba(120, 74, 34, 0.3), rgba(120, 74, 34, 0) 100%),
+      linear-gradient(180deg, rgba(34, 34, 42, 0.55) 0, rgba(34, 34, 42, 0) 70px),
+      linear-gradient(90deg, #110f0e 0, #15120f 35%, #141318 65%, #0c1120 100%);
+  }
+  .wallCool {
+    background: radial-gradient(70% 60% at 100% 35%, rgba(24, 40, 78, 0.5), rgba(24, 40, 78, 0) 100%);
+  }
+  .floorCool {
+    background: radial-gradient(70% 140px at 100% 30px, rgba(22, 32, 76, 0.5), rgba(22, 32, 76, 0) 100%);
+  }
+
+  .wallGlow,
+  .line,
+  .lineSheen {
+    width: 100%;
+    mask-image: linear-gradient(90deg, #000 0, #000 50%, rgba(0, 0, 0, 0.35) 70%, transparent 88%);
+  }
+
+  .plant {
+    --pu: calc(var(--ru) * 0.72);
+    left: calc(-160 * var(--pu));
+    top: calc(var(--rh) + (380 - 742) * var(--pu) + 6 * var(--ru));
+    width: calc(330 * var(--pu));
+    height: calc(430 * var(--pu));
+  }
+
+  .window {
+    left: auto;
+    width: clamp(26px, 8%, 64px);
+  }
+  .frameLine {
+    left: -6px;
+    width: 14px;
+    mask-image: linear-gradient(180deg, #000 0, #000 8%, rgba(0, 0, 0, 0.5) 22%, rgba(0, 0, 0, 0.16) 60%);
+  }
+  .paneNear {
+    left: 2px;
+    width: auto;
+    right: 0;
+    background:
+      radial-gradient(90% 22% at 0 0, rgba(82, 132, 214, 0.75), rgba(82, 132, 214, 0) 100%),
+      linear-gradient(180deg, #1c2b47 0, #22375f 12%, #162137 30%, #131826 55%, #171b26 82%, #2b4577 100%);
+  }
+  .sill {
+    left: 0;
+  }
+  .windowSpill {
+    left: auto;
+    width: clamp(26px, 8%, 64px);
+  }
+}
+
+/* ---- Reduced motion: short, undelayed crossfades ------------------ */
+
+/* !important: globals.css cuts every transition to 0.01ms here, but
+   the room should crossfade with the lamp and card (300ms). */
+@media (prefers-reduced-motion: reduce) {
+  .layer,
+  .room[data-on="true"] .warm,
+  .room[data-on="true"] .cool {
+    transition: opacity 300ms ease !important;
+  }
+}

@@ -1,0 +1,557 @@
+/* ==================================================================
+   The floor lamp (Lamp.tsx).
+
+   Everything is laid out in design px of lamp-on.png, relative to the
+   lamp's own box: N design px is calc(N * var(--u)), and --u comes from
+   the login stage. The box is the lamp itself, 258 x 599 (top bar to
+   base, design x 307 / y 214); the light layers overflow it, so they
+   travel with the lamp when it glides. Numbers are from design-spec.md
+   (A1-A9), converted to the box: local = design - (307, 214).
+
+   Glows are pre-painted and only ever fade with opacity, keyed off
+   data-on:
+     .lit    light the lamp throws (cone, pool, warm metal): fades in
+             over 700ms just after the switch, out in 220ms
+     .unlit  the faint rim light of the dark lamp, which the warm
+             surfaces replace
+     .flick  the diffuser itself: flickers on, 0 -> .9 -> .35 -> 1
+     .flash  the capsule: snaps on with the click
+   ================================================================== */
+
+.lamp {
+  position: relative;
+  width: calc(258 * var(--u));
+  height: calc(599 * var(--u));
+}
+
+.lamp > span,
+.body {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.lit {
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.lamp[data-on="true"] .lit {
+  opacity: 1;
+  transition: opacity 700ms ease-out 80ms;
+}
+
+.unlit {
+  transition: opacity 220ms ease;
+}
+.lamp[data-on="true"] .unlit {
+  opacity: 0;
+  transition: opacity 700ms ease-out 80ms;
+}
+
+.flick {
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.lamp[data-on="true"] .flick {
+  opacity: 1;
+  animation: flicker 260ms linear;
+}
+
+@keyframes flicker {
+  0% {
+    opacity: 0;
+  }
+  22% {
+    opacity: 0.9;
+  }
+  52% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.flash {
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+.lamp[data-on="true"] .flash {
+  opacity: 1;
+  transition: opacity 120ms ease-out;
+}
+
+/* Pre-warm (usePrewarm in app/login/page.tsx): for a few frames after
+   load the stage carries data-warm, and the light layers are painted
+   at a level nobody can see, so their first real fade-in has nothing
+   left to rasterise. */
+[data-warm] .lit,
+[data-warm] .flick,
+[data-warm] .flash {
+  opacity: 0.003;
+  transition: none;
+}
+
+/* ------------------------------------------------------------------
+   Light layers, back to front.
+   ------------------------------------------------------------------ */
+
+/* The glow the bar throws up onto the wall: an ellipse 170 x 110
+   centred on the bar's top edge (spec A3). It fades out just below the
+   bar, where the cone takes over. */
+.halo {
+  left: calc(-107 * var(--u));
+  top: calc(-110 * var(--u));
+  width: calc(480 * var(--u));
+  height: calc(170 * var(--u));
+  background: radial-gradient(
+    calc(240 * var(--u)) calc(110 * var(--u)) at 50% calc(110 * var(--u)),
+    rgba(255, 196, 92, 1),
+    rgba(255, 182, 80, 0.86) 9%,
+    rgba(250, 168, 72, 0.64) 23%,
+    rgba(240, 155, 70, 0.34) 41%,
+    rgba(230, 150, 70, 0.2) 59%,
+    rgba(220, 150, 80, 0.07) 86%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 68%, transparent 94%);
+  mask-image: linear-gradient(to bottom, #000 68%, transparent 94%);
+}
+
+/* The cone (spec A8): a warm wash cut to a wedge by a conic mask whose
+   apex is the cone's virtual apex above the bar (design 435, 93), half
+   angle 32.7deg at half strength, with a long soft tail out to 38.5deg.
+   An angular edge softens with distance, as a real penumbra does. The
+   second mask is the measured fall-off from white-hot under the
+   diffuser to a dim wash at the horizon, and hides everything above
+   the bar. The box runs from the apex down to the horizon. */
+.cone {
+  --wedge: conic-gradient(
+    from 180deg at 50% 0%,
+    #000 0deg,
+    #000 31.5deg,
+    rgba(0, 0, 0, 0.55) 33.4deg,
+    rgba(0, 0, 0, 0.18) 35.6deg,
+    transparent 38.5deg,
+    transparent 321.5deg,
+    rgba(0, 0, 0, 0.18) 324.4deg,
+    rgba(0, 0, 0, 0.55) 326.6deg,
+    #000 328.5deg
+  );
+  --falloff: linear-gradient(
+    to bottom,
+    transparent 22.2%,
+    #000 22.8%,
+    #000 26%,
+    #000 27.25%,
+    rgba(0, 0, 0, 0.97) 28.8%,
+    rgba(0, 0, 0, 0.86) 31.8%,
+    rgba(0, 0, 0, 0.75) 34.8%,
+    rgba(0, 0, 0, 0.64) 39.4%,
+    rgba(0, 0, 0, 0.54) 43.9%,
+    rgba(0, 0, 0, 0.35) 53.8%,
+    rgba(0, 0, 0, 0.245) 62.9%,
+    rgba(0, 0, 0, 0.145) 72%,
+    rgba(0, 0, 0, 0.11) 81%,
+    rgba(0, 0, 0, 0.08) 91%,
+    transparent 100%
+  );
+  left: calc(-422 * var(--u));
+  top: calc(-121 * var(--u));
+  width: calc(1100 * var(--u));
+  height: calc(648 * var(--u));
+  background: linear-gradient(
+    to bottom,
+    #fff3d2 24.2%,
+    #fed163 25.5%,
+    #f9bb4d 27.25%,
+    #fbb448 28.8%,
+    #fcb043 31.8%,
+    #feab42 34.8%,
+    #ffaa46 40%
+  );
+  -webkit-mask-image: var(--wedge), var(--falloff);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--wedge), var(--falloff);
+  mask-composite: intersect;
+}
+
+/* With the lamp off, the capsule alone lays a faint warm line down the
+   floor under the pole (spec A7): a ~14px core in a soft +-60px wash. */
+.offStreak {
+  left: calc(50 * var(--u));
+  top: calc(599 * var(--u));
+  width: calc(160 * var(--u));
+  height: calc(250 * var(--u));
+  background:
+    linear-gradient(
+      90deg,
+      transparent 40%,
+      rgba(128, 98, 75, 0.95) 46%,
+      rgba(128, 98, 75, 0.95) 54%,
+      transparent 60%
+    ),
+    linear-gradient(90deg, transparent, rgba(90, 70, 54, 0.35) 50%, transparent);
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000,
+    #000 8%,
+    rgba(0, 0, 0, 0.78) 26%,
+    rgba(0, 0, 0, 0.6) 38%,
+    rgba(0, 0, 0, 0.3) 86%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000,
+    #000 8%,
+    rgba(0, 0, 0, 0.78) 26%,
+    rgba(0, 0, 0, 0.6) 38%,
+    rgba(0, 0, 0, 0.3) 86%,
+    transparent
+  );
+}
+
+/* The cone's light on the floor just past the horizon (spec A9): a warm
+   strip strongest right at the wall line, across the cone's footprint. */
+.floorWash {
+  left: calc(-257 * var(--u));
+  top: calc(527 * var(--u));
+  width: calc(720 * var(--u));
+  height: calc(100 * var(--u));
+  background: radial-gradient(
+    calc(360 * var(--u)) calc(92 * var(--u)) at calc(360 * var(--u)) 0,
+    rgba(232, 142, 52, 0.7),
+    rgba(230, 140, 50, 0.54) 25%,
+    rgba(225, 135, 50, 0.35) 50%,
+    rgba(220, 130, 50, 0.2) 75%,
+    transparent
+  );
+}
+
+/* Where the cone lands (spec A5, A9): the bright slit of light under
+   the base, the pool spreading from it, a short reflection off the
+   base's left end, and a broad warm wash down the floor. */
+.pool {
+  left: calc(-171 * var(--u));
+  top: calc(560 * var(--u));
+  width: calc(600 * var(--u));
+  height: calc(420 * var(--u));
+  background:
+    radial-gradient(
+      calc(80 * var(--u)) calc(2.4 * var(--u)) at calc(301 * var(--u)) calc(39.6 * var(--u)),
+      #fff3c0,
+      rgba(255, 228, 150, 0.6) 60%,
+      transparent
+    ),
+    radial-gradient(
+      calc(205 * var(--u)) calc(40 * var(--u)) at calc(301 * var(--u)) calc(40 * var(--u)),
+      rgba(253, 219, 119, 0.85),
+      rgba(250, 190, 95, 0.55) 40%,
+      rgba(220, 140, 55, 0.2) 75%,
+      transparent
+    ),
+    radial-gradient(
+      calc(2.5 * var(--u)) calc(16 * var(--u)) at calc(194 * var(--u)) calc(56 * var(--u)),
+      rgba(240, 160, 72, 0.6),
+      transparent
+    ),
+    radial-gradient(
+      calc(250 * var(--u)) calc(400 * var(--u)) at calc(316 * var(--u)) calc(40 * var(--u)),
+      rgba(226, 142, 58, 0.85),
+      rgba(200, 120, 45, 0.5) 60%,
+      transparent
+    );
+  -webkit-mask-image: linear-gradient(to bottom, transparent 8.6%, #000 9.3%, #000 70%, transparent);
+  mask-image: linear-gradient(to bottom, transparent 8.6%, #000 9.3%, #000 70%, transparent);
+}
+
+/* The pole's reflection: a bright streak, half-max 38 wide, running
+   from under the base to the bottom of the canvas (spec A9), then
+   fading on any floor beyond it. */
+.streak {
+  left: calc(100 * var(--u));
+  top: calc(599 * var(--u));
+  width: calc(60 * var(--u));
+  height: calc(420 * var(--u));
+  background: linear-gradient(
+    to bottom,
+    #fdcf6c 8.8%,
+    #fde18e 16%,
+    #fde28d 25.5%,
+    #fecb5f 39.8%,
+    #f7b246 54%,
+    #eaa441 58.8%,
+    #d89038 80%
+  );
+  --across: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 0, 0, 0.5) 28%,
+    #000 43%,
+    #000 57%,
+    rgba(0, 0, 0, 0.5) 72%,
+    transparent
+  );
+  --down: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.85),
+    #000 8%,
+    #000 60%,
+    rgba(0, 0, 0, 0.45) 80%,
+    transparent
+  );
+  -webkit-mask-image: var(--across), var(--down);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--across), var(--down);
+  mask-composite: intersect;
+}
+
+/* The capsule's reflection, further down the floor. */
+.streak2 {
+  left: calc(198 * var(--u));
+  top: calc(640 * var(--u));
+  width: calc(50 * var(--u));
+  height: calc(380 * var(--u));
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(240, 168, 62, 0.85) 50%,
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 28%,
+    #000 55%,
+    transparent
+  );
+  mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 55%, transparent);
+}
+
+/* The lamp's metal. */
+.body {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The diffuser's bloom, spilling over the bar's lower lip and down
+   into the top of the cone. */
+.bloom {
+  left: calc(10 * var(--u));
+  top: calc(12 * var(--u));
+  width: calc(239 * var(--u));
+  height: calc(42 * var(--u));
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 253, 248, 0.6),
+    rgba(255, 218, 150, 0.32) 55%,
+    rgba(255, 180, 90, 0.08) 85%,
+    transparent
+  );
+}
+
+/* A faint warm glint where the pole meets the diffuser -- the only
+   light on the metal with the lamp off. */
+.joint {
+  left: calc(107 * var(--u));
+  top: calc(33 * var(--u));
+  width: calc(45 * var(--u));
+  height: calc(14 * var(--u));
+  background: radial-gradient(closest-side, rgba(200, 160, 118, 0.55), transparent);
+}
+
+/* ------------------------------------------------------------------
+   The pull: cord and capsule.
+
+   The button is the hit area -- the whole cord plus a margin round the
+   capsule, never under 44 real px wide -- and holds still. Inside it,
+   .idle carries the gentle sway while the lamp is off and .swing the
+   pendulum after a pull (Lamp.tsx writes its rotate), both pivoting
+   on the point where the cord leaves the bar (229.5, 24).
+   ------------------------------------------------------------------ */
+.pull {
+  /* 56 so it stays over 44 real px with the lamp scaled down (0.8). */
+  --hit: max(calc(56px / var(--app-zoom, 1)), calc(48 * var(--u)));
+  position: absolute;
+  z-index: 3;
+  left: calc(229.5 * var(--u) - var(--hit) / 2);
+  top: calc(24 * var(--u));
+  width: var(--hit);
+  height: calc(203 * var(--u));
+  padding: 0;
+  border: 0;
+  border-radius: calc(12 * var(--u));
+  background: none;
+  cursor: grab;
+  touch-action: none;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.pull[data-dragging] {
+  cursor: grabbing;
+}
+
+.idle,
+.swing {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+}
+.swing {
+  left: 0;
+}
+
+.lamp[data-on="false"] .idle {
+  animation: sway 5.2s ease-in-out infinite;
+}
+
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(1.1deg);
+  }
+  75% {
+    transform: rotate(-1.1deg);
+  }
+}
+
+/* ~3.5px of warm black, braided-looking, with a lit left edge: grey in
+   the dark, amber in the cone (spec A6). */
+.cord {
+  position: absolute;
+  left: calc(max(2px, calc(3.5 * var(--u))) / -2);
+  top: 0;
+  width: max(2px, calc(3.5 * var(--u)));
+  height: calc(127 * var(--u));
+  transform-origin: 50% 0;
+}
+.cordOff,
+.cordOn {
+  position: absolute;
+  inset: 0;
+}
+.cordOff {
+  background: linear-gradient(90deg, #6e6c69, #3a3836 30%, #1a120b 55%, #2a2622);
+}
+.cordOn {
+  background: linear-gradient(90deg, #e2a446, #5a3818 28%, #1a120b 52%, #3a2412 78%, #9a6a34);
+}
+
+.capsule {
+  position: absolute;
+  left: calc(-11 * var(--u));
+  top: calc(127 * var(--u));
+  width: calc(22 * var(--u));
+  height: calc(60 * var(--u));
+}
+.capsule > span {
+  position: absolute;
+  pointer-events: none;
+}
+
+.capsuleArt {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* The filament's tight halo (~12-15px), breathing every few seconds
+   while the lamp is off to invite a pull. */
+.capGlowOff {
+  left: calc(-16 * var(--u));
+  top: calc(8 * var(--u));
+  width: calc(54 * var(--u));
+  height: calc(60 * var(--u));
+  background: radial-gradient(
+    closest-side,
+    rgba(241, 214, 166, 0.5),
+    rgba(200, 130, 60, 0.16) 55%,
+    transparent
+  );
+  opacity: 0.75;
+}
+.lamp[data-on="false"] .capGlowOff {
+  animation: invite 3s ease-in-out infinite;
+}
+
+@keyframes invite {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* On: an amber halo ~30px round the glowing lower half. */
+.capGlowOn {
+  left: calc(-30 * var(--u));
+  top: calc(-12 * var(--u));
+  width: calc(82 * var(--u));
+  height: calc(104 * var(--u));
+  background: radial-gradient(
+    closest-side,
+    rgba(255, 236, 190, 0.6),
+    rgba(255, 190, 90, 0.42) 38%,
+    rgba(255, 170, 70, 0.12) 72%,
+    transparent
+  );
+}
+
+/* Keyboard focus ring round the capsule. */
+.ring {
+  inset: calc(-6 * var(--u));
+  border-radius: 999px;
+  box-shadow:
+    0 0 0 2px rgba(255, 210, 150, 0.95),
+    0 0 12px rgba(255, 180, 90, 0.6);
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+.pull:focus-visible .ring {
+  opacity: 1;
+}
+
+/* TALL (portrait): when on, the stage lifts the lamp clear of the card
+   and its base ends up behind the card, off the floor -- so nothing
+   may be painted on the floor under it. */
+@media (max-aspect-ratio: 1/1) {
+  .lamp[data-on="true"] .floorWash,
+  .lamp[data-on="true"] .pool,
+  .lamp[data-on="true"] .streak,
+  .lamp[data-on="true"] .streak2,
+  .lamp[data-on="true"] .offStreak {
+    opacity: 0;
+  }
+  .offStreak {
+    transition: opacity 220ms ease;
+  }
+}
+
+/* Less motion: no flicker, sway or breathing; the light just fades. */
+@media (prefers-reduced-motion: reduce) {
+  .lamp .lit,
+  .lamp .unlit,
+  .lamp .flick,
+  .lamp .flash {
+    animation: none !important;
+    transition: opacity 300ms ease !important;
+  }
+  .lamp .idle,
+  .lamp .capGlowOff {
+    animation: none !important;
+  }
+}

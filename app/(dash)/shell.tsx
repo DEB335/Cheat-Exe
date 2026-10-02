@@ -3,8 +3,9 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { BackgroundVideo, GridBackdrop } from "@/components/effects/BackgroundVideo";
+import { BackgroundMusic } from "@/components/effects/BackgroundMusic";
 import { CursorSparks } from "@/components/effects/CursorSparks";
+import { GridBackdrop } from "@/components/effects/GridBackdrop";
 import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -269,7 +270,10 @@ export function Shell({
 
   return (
     <>
-      <BackgroundVideo />
+      <BackgroundMusic />
+      {/* Solid dark base behind the dashboard. Hidden in light mode, which
+          paints its own page colour. */}
+      <div aria-hidden className="pointer-events-none fixed inset-0 -z-2 bg-[#040718] lt:hidden" />
       <GridBackdrop />
       <CursorSparks />
 

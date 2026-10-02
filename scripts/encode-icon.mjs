@@ -12,9 +12,9 @@
  * Writes public/favicon.ico, all four sizes in the one file that
  * app/layout.tsx declares and that browsers ask for unprompted.
  *
- * sharp is already a dependency, so unlike the video encoder this needs
+ * sharp is already a dependency, so unlike the music encoder this needs
  * nothing installed. Keep the source file somewhere safe -- it is not
- * committed, for the same reason the video source is not.
+ * committed, for the same reason the music source is not.
  */
 import fs from "node:fs";
 import path from "node:path";

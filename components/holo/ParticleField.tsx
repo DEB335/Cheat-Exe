@@ -16,8 +16,8 @@ import { lighten, mix, PALETTES, resolvePalette, type PaletteInput, type Palette
  * and cross faster than far ones, and anything off the focal plane
  * spreads into a softer disc.
  *
- * The drawing follows the login card's field (components/login/
- * GlassScene.tsx): positions are a pure function of a shared clock, so
+ * The drawing follows the old login card's particle field: positions
+ * are a pure function of a shared clock, so
  * two fields with the same props -- a stage's back and front layers --
  * stay in lockstep without talking to each other; every glow is a
  * sprite rendered once and stamped with drawImage; and nothing uses

@@ -1,0 +1,38 @@
+/* The traced "WELCOME TO CHEAT EXE". Lengths are in card units (--cu,
+   set by the login stage), so the lettering scales with the card. The
+   box size is fixed up front, so nothing shifts when the SVG paints. */
+
+/* --s shrinks the lettering below the design's size (the owner asked for
+   it smaller and a little lower); the top margin is the drop. The
+   subtitle's margin in login-card.module.css absorbs both, so it stays
+   where the design has it. */
+.title {
+  --s: 0.82;
+  position: relative;
+  width: calc(444 * var(--s) * var(--cu, 1px));
+  height: calc(43.3 * var(--s) * var(--cu, 1px));
+  margin: calc(10 * var(--cu, 1px)) 0 0;
+}
+
+/* The viewBox is the ink's bounding box. It sits 9.25 units left of the
+   box, as in the design; a margin rather than a transform, because the
+   card animates its rows with transform. */
+.ink {
+  display: block;
+  width: 100%;
+  height: 100%;
+  margin-left: calc(-9.25 * var(--cu, 1px));
+  overflow: visible;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

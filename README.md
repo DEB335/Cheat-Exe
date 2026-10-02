@@ -219,14 +219,12 @@ is a consequence of a decision you approved, and each is one edit to undo.
    hash, so there is nothing to pre-fill. The original pre-filled it with
    the plaintext password.
 
-3. **The tether button locks on "complete", not "correct".** The login
-   button dodged the cursor until the typed credentials *matched*, which
-   required the real password in the browser. It now snaps home and locks
-   green once both fields are filled, and turns red on a rejected submit.
-   The dodge physics, elastic cord, snap chord and bolt-away are
-   unchanged. Restoring the exact original behaviour would need an
-   unauthenticated "is this password right?" endpoint, i.e. a
-   brute-force oracle.
+3. **The sign-in button unlocks on a server check.** The original login
+   button dodged the cursor until the typed credentials *matched* a copy
+   kept in the browser. The login page is now a dark room with a floor
+   lamp: pulling its cord turns the light on and opens the sign-in card,
+   whose button only submits once `/api/auth/verify` confirms the pair
+   (until then a click just nudges it).
 
 4. **Light mode is reachable.** The original ships a complete light
    theme and a View Transitions circular-reveal toggle, but no control
@@ -249,9 +247,9 @@ app/
                      resellers, devices, banned, audit, history, profile
   login/             sign-in page
 components/
-  effects/           background video, cursor sparks, click wave
+  effects/           background music, grid, cursor sparks, click wave
   layout/            sidebar, header
-  login/             tether button
+  login/             lamp scene (room, lamp + pull cord), sign-in card, title
   ui/                buttons, cards, table, form, modal, toast, badges
 lib/                 db, session, auth, license-api, store, sounds, nav, types
 proxy.ts             route guard (Next 16 renamed middleware -> proxy)

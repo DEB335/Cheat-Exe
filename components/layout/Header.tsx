@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
-import { setBackgroundMusicMuted } from "@/components/effects/BackgroundVideo";
+import { setBackgroundMusicMuted } from "@/components/effects/BackgroundMusic";
 import {
   BellIcon,
   ChevronDownIcon,

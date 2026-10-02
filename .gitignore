@@ -51,7 +51,7 @@ next-env.d.ts
 # Discord bot secrets
 bot/.env
 
-# background video source (the encoded copy in public/ is committed)
+# soundtrack source (the encoded public/background-music.m4a is committed)
 /*.mp4
 
 # icon source (the baked copies in public/ and lib/assets/ are committed)
