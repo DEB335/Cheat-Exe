@@ -2,18 +2,30 @@
 
 import { memo, useEffect, useState } from "react";
 
-import { CalendarIcon, ClockIcon, CopyIcon, KeyIcon, UserIcon } from "@/components/icons";
+import {
+  CalendarIcon,
+  ClockIcon,
+  CopyIcon,
+  KeyIcon,
+  LockIcon,
+  UnlockIcon,
+  UserIcon,
+} from "@/components/icons";
 import {
   InfinityIcon,
   NeonButton,
   NeonCell,
+  NeonChip,
   NeonEmpty,
   NeonRow,
   NeonTable,
   PackageChip,
+  SpinnerIcon,
+  toneVars,
   type NeonColumn,
 } from "@/components/neon";
 import { useToast } from "@/components/ui/Toast";
+import { postJson } from "@/lib/client-api";
 import { keyValidity } from "@/lib/packages";
 import { useDashboard } from "@/lib/store";
 import type { KeyRecord } from "@/lib/types";
@@ -76,6 +88,7 @@ export const KeyHistoryTable = memo(function KeyHistoryTable({
     "License Key",
     "Package",
     "Validity",
+    "HWID",
     ...(showCreator ? ["Creator"] : []),
     "Created On",
     ...(showCopy ? ["Actions"] : []),
@@ -85,7 +98,8 @@ export const KeyHistoryTable = memo(function KeyHistoryTable({
     <NeonTable
       columns={columns}
       tone="violet"
-      minWidth={showCreator ? 960 : 880}
+      // +130 over the old widths for the HWID column's pill.
+      minWidth={showCreator ? 1090 : 1010}
       empty={
         <NeonEmpty icon={<KeyIcon />} tone="violet">
           {/* Before the first load the store is empty too; saying there
@@ -159,6 +173,7 @@ const KeyRow = memo(function KeyRow({
         <PackageChip name={item.package} />
       </NeonCell>
       <ValidityCell item={item} />
+      <HwidCell item={item} toast={toast} />
       {showCreator ? (
         <NeonCell>
           <span className="flex items-center gap-2 font-semibold whitespace-nowrap text-[#ff6b86] lt:text-rose-700">
@@ -231,6 +246,108 @@ function ValidityCell({ item }: { item: KeyRecord }) {
         <Icon aria-hidden className="size-[18px] shrink-0" />
         {label}
       </span>
+    </NeonCell>
+  );
+}
+
+/** What an unlock found when it went to free the key's device at once (see /api/keys/lock). */
+type Release = "released" | "free" | "missing" | "banned" | "expired" | "locked" | "error";
+
+const UNLOCKED_COPY: Record<Release, string> = {
+  released: "HWID unlocked. Its device was released, so any device can log in now.",
+  free: "HWID unlocked. The key is not on a device yet.",
+  missing: "HWID unlocked, but the provider has no record of this key.",
+  banned: "HWID unlocked, but the provider has this key banned.",
+  expired: "HWID unlocked, but the key has expired, so no device can use it.",
+  // Someone locked it again in the moment between the two requests.
+  locked: "The key was locked again before its device could be released.",
+  error: "HWID unlocked. Freeing its device failed; the panel tries again within 30 seconds.",
+};
+
+/**
+ * The HWID column: a small pill that is also the switch.
+ *
+ * Teal "Locked" is the provider's own behaviour -- the key stays on the
+ * first device that uses it. Amber "Unlocked" is this panel's doing: it
+ * keeps releasing the key's binding (lib/use-hwid-sweep.ts), so the next
+ * device to log in takes it. Only `false` is unlocked; a key from before
+ * the switch existed has no value and was always locked.
+ *
+ * The pill stays busy until the refresh that carries the new state has
+ * landed, so it flips once instead of snapping back for a moment. The
+ * store is read on click rather than subscribed to: there is one of
+ * these per row, and a long history would otherwise be thousands of
+ * subscriptions for a function that never changes.
+ */
+function HwidCell({ item, toast }: { item: KeyRecord; toast: ReturnType<typeof useToast> }) {
+  const [busy, setBusy] = useState(false);
+  const locked = item.hwidLock !== false;
+  const tone = locked ? "teal" : "amber";
+
+  const flip = async () => {
+    // aria-disabled rather than disabled while busy: a disabled button
+    // drops keyboard focus to the page body, halfway down a long table.
+    if (busy) return;
+    setBusy(true);
+    try {
+      const data = await postJson<{ hwidLock?: boolean; release?: Release }>("/api/keys/lock", {
+        key: item.key,
+        locked: !locked,
+      });
+      if (locked) {
+        // An unknown answer reads as released: the lock itself did change.
+        const release = data.release && data.release in UNLOCKED_COPY ? data.release : "released";
+        const clean = release === "released" || release === "free";
+        toast(UNLOCKED_COPY[release], clean ? "success" : "info");
+      } else {
+        toast(
+          "HWID locked. The key stays on the device it is on now, or the next one to use it.",
+          "success",
+        );
+      }
+      await useDashboard.getState().refresh();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <NeonCell>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={locked}
+        aria-label={`HWID lock for ${item.key}`}
+        onClick={flip}
+        aria-disabled={busy || undefined}
+        aria-busy={busy || undefined}
+        title={
+          locked
+            ? "Locked to the first device that uses this key. Click to unlock it."
+            : "Works on any device; the panel frees its device about every 30 seconds. Click to lock it again."
+        }
+        style={toneVars(tone)}
+        className={cn(
+          "group/hwid inline-flex cursor-pointer rounded-full align-middle",
+          "aria-disabled:cursor-wait aria-disabled:opacity-70",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--tone-hi))]",
+        )}
+      >
+        <NeonChip
+          tone={tone}
+          shape="pill"
+          icon={busy ? <SpinnerIcon /> : locked ? <LockIcon aria-hidden /> : <UnlockIcon aria-hidden />}
+          className={cn(
+            "transition-[border-color,box-shadow] duration-200",
+            "group-hover/hwid:border-[rgb(var(--tone-hi))] group-hover/hwid:shadow-[0_0_9px_-2px_rgba(var(--tone),0.48),inset_0_1px_0_rgba(255,255,255,0.12)]",
+            "lt:group-hover/hwid:border-[rgb(var(--tone))] lt:group-hover/hwid:shadow-[0_2px_5px_-2px_rgba(var(--tone),0.3)]",
+          )}
+        >
+          {locked ? "Locked" : "Unlocked"}
+        </NeonChip>
+      </button>
     </NeonCell>
   );
 }

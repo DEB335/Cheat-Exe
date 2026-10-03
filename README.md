@@ -176,6 +176,62 @@ stale tab or a direct call cannot spend a credit behind the notice. The
 automatic case needs no such guard: a write goes to the same provider the
 read could not reach, and fails on its own.
 
+### HWID lock
+
+The provider binds every key to the first device that uses it, and has
+no setting to turn that off: no action, and no `generate_key` parameter
+(unknown fields are silently ignored). So an unlocked key is something
+the panel does, not something it asks for. It keeps clearing the binding
+with `reset_hwid`, and the next device to log in takes the key.
+
+- **Generating.** The generator sends `hwidLock` (on by default). Every
+  new `KeyRecord` stores it explicitly, and the audit line ends
+  `(HWID unlocked)` when it is off. Nothing about it goes to the
+  provider. A record with no value predates the switch and counts as
+  locked; only `false` means unlocked.
+- **Switching.** `POST /api/keys/lock` with `{ key, locked }`. The owner
+  can switch any key, a reseller only keys they generated. It writes the
+  record, adds an audit line and pings. Unlocking also frees the current
+  device at once, and the reply reports how that went in `release`
+  (`released`, `free`, `missing`, `banned`, `expired`, `locked` or
+  `error`).
+- **Sweeping.** `POST /api/keys/hwid-sweep` runs `sweepUnlockedKeys()` in
+  `lib/hwid-release.ts`. It looks up each unlocked key with `key_info`,
+  six at a time, and sends `reset_hwid` only when a device is bound. Just
+  before each reset it re-reads that key's records and skips the reset
+  (`locked`) unless every one is still unlocked. A banned or expired key
+  is left alone. It writes no audit lines and sends no pings. An instance
+  skips a sweep if it started one less than 10 s ago or is still running
+  one.
+- **Bounds.** A pass stops handing out keys after 45 s and reports the
+  rest as `unfinished`. The next pass starts where it stopped, so a long
+  history is never starved at the tail. A key that came back `missing`,
+  `banned` or `expired` is skipped for 30 minutes on that instance
+  (`skippedKeys`). Errors and unrecognised statuses are retried on the
+  next pass.
+- **Who sweeps.** Any open dashboard tab asks every 20 s while an
+  unlocked key exists. With every tab closed, Supabase asks every 30 s:
+  run `scripts/hwid-sweep-cron.sql` once (pg_cron + pg_net) after filling
+  in the site URL and the token. The cron has no cookie, so it sends
+  `x-hwid-sweep-token`: the hex HMAC-SHA256 of `hwid-sweep` under
+  `SESSION_SECRET`. The script prints the one-liner that computes it.
+  Rotating `SESSION_SECRET` changes the token, so re-run the script.
+
+**The limit:** the provider still refuses a second device until the
+binding is cleared. Moving an unlocked key to a new machine can
+therefore take up to ~30 s. The first login attempt from the new device
+may be refused, and a retry shortly after goes through.
+
+Locking a key again takes effect before the next reset, including one a
+sweep already in progress was about to send, because the lock is
+re-checked just before every reset. The device holding the key keeps
+it. If no device holds it, the next one to log in takes it, as the
+provider does by itself.
+
+Clearing key history (`app/api/history/route.ts`) also stops the panel
+looking after those keys. Any unlocked key among them stays on whatever
+device holds it.
+
 
 ### Writes are serialised
 

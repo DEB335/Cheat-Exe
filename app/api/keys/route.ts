@@ -14,6 +14,12 @@ interface GenerateBody {
   packageId?: string;
   duration?: string;
   amount?: string;
+  /**
+   * Whether the keys stay on the first device that uses them. Anything
+   * but an explicit `false` means locked, which is also what a key minted
+   * before the switch existed is.
+   */
+  hwidLock?: boolean;
 }
 
 /**
@@ -46,6 +52,11 @@ export const POST = route(async (request: Request) => {
   if (!Number.isInteger(amount) || amount < 1 || amount > 100) {
     throw new HttpError(400, "Count must be a whole number between 1 and 100.");
   }
+
+  // Not sent to the provider: it has no such parameter and binds every
+  // key regardless. The panel records the choice, and the sweep
+  // (lib/hwid-release.ts) keeps an unlocked key's device free.
+  const hwidLock = body.hwidLock !== false;
 
   const isReseller = user.role !== "OWNER";
 
@@ -127,7 +138,7 @@ export const POST = route(async (request: Request) => {
         : [];
   if (generated.length === 0) {
     if (isReseller) await releaseReservation(user.username, amount);
-    return NextResponse.json({ success: true, keys: [], raw: data });
+    return NextResponse.json({ success: true, keys: [], raw: data, hwidLock });
   }
 
   const creator = user.role === "OWNER" ? "admin" : user.username;
@@ -143,6 +154,9 @@ export const POST = route(async (request: Request) => {
     package: pkg.name,
     duration,
     ...(applied === undefined ? {} : { appliedDays: applied }),
+    // Stored either way, so a new key never leans on "absent means
+    // locked" -- that reading exists only for keys older than the switch.
+    hwidLock,
     creator,
     date: formatTimestamp(),
   }));
@@ -162,7 +176,7 @@ export const POST = route(async (request: Request) => {
 
     pushAudit(db, {
       user: displayUser(user.username, user.role),
-      action: `Generated ${records.length} key(s) for ${pkg.name}`,
+      action: `Generated ${records.length} key(s) for ${pkg.name}${hwidLock ? "" : " (HWID unlocked)"}`,
       ip,
     });
 
@@ -173,7 +187,7 @@ export const POST = route(async (request: Request) => {
 
   recordRealExpiry(generated);
 
-  return NextResponse.json({ success: true, keys: generated, raw: data });
+  return NextResponse.json({ success: true, keys: generated, raw: data, hwidLock });
 });
 
 /**

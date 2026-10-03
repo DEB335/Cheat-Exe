@@ -14,6 +14,7 @@ import { canManageWhitelist } from "@/lib/packages";
 import { publishPing } from "@/lib/ping";
 import { SESSION_LIFETIME_MINUTES } from "@/lib/session-lifetime";
 import { isRefreshing, useDashboard, useMyPackages } from "@/lib/store";
+import { useHwidSweep } from "@/lib/use-hwid-sweep";
 import { useInspectGuard } from "@/lib/use-inspect-guard";
 import { useRealtimePing } from "@/lib/use-realtime";
 import type { SessionUser } from "@/lib/types";
@@ -289,6 +290,10 @@ export function Shell({
   // keyboard shortcuts that open the same inspector. See the hook for
   // what this does and does not actually prevent.
   useInspectGuard((message) => toast(message, "error"));
+
+  // Frees the device of every HWID-unlocked key every 20 s while this tab
+  // is visible. See the hook.
+  useHwidSweep();
 
   return (
     <>

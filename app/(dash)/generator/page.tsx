@@ -12,6 +12,7 @@ import {
   NeonCta,
   NeonInput,
   NeonPanel,
+  NeonToggle,
   PanelHeader,
 } from "@/components/neon";
 import { useToast } from "@/components/ui/Toast";
@@ -67,6 +68,8 @@ export default function GeneratorPage() {
   const active = allowed.some((p) => p.id === selected) ? selected : (allowed[0]?.id ?? "");
   const [days, setDays] = useState("30");
   const [count, setCount] = useState("1");
+  // On by default: a locked key is what the provider does by itself.
+  const [hwidLock, setHwidLock] = useState(true);
   const [busy, setBusy] = useState(false);
   const [log, setLog] = useState<string[]>([]);
   const [keys, setKeys] = useState<string[]>([]);
@@ -77,13 +80,16 @@ export default function GeneratorPage() {
     setBusy(true);
     setLog([]);
     setKeys([]);
-    append(`\n> Requesting ${count} key(s) for package ${active}...`);
+    append(
+      `\n> Requesting ${count} key(s) for package ${active} (HWID lock: ${hwidLock ? "ON" : "OFF"})...`,
+    );
 
     try {
       const data = await postJson<{ keys?: string[]; raw?: unknown }>("/api/keys", {
         packageId: active,
         duration: days,
         amount: count,
+        hwidLock,
       });
 
       append(`[SUCCESS] API Response: ${JSON.stringify(data.raw, null, 2)}`);
@@ -239,6 +245,30 @@ export default function GeneratorPage() {
               </p>
             )}
           </div>
+
+          {/* Inside the fields' grid, across both columns, so the my-auto
+              above moves it with the fields rather than opening a gap
+              between them, and it stays clear of the button's lit floor.
+
+              The provider binds every key to the first device it meets and
+              has no switch to stop that, so "off" is this panel's doing:
+              it keeps releasing an unlocked key's binding (see
+              lib/use-hwid-sweep.ts), and whichever device logs in next
+              takes it. Teal while locked, the colour the history's Locked
+              pill wears; the well tints amber when off, as Unlocked does. */}
+          <NeonToggle
+            id="genHwidLock"
+            className="mt-1 sm:col-span-2"
+            tone={hwidLock ? "teal" : "amber"}
+            checked={hwidLock}
+            onChange={setHwidLock}
+            title="HWID lock"
+            description={
+              hwidLock
+                ? "Each key locks to the first device that uses it. Other devices are refused."
+                : "Unlocked: the key works on any device. The panel frees its device about every 30 seconds."
+            }
+          />
         </div>
 
         <div className="relative flex justify-center pt-10 pb-2">

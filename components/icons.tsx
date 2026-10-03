@@ -274,6 +274,14 @@ export const LockIcon = (p: IconProps) => (
   </Stroke>
 );
 
+/** Feather unlock: LockIcon with the shackle swung open. An unlocked key's HWID. */
+export const UnlockIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+  </Stroke>
+);
+
 /** Feather tool. Used for the maintenance notice. */
 export const WrenchIcon = (p: IconProps) => (
   <Stroke {...p}>

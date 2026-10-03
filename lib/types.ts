@@ -79,6 +79,17 @@ export interface KeyRecord {
    * empty until they fix that, and then fills in by itself.
    */
   expiry?: string;
+  /**
+   * Whether the key stays on the first device that uses it.
+   *
+   * The provider binds every key to its first device and has no switch
+   * to turn that off, so "unlocked" is something this panel does: it
+   * keeps releasing the binding (reset_hwid) whenever it finds one, and
+   * the next device to log in takes the key. Only `false` means
+   * unlocked. Keys from before the switch existed have no value and were
+   * always locked, which is what the provider does by itself.
+   */
+  hwidLock?: boolean;
   /** "admin" for the owner, otherwise the reseller username. */
   creator: string;
   date: string;
