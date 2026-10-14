@@ -56,6 +56,8 @@ export async function createSessionToken(user: SessionUser, deadline?: number): 
     role: user.role,
     packages: user.packages,
     sessionId: user.sessionId,
+    uidBypassAccess: Boolean(user.uidBypassAccess),
+    emulatorBypassAccess: Boolean(user.emulatorBypassAccess),
   })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -84,6 +86,8 @@ function toUser(payload: Record<string, unknown>): SessionUser | null {
     role: payload.role,
     packages: Array.isArray(payload.packages) ? (payload.packages as string[]) : [],
     sessionId: typeof payload.sessionId === "string" ? payload.sessionId : "",
+    uidBypassAccess: Boolean(payload.uidBypassAccess),
+    emulatorBypassAccess: Boolean(payload.emulatorBypassAccess),
   };
 }
 

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { SESSION_COOKIE, readSessionToken } from "@/lib/session";
 
-const OWNER_ONLY = ["/owner-history", "/resellers", "/devices", "/banned-vault", "/uid-bypass"];
+const OWNER_ONLY = ["/owner-history", "/resellers", "/devices", "/banned-vault"];
 
 /**
  * Replaces the old client-side redirect (which any visitor could skip)
@@ -46,5 +46,6 @@ export const config = {
     "/devices/:path*",
     "/banned-vault/:path*",
     "/uid-bypass/:path*",
+    "/emulator-bypass/:path*",
   ],
 };
