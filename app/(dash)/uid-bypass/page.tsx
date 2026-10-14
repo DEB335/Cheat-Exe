@@ -88,11 +88,12 @@ export default function UidBypassOverviewPage() {
     )?.[1];
     const totalCredits = record?.emulatorCredits ?? user.emulatorCredits ?? 0;
     if (totalCredits <= 0) return "Unlimited";
-    const used = db.cheatExeKeyHistory.filter(
+    const historyUsed = db.cheatExeKeyHistory.filter(
       (k) =>
         k.package === "EMULATOR BYPASS" &&
         isCreatorMatch(k.creator, user.username),
     ).length;
+    const used = Math.max(record?.emulatorCreditsUsed ?? user.emulatorCreditsUsed ?? 0, historyUsed);
     return Math.max(0, totalCredits - used);
   }, [showEmulatorStats, isOwner, db.cheatExeUsers, db.cheatExeKeyHistory, user]);
 

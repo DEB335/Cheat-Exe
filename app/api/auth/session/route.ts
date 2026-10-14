@@ -67,6 +67,7 @@ export const GET = route(async (req: NextRequest) => {
       emulatorBypassAccess: user.role === "OWNER" ? true : Boolean(resellerRec?.emulatorBypassAccess),
       emulatorCredits: user.role === "OWNER" ? 999999 : (resellerRec?.emulatorCredits ?? 0),
       emulatorAllowedDays: user.role === "OWNER" ? [1, 3, 7, 30, 60, 90, 180, 365] : (resellerRec?.emulatorAllowedDays ?? [1, 3, 7]),
+      emulatorCreditsUsed: resellerRec?.emulatorCreditsUsed ?? 0,
     },
     unread: unreadFor(db.cheatExeMessages, user.username),
     updatedAt: await getDbUpdatedAt(),

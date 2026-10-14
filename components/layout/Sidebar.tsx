@@ -7,7 +7,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { emitClickWave } from "@/components/effects/ClickWave";
 import { AppsIcon, ChevronLeftIcon, ChevronRightIcon, LinkIcon } from "@/components/icons";
 import { NAV_GROUPS, PROFILE_ITEM, canSeeItem, type NavItem } from "@/lib/nav";
-import { useDashboard, useMyPackages } from "@/lib/store";
+import { useDashboard, useEffectiveUser, useMyPackages } from "@/lib/store";
 import { useMediaQuery, useStoredFlag } from "@/lib/use-external";
 import type { Role } from "@/lib/types";
 import { cn, hexToRgbTriplet } from "@/lib/utils";
@@ -161,28 +161,7 @@ export const Sidebar = memo(function Sidebar({
   onCloseMobile: () => void;
 }) {
   const pathname = usePathname();
-  const user = useDashboard((s) => s.user);
-  const dbUser = useDashboard((s) => {
-    if (!s.user) return null;
-    return Object.entries(s.db.cheatExeUsers).find(
-      ([name]) => name.toLowerCase() === s.user?.username.toLowerCase(),
-    )?.[1];
-  });
-  const effectiveUser = useMemo(() => {
-    if (!user) return null;
-    if (user.role === "OWNER") return user;
-    return {
-      ...user,
-      ...(dbUser
-        ? {
-            uidBypassAccess: dbUser.uidBypassAccess ?? user.uidBypassAccess,
-            emulatorBypassAccess: dbUser.emulatorBypassAccess ?? user.emulatorBypassAccess,
-            emulatorCredits: dbUser.emulatorCredits ?? user.emulatorCredits,
-            emulatorAllowedDays: dbUser.emulatorAllowedDays ?? user.emulatorAllowedDays,
-          }
-        : {}),
-    };
-  }, [user, dbUser]);
+  const effectiveUser = useEffectiveUser();
 
   // The three counts the badges print, each its own selector, so the rail
   // re-renders when a count moves rather than whenever anything in the

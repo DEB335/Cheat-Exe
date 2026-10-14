@@ -29,7 +29,7 @@ import {
   type TitleIcon,
 } from "@/lib/nav";
 import { UID_BYPASS_PACKAGE, canManageWhitelist } from "@/lib/packages";
-import { useDashboard, useMyPackages } from "@/lib/store";
+import { useDashboard, useEffectiveUser, useMyPackages } from "@/lib/store";
 import { useTheme } from "@/lib/use-theme";
 import { cn, formatStampForDisplay } from "@/lib/utils";
 
@@ -516,7 +516,7 @@ function useShortcutModifier(): "meta" | "ctrl" | null {
 
 function QuickSearch() {
   const router = useRouter();
-  const user = useDashboard((s) => s.user);
+  const user = useEffectiveUser();
   const packages = useMyPackages();
   const modifier = useShortcutModifier();
   const [query, setQuery] = useState("");
@@ -532,7 +532,7 @@ function QuickSearch() {
       // Otherwise search stays a way into a section the sidebar has
       // already taken away -- typing "uid" would still offer it.
       if (item.pkg === UID_BYPASS_PACKAGE && user) {
-        if (!canManageWhitelist({ role: user.role, packages })) return false;
+        if (!canManageWhitelist(user)) return false;
       }
       return item.name.toLowerCase().includes(q) || item.keywords.some((k) => k.includes(q));
     });

@@ -53,11 +53,12 @@ export const POST = route(async (request: Request) => {
 
     const limit = match.user.emulatorCredits ?? 0;
     if (limit > 0) {
-      const used = currentDb.cheatExeKeyHistory.filter(
+      const historyUsed = currentDb.cheatExeKeyHistory.filter(
         (k) =>
           k.package === "EMULATOR BYPASS" &&
           isCreatorMatch(k.creator, user.username),
       ).length;
+      const used = Math.max(match.user.emulatorCreditsUsed ?? 0, historyUsed);
 
       if (used >= limit) {
         throw new HttpError(400, "Insufficient Emulator Bypass credits remaining. Quota reached.");
@@ -133,6 +134,19 @@ export const POST = route(async (request: Request) => {
 
     db.cheatExeKeyHistory.unshift(record);
 
+    if (user.role === "RESELLER") {
+      const match = findReseller(db, user.username);
+      if (match) {
+        const historyUsed = db.cheatExeKeyHistory.filter(
+          (k) =>
+            k.package === "EMULATOR BYPASS" &&
+            isCreatorMatch(k.creator, user.username),
+        ).length;
+        const prevUsed = Math.max(match.user.emulatorCreditsUsed ?? 0, historyUsed - 1);
+        match.user.emulatorCreditsUsed = prevUsed + 1;
+      }
+    }
+
     pushAudit(db, {
       user: displayUser(user.username, user.role),
       action: `Generated Lib Bypass key ${generatedKey} (${days} Days, ${engine})`,
@@ -140,6 +154,7 @@ export const POST = route(async (request: Request) => {
     });
 
     await ping("key", tx);
+    await ping("reseller", tx);
   });
 
   return NextResponse.json({ success: true, key: generatedKey });

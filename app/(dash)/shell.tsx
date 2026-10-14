@@ -11,10 +11,10 @@ import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/components/ui/Toast";
-import { canManageWhitelist } from "@/lib/packages";
+import { canAccessEmulatorBypass, canManageWhitelist } from "@/lib/packages";
 import { publishPing } from "@/lib/ping";
 import { SESSION_LIFETIME_MINUTES } from "@/lib/session-lifetime";
-import { isRefreshing, useDashboard, useMyPackages } from "@/lib/store";
+import { isRefreshing, useDashboard, useEffectiveUser, useMyPackages } from "@/lib/store";
 import { useHwidSweep } from "@/lib/use-hwid-sweep";
 import { useInspectGuard } from "@/lib/use-inspect-guard";
 import { useRealtimePing } from "@/lib/use-realtime";
@@ -112,7 +112,7 @@ export function Shell({
   const openMobile = useCallback(() => setMobileOpen(true), []);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
   const [terminated, setTerminated] = useState<Terminated | null>(null);
-  const storeUser = useDashboard((s) => s.user);
+  const effectiveUser = useEffectiveUser();
   const packages = useMyPackages();
 
   const lastUpdatedAt = useRef<string | null>(null);
@@ -120,17 +120,17 @@ export function Shell({
   // Losing a package while standing on the page it unlocked should not
   // leave someone parked there.
   useEffect(() => {
-    if (terminated || !storeUser) return;
+    if (terminated || !effectiveUser) return;
     if (pathname.startsWith("/uid-bypass")) {
-      if (canManageWhitelist(storeUser)) return;
-      toast("The UID BYPASS package was removed from your account.", "error");
+      if (canManageWhitelist(effectiveUser)) return;
+      toast("UID Bypass access was removed from your account.", "error");
       router.replace("/dashboard");
     } else if (pathname.startsWith("/emulator-bypass")) {
-      if (storeUser.role === "OWNER" || storeUser.emulatorBypassAccess) return;
+      if (canAccessEmulatorBypass(effectiveUser)) return;
       toast("Emulator Bypass access was revoked from your account.", "error");
       router.replace("/dashboard");
     }
-  }, [terminated, storeUser, pathname, router, toast]);
+  }, [terminated, effectiveUser, pathname, router, toast]);
 
   const userKey = JSON.stringify(user);
   useEffect(() => {

@@ -119,7 +119,7 @@ export function ActiveResellersPanel({ actions }: { actions: ResellerActions }) 
             name={name}
             user={user}
             used={keysUsed[name.toLowerCase()] ?? 0}
-            emulatorUsed={emulatorKeysUsed[name.toLowerCase()] ?? 0}
+            emulatorUsed={Math.max(user.emulatorCreditsUsed ?? 0, emulatorKeysUsed[name.toLowerCase()] ?? 0)}
             actions={actions}
           />
         ))}

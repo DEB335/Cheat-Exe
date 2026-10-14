@@ -119,6 +119,7 @@ async function authorize<T extends AccessState>(
     emulatorBypassAccess: user.role === "OWNER" ? true : Boolean(resellerRec?.emulatorBypassAccess),
     emulatorCredits: user.role === "OWNER" ? 999999 : (resellerRec?.emulatorCredits ?? 0),
     emulatorAllowedDays: user.role === "OWNER" ? [1, 3, 7, 30, 60, 90, 180, 365] : (resellerRec?.emulatorAllowedDays ?? [1, 3, 7]),
+    emulatorCreditsUsed: resellerRec?.emulatorCreditsUsed ?? 0,
   };
 
   const blocked = accountBlock(db, user.username, user.role);
@@ -188,6 +189,7 @@ export async function withLivePackages(user: SessionUser): Promise<SessionUser> 
     emulatorBypassAccess: Boolean(resellerRec?.emulatorBypassAccess),
     emulatorCredits: resellerRec?.emulatorCredits ?? 0,
     emulatorAllowedDays: resellerRec?.emulatorAllowedDays ?? [1, 3, 7],
+    emulatorCreditsUsed: resellerRec?.emulatorCreditsUsed ?? 0,
   };
 }
 

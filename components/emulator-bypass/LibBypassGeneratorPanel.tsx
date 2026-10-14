@@ -129,12 +129,17 @@ export function LibBypassGeneratorPanel() {
   const usedCredits = useMemo(() => {
     if (!user) return 0;
     const isOwnerRole = user.role === "OWNER";
-    return db.cheatExeKeyHistory.filter((k) => {
+    const historyUsed = db.cheatExeKeyHistory.filter((k) => {
       if (k.package !== "EMULATOR BYPASS") return false;
       if (isOwnerRole) return true;
       return isCreatorMatch(k.creator, user.username);
     }).length;
-  }, [user, db.cheatExeKeyHistory]);
+    if (isOwnerRole) return historyUsed;
+    const record = Object.entries(db.cheatExeUsers).find(
+      ([name]) => name.toLowerCase() === user.username.toLowerCase(),
+    )?.[1];
+    return Math.max(record?.emulatorCreditsUsed ?? user.emulatorCreditsUsed ?? 0, historyUsed);
+  }, [user, db.cheatExeKeyHistory, db.cheatExeUsers]);
 
   const totalCreditsDisplay = useMemo(() => {
     if (isOwner) return "Unlimited";
@@ -566,31 +571,36 @@ export function LibBypassGeneratorPanel() {
                       title={isPermitted ? `Select ${opt.label} (${info})` : "Locked for your account"}
                       style={toneVars(opt.tone)}
                       className={cn(
-                        "relative flex flex-col items-center justify-center gap-0.5 rounded-[14px] border p-2.5 py-3 cursor-pointer select-none",
+                        "relative flex flex-col items-center justify-center gap-0.5 rounded-[14px] border p-2.5 py-3 select-none",
                         "transition-all duration-200 ease-out",
-                        "hover:-translate-y-1 active:translate-y-0",
-                        isSelected
+                        isPermitted ? "cursor-pointer hover:-translate-y-1 active:translate-y-0" : "cursor-not-allowed opacity-35 grayscale",
+                        isSelected && isPermitted
                           ? [
                             "border-[rgba(var(--tone-hi),0.95)] text-white",
                             "[background:radial-gradient(120%_80%_at_50%_0%,rgba(var(--tone-hi),0.35),rgba(var(--tone),0.18)_60%),linear-gradient(180deg,#121838,#0a0d24)]",
                             "shadow-[0_0_20px_-2px_rgba(var(--tone),0.6),inset_0_1px_0_rgba(255,255,255,0.35)]",
                             "ring-2 ring-[rgba(var(--tone-hi),0.8)]",
                           ]
-                          : [
-                            "border-white/10 bg-[#0a0e24]/90 text-slate-300",
-                            "hover:border-[rgba(var(--tone),0.7)] hover:bg-[#111738] hover:text-white hover:shadow-[0_0_15px_rgba(var(--tone),0.3)]",
-                          ],
-                        !isPermitted &&
-                        "cursor-not-allowed opacity-35 border-white/5 bg-[#080b20]/40 text-[#4c597e] hover:translate-y-0 hover:border-white/5 hover:text-[#4c597e] hover:shadow-none",
+                          : isPermitted
+                            ? [
+                              "border-white/10 bg-[#0a0e24]/90 text-slate-300",
+                              "hover:border-[rgba(var(--tone),0.7)] hover:bg-[#111738] hover:text-white hover:shadow-[0_0_15px_rgba(var(--tone),0.3)]",
+                            ]
+                            : "border-white/5 bg-[#080b20]/60 text-[#4c597e] shadow-none",
                       )}
                     >
+                      {!isPermitted && (
+                        <span className="absolute top-1.5 right-1.5 flex items-center justify-center size-4 rounded-full bg-red-950/90 border border-red-500/40 text-[9px] text-red-300 shadow-sm" title="Locked by owner">
+                          🔒
+                        </span>
+                      )}
                       <span className="text-[13px] font-black tracking-wider uppercase font-display flex items-center justify-center">
                         {opt.label}
                       </span>
                       <span
                         className={cn(
                           "text-[10.5px] font-semibold tracking-wide",
-                          isSelected ? "text-slate-200 font-bold" : "text-slate-400",
+                          isSelected && isPermitted ? "text-slate-200 font-bold" : "text-slate-400",
                         )}
                       >
                         {info}

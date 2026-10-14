@@ -107,12 +107,17 @@ export function GenerateLibBypassModal({
   const usedCredits = useMemo(() => {
     if (!user) return 0;
     const isOwnerRole = user.role === "OWNER";
-    return db.cheatExeKeyHistory.filter((k) => {
+    const historyUsed = db.cheatExeKeyHistory.filter((k) => {
       if (k.package !== "EMULATOR BYPASS") return false;
       if (isOwnerRole) return true;
       return isCreatorMatch(k.creator, user.username);
     }).length;
-  }, [user, db.cheatExeKeyHistory]);
+    if (isOwnerRole) return historyUsed;
+    const record = Object.entries(db.cheatExeUsers).find(
+      ([name]) => name.toLowerCase() === user.username.toLowerCase(),
+    )?.[1];
+    return Math.max(record?.emulatorCreditsUsed ?? user.emulatorCreditsUsed ?? 0, historyUsed);
+  }, [user, db.cheatExeKeyHistory, db.cheatExeUsers]);
 
   // Total credits display
   const totalCreditsDisplay = useMemo(() => {
@@ -416,14 +421,17 @@ export function GenerateLibBypassModal({
                     onClick={() => handleSelectPreset(d)}
                     title={isPermitted ? `${d} Days` : "Locked for your account"}
                     className={cn(
-                      "flex items-center justify-center rounded-lg border py-2 px-1 text-[11.5px] font-bold transition select-none",
+                      "relative flex items-center justify-center rounded-lg border py-2 px-1 text-[11.5px] font-bold transition select-none",
                       isSelected && isPermitted
                         ? "border-transparent bg-[#f43f5e] text-white shadow-md shadow-rose-500/25"
                         : isPermitted
                           ? "border-[#202842] bg-[#12172b] text-slate-300 hover:border-slate-500 hover:text-white"
-                          : "border-white/5 bg-[#090d1a] text-slate-600 opacity-40 cursor-not-allowed",
+                          : "border-white/5 bg-[#090d1a] text-slate-600 opacity-40 cursor-not-allowed grayscale",
                     )}
                   >
+                    {!isPermitted && (
+                      <span className="absolute top-0.5 right-0.5 text-[8px] text-red-400 leading-none">🔒</span>
+                    )}
                     {d} {d === 1 ? "Day" : "Days"}
                   </button>
                 );

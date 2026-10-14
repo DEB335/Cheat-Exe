@@ -271,6 +271,35 @@ export function useMyPackages(): string[] {
 }
 
 /**
+ * The current user with live updates from db.cheatExeUsers (permissions, credits, presets).
+ */
+export function useEffectiveUser(): SessionUser | null {
+  const user = useDashboard((s) => s.user);
+  const users = useDashboard((s) => s.db.cheatExeUsers);
+
+  return useMemo(() => {
+    if (!user) return null;
+    if (user.role === "OWNER") return user;
+    const dbUser = Object.entries(users).find(
+      ([name]) => name.toLowerCase() === user.username.toLowerCase(),
+    )?.[1];
+    return {
+      ...user,
+      packages: dbUser?.packages ?? user.packages,
+      ...(dbUser
+        ? {
+            uidBypassAccess: dbUser.uidBypassAccess ?? user.uidBypassAccess,
+            emulatorBypassAccess: dbUser.emulatorBypassAccess ?? user.emulatorBypassAccess,
+            emulatorCredits: dbUser.emulatorCredits ?? user.emulatorCredits,
+            emulatorAllowedDays: dbUser.emulatorAllowedDays ?? user.emulatorAllowedDays,
+            emulatorCreditsUsed: dbUser.emulatorCreditsUsed ?? user.emulatorCreditsUsed,
+          }
+        : {}),
+    };
+  }, [user, users]);
+}
+
+/**
  * Numbers behind the five overview tiles.
  *
  * For the owner these come from the license API, which is the only place
