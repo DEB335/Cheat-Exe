@@ -34,7 +34,19 @@ export const POST = route(async (request: Request) => {
 
   await updateDb(async (db, tx) => {
     if (action === "delete_key") {
-      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => k.key !== key);
+      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => k.key.toUpperCase() !== key.toUpperCase());
+    } else if (action === "ban_key") {
+      for (const k of db.cheatExeKeyHistory) {
+        if (k.key.toUpperCase() === key.toUpperCase()) {
+          k.banned = true;
+        }
+      }
+    } else if (action === "unban_key") {
+      for (const k of db.cheatExeKeyHistory) {
+        if (k.key.toUpperCase() === key.toUpperCase()) {
+          k.banned = false;
+        }
+      }
     }
     pushAudit(db, {
       user: displayUser(user.username, user.role),

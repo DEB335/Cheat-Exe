@@ -52,6 +52,10 @@ export const POST = route(async (request: Request) => {
       expiresAt: expiryFromDays(validityDays),
       keyLimit: keyLimit || undefined,
       deviceLocked: body.deviceLocked !== false,
+      uidBypassAccess: false,
+      emulatorBypassAccess: false,
+      emulatorCredits: 0,
+      emulatorAllowedDays: [1, 3, 7],
     };
     pushAudit(db, {
       user: "Owner (OWNER)",

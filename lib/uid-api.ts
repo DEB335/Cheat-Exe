@@ -1,6 +1,7 @@
 import "server-only";
 
 import { HttpError } from "./auth";
+import { readDb, updateDb } from "./db";
 import { resolveApiUrl } from "./license-api";
 import { DEFAULT_WHITELIST_REGION } from "./packages";
 import type { WhitelistEntry } from "./types";
@@ -23,6 +24,12 @@ import type { WhitelistEntry } from "./types";
  */
 const API_URL = resolveApiUrl(process.env.TX999_API_URL || process.env.LICENSE_API_URL);
 const API_KEY = process.env.TX999_API_KEY ?? process.env.LICENSE_API_KEY;
+
+/**
+ * Local development fallback is ONLY active on localhost/development when no API key is provided.
+ * In production (e.g. Vercel), it strictly calls the upstream API and will trigger maintenance as normal.
+ */
+const USE_DEV_FALLBACK = process.env.NODE_ENV !== "production" && !API_KEY;
 
 /**
  * Forces UID Bypass into maintenance, whatever the provider says.
@@ -207,6 +214,12 @@ export interface WhitelistSnapshot {
 }
 
 export async function listWhitelistSnapshot(): Promise<WhitelistSnapshot> {
+  if (USE_DEV_FALLBACK) {
+    const db = await readDb();
+    const entries = db.cheatExeWhitelistEntries ?? [];
+    return { entries, trustworthy: true };
+  }
+
   const payload = await call("get_whitelisted_uids");
   const rows = Array.isArray(payload.data) ? payload.data : [];
 
@@ -251,6 +264,34 @@ export async function addWhitelist(input: {
   days: number;
   note: string;
 }): Promise<WhitelistAddResult> {
+  if (USE_DEV_FALLBACK) {
+    const now = new Date();
+    const expire = new Date(now.getTime() + input.days * 86_400_000);
+    const expireDate = expire.toISOString().slice(0, 10);
+    const name = input.note ? `${input.note}_Player` : `Player_${input.uid.slice(-4)}`;
+
+    await updateDb(async (db) => {
+      const current = db.cheatExeWhitelistEntries ?? [];
+      const filtered = current.filter((e) => e.uid !== input.uid);
+      db.cheatExeWhitelistEntries = [
+        ...filtered,
+        {
+          uid: input.uid,
+          name,
+          region: input.region || DEFAULT_WHITELIST_REGION,
+          note: input.note,
+          expireDate,
+          createdBy: "CHEAT EXE",
+        },
+      ];
+    });
+
+    return {
+      name,
+      expireDate,
+    };
+  }
+
   const payload = await call("whitelist_uid", {
     uid: input.uid,
     region: input.region || DEFAULT_WHITELIST_REGION,
@@ -278,6 +319,17 @@ export async function addWhitelist(input: {
  * absent UIDs as removals is how a stale list stays believed.
  */
 export async function removeWhitelist(uid: string): Promise<boolean> {
+  if (USE_DEV_FALLBACK) {
+    let existed = false;
+    await updateDb(async (db) => {
+      const current = db.cheatExeWhitelistEntries ?? [];
+      const filtered = current.filter((e) => e.uid !== uid);
+      existed = filtered.length < current.length;
+      db.cheatExeWhitelistEntries = filtered;
+    });
+    return existed;
+  }
+
   try {
     await call("remove_uid", { uid });
     return true;

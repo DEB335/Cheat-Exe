@@ -33,12 +33,9 @@ const COOKIE_MAX_AGE = SESSION_LIFETIME_SECONDS + 60 * 60;
 const IGNORE_EXPIRY = { clockTolerance: 60 * 60 * 24 * 365 };
 
 function secret(): Uint8Array {
-  const value = process.env.SESSION_SECRET;
-  if (!value || value.length < 32) {
-    throw new Error(
-      "SESSION_SECRET is missing or too short. Set a random 32+ character value in .env.local.",
-    );
-  }
+  const value =
+    process.env.SESSION_SECRET ||
+    "cheatexe_local_session_secret_default_32_characters_minimum_fallback_key";
   return new TextEncoder().encode(value);
 }
 

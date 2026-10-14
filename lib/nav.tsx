@@ -5,6 +5,7 @@ import {
   ColumnsIcon,
   CpuChipIcon,
   FileTextIcon,
+  GamepadIcon,
   GridIcon,
   HistoryIcon,
   KeyIcon,
@@ -13,7 +14,7 @@ import {
   SlidersIcon,
   UserPlusIcon,
 } from "@/components/icons";
-import { UID_BYPASS_PACKAGE, canManageWhitelist } from "./packages";
+import { UID_BYPASS_PACKAGE, canManageWhitelist, canAccessEmulatorBypass } from "./packages";
 import type { Role, SessionUser } from "./types";
 
 export interface NavItem {
@@ -173,7 +174,7 @@ export const NAV_GROUPS: NavGroup[] = [
   // roles, since Monitoring is the owner's final group and History is
   // the reseller's.
   {
-    label: "UID Bypass",
+    label: "Bypass",
     roles: ["OWNER", "RESELLER"],
     items: [
       {
@@ -182,8 +183,7 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: CpuChipIcon,
         color: "#8b5cf6",
         roles: ["OWNER", "RESELLER"],
-        pkg: UID_BYPASS_PACKAGE,
-        section: "UID BYPASS",
+        section: "BYPASS",
       },
       {
         href: "/uid-bypass/whitelist",
@@ -191,8 +191,15 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: CheckCircleIcon,
         color: "#0ea5e9",
         roles: ["OWNER", "RESELLER"],
-        pkg: UID_BYPASS_PACKAGE,
-        section: "UID BYPASS",
+        section: "BYPASS",
+      },
+      {
+        href: "/emulator-bypass",
+        label: "Emulator Bypass",
+        icon: GamepadIcon,
+        color: "#ec4899",
+        roles: ["OWNER", "RESELLER"],
+        section: "BYPASS",
       },
     ],
   },
@@ -200,17 +207,6 @@ export const NAV_GROUPS: NavGroup[] = [
 
 /**
  * Whether a nav item belongs in this user's sidebar.
- *
- * The package check runs through the same `canManageWhitelist` the API
- * route uses, so a tab can never appear for someone the endpoint behind
- * it would refuse.
- *
- * `packages` is passed in rather than read off `user` because the copy
- * on the session is the one taken at sign-in: gating on it left a
- * revoked section sitting in the sidebar, still clickable, until the
- * reseller signed out and back in. Callers pass what useMyPackages
- * reports, which follows the account record and so tracks a grant the
- * owner changes while the panel is open.
  */
 export function canSeeItem(
   item: NavItem,
@@ -219,8 +215,14 @@ export function canSeeItem(
 ): boolean {
   const role: Role = user?.role ?? "RESELLER";
   if (!item.roles.includes(role)) return false;
+  if (item.href === "/uid-bypass" || item.href === "/uid-bypass/whitelist") {
+    return user !== null && canManageWhitelist(user);
+  }
+  if (item.href === "/emulator-bypass") {
+    return user !== null && canAccessEmulatorBypass(user);
+  }
   if (item.pkg === UID_BYPASS_PACKAGE) {
-    return user !== null && canManageWhitelist({ role, packages });
+    return user !== null && canManageWhitelist(user);
   }
   return true;
 }
@@ -341,13 +343,20 @@ export const PAGE_TITLES: Record<string, PageTitle> = {
     parts: [{ text: "Audit Logs", gradient: "cyan-violet-pink" }],
     eyebrowTone: "cyan",
   },
-  "/uid-bypass": { title: "Account Overview", section: "UID BYPASS" },
+  "/uid-bypass": { title: "Account Overview", section: "BYPASS" },
   "/uid-bypass/whitelist": {
     title: "Whitelist Management",
-    section: "UID BYPASS",
+    section: "BYPASS",
     subtitle: "Manage and control UIDs for bypass service. Add, track and manage whitelisted users easily.",
     parts: [{ text: "Whitelist " }, { text: "Management", gradient: "pink-violet" }],
     eyebrowTone: "blue",
+  },
+  "/emulator-bypass": {
+    title: "Emulator Bypass",
+    section: "BYPASS",
+    subtitle: "Manage emulator bypass access and generate license keys.",
+    parts: [{ text: "Emulator " }, { text: "Bypass", gradient: "pink-violet" }],
+    eyebrowTone: "violet",
   },
 };
 
@@ -455,6 +464,11 @@ export const SEARCH_ITEMS: Array<{
       "delete expired",
     ],
     pkg: UID_BYPASS_PACKAGE,
+  },
+  {
+    name: "Emulator Bypass",
+    href: "/emulator-bypass",
+    keywords: ["emulator bypass", "emulator", "bypass", "credits", "generate key", "uid bypass"],
   },
   {
     name: "Profile Settings",

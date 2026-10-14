@@ -4,7 +4,7 @@ import { useMemo, useSyncExternalStore } from "react";
 
 import { useDashboard, useMetrics } from "./store";
 
-export type TileKey = "apps" | "licenses" | "users" | "devices" | "resellers";
+export type TileKey = "apps" | "licenses" | "users" | "devices" | "resellers" | "emulatorBypass";
 
 export interface Trend {
   /** Percentage change over the window, or null when no history exists to measure it. */
@@ -160,13 +160,30 @@ export function useTileTrends(): Record<TileKey, Trend> {
   const keyHistory = useDashboard((s) => s.db.cheatExeKeyHistory);
   const resellers = useDashboard((s) => s.db.cheatExeUsers);
   const audit = useDashboard((s) => s.db.cheatExeAuditLogs);
+  const isOwner = useDashboard((s) => s.user?.role === "OWNER");
+  const user = useDashboard((s) => s.user);
   // The tiles' own figures, so each sparkline ends on the number printed
   // above it.
-  const { licenses, resellers: resellerCount } = useMetrics();
+  const { licenses, resellers: resellerCount, emulatorBypass } = useMetrics();
 
   const licenseStamps = useMemo(
     () => keyHistory.map((k) => parseStamp(k.date)).filter(Number.isFinite),
     [keyHistory],
+  );
+  const emulatorBypassStamps = useMemo(
+    () =>
+      keyHistory
+        .filter((k) => {
+          if (k.package !== "EMULATOR BYPASS") return false;
+          if (isOwner) return true;
+          if (!user) return false;
+          const c = (k.creator || "").toLowerCase();
+          const me = user.username.toLowerCase();
+          return c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
+        })
+        .map((k) => parseStamp(k.date))
+        .filter(Number.isFinite),
+    [keyHistory, isOwner, user],
   );
   const resellerStamps = useMemo(
     () => Object.values(resellers).map((r) => parseStamp(r.created)).filter(Number.isFinite),
@@ -191,6 +208,7 @@ export function useTileTrends(): Record<TileKey, Trend> {
         apps: none,
         users: none,
         licenses: pending,
+        emulatorBypass: pending,
         resellers: pending,
         devices: { ...pending, metric: "sign-ins", caption: "vs. prior week" },
       };
@@ -213,8 +231,9 @@ export function useTileTrends(): Record<TileKey, Trend> {
       apps: none,
       users: none,
       licenses: runningTotal(licenseStamps, licenses, today, "vs. last 7 days"),
+      emulatorBypass: runningTotal(emulatorBypassStamps, emulatorBypass ?? 0, today, "vs. last 7 days"),
       resellers: runningTotal(resellerStamps, resellerCount, today, "vs. last 7 days"),
       devices,
     };
-  }, [today, loading, licenseStamps, resellerStamps, signInStamps, licenses, resellerCount]);
+  }, [today, loading, licenseStamps, emulatorBypassStamps, resellerStamps, signInStamps, licenses, resellerCount, emulatorBypass]);
 }

@@ -19,6 +19,10 @@ interface PatchBody {
   deviceLocked?: boolean;
   /** Drop the device binding so the next sign-in re-claims the account. */
   resetLock?: boolean;
+  uidBypassAccess?: boolean;
+  emulatorBypassAccess?: boolean;
+  emulatorCredits?: number;
+  emulatorAllowedDays?: number[];
 }
 
 /** Statuses the owner may set directly. EXPIRED is derived, not assignable. */
@@ -155,6 +159,51 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
         action: `Reset device lock (HWID) for reseller ${match.key}`,
         ip,
       });
+    }
+
+    if (body.uidBypassAccess !== undefined) {
+      changed = true;
+      match.user.uidBypassAccess = body.uidBypassAccess;
+      pushAudit(db, {
+        user: "Owner (OWNER)",
+        action: `${body.uidBypassAccess ? "Granted" : "Revoked"} UID Bypass access for ${match.key}`,
+        ip,
+      });
+    }
+
+    if (body.emulatorBypassAccess !== undefined) {
+      changed = true;
+      match.user.emulatorBypassAccess = body.emulatorBypassAccess;
+      pushAudit(db, {
+        user: "Owner (OWNER)",
+        action: `${body.emulatorBypassAccess ? "Granted" : "Revoked"} Emulator Bypass access for ${match.key}`,
+        ip,
+      });
+    }
+
+    if (body.emulatorCredits !== undefined) {
+      const credits = Number(body.emulatorCredits);
+      if (Number.isInteger(credits) && credits >= 0) {
+        changed = true;
+        match.user.emulatorCredits = credits;
+        pushAudit(db, {
+          user: "Owner (OWNER)",
+          action: `Set Emulator Bypass credits to ${credits} for ${match.key}`,
+          ip,
+        });
+      }
+    }
+
+    if (body.emulatorAllowedDays !== undefined) {
+      if (Array.isArray(body.emulatorAllowedDays)) {
+        changed = true;
+        match.user.emulatorAllowedDays = body.emulatorAllowedDays;
+        pushAudit(db, {
+          user: "Owner (OWNER)",
+          action: `Updated allowed Emulator Bypass durations for ${match.key}`,
+          ip,
+        });
+      }
     }
 
     if (changed) await ping("reseller", tx);

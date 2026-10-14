@@ -13,6 +13,7 @@ import { Lamp } from "@/components/login/lamp/Lamp";
 import stage from "@/components/login/lamp/login-stage.module.css";
 import { LampRoom } from "@/components/login/lamp/LampRoom";
 import { LoginCard, type SignInState } from "@/components/login/LoginCard";
+import { Wind404 } from "@/components/effects/Wind404";
 import { postJson } from "@/lib/client-api";
 import { SESSION_LIFETIME_MINUTES } from "@/lib/session-lifetime";
 import { playClick, playError } from "@/lib/sounds";
@@ -391,8 +392,8 @@ const BLOCK_COPY: Record<BlockKind, { title: string; body: string; tone: string 
   },
   timeout: {
     title: "SESSION EXPIRED",
-    body: `Sessions last ${SESSION_LIFETIME_MINUTES} minutes. Sign in again to continue.`,
-    tone: "#60a5fa",
+    body: "Sessions expire after 1 hour of inactivity. Sign in again to continue.",
+    tone: "#38bdf8",
   },
   deleted: {
     title: "ACCOUNT REMOVED",
@@ -485,6 +486,18 @@ function useCredentialCheck(username: string, password: string): CheckState {
 }
 
 function BlockedPanel({ screen, onDismiss }: { screen: BlockedScreen; onDismiss: () => void }) {
+  // If the session expired / timed out, show the Wind 404 screen from _code_and_chill_ reel
+  if (screen.kind === "timeout") {
+    return (
+      <Wind404
+        title="404"
+        subtitle="Nothing at this address but the wind. Sessions expire after 1 hour of inactivity."
+        backText="Back to sign in"
+        onBack={onDismiss}
+      />
+    );
+  }
+
   const copy = BLOCK_COPY[screen.kind];
 
   // The panel replaces the whole scene, focus included: move it to the
@@ -495,32 +508,87 @@ function BlockedPanel({ screen, onDismiss }: { screen: BlockedScreen; onDismiss:
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#090e11] px-6 text-center">
-      <h1
-        className="mb-3 text-[22px] tracking-[2px] sm:text-[28px]"
-        style={{ color: copy.tone }}
-      >
-        {copy.title}
-      </h1>
-      <p className="mb-5 max-w-[420px] text-[13.5px] leading-[1.6] text-[#94a3b8]">{copy.body}</p>
+    <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-[#050814]/95 px-4 text-center backdrop-blur-2xl">
+      {/* Ambient background glow */}
+      <div
+        className="pointer-events-none absolute h-[320px] w-[320px] rounded-full blur-[100px] opacity-25"
+        style={{ background: copy.tone }}
+      />
 
-      {screen.username && (
-        <div
-          className="rounded-lg border px-5 py-3"
-          style={{ borderColor: `${copy.tone}4d`, background: `${copy.tone}1a` }}
+      {/* Cyber Glassmorphism Card */}
+      <div
+        className="relative z-10 w-full max-w-[440px] rounded-3xl border border-white/10 bg-[#0c1228]/85 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_30px_rgba(56,189,248,0.12)] backdrop-blur-xl transition-all duration-300"
+        style={{ borderColor: `${copy.tone}33` }}
+      >
+        {/* Glowing Status Icon Badge */}
+        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border shadow-inner"
+          style={{
+            borderColor: `${copy.tone}4d`,
+            background: `radial-gradient(circle, ${copy.tone}22 0%, ${copy.tone}05 100%)`,
+            boxShadow: `0 0 24px ${copy.tone}33`,
+          }}
         >
-          <span style={{ color: copy.tone }}>USER: {screen.username}</span>
+          <svg
+            className="h-8 w-8"
+            style={{ color: copy.tone }}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.75}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
         </div>
-      )}
 
-      <button
-        ref={backRef}
-        type="button"
-        onClick={onDismiss}
-        className="mt-8 rounded-xl border border-white/10 px-5 py-2.5 text-[12.5px] font-bold text-[#94a3b8] transition-colors hover:border-white/20 hover:text-white"
-      >
-        Back to sign in
-      </button>
+        <h1
+          className="mb-2 text-[20px] font-black tracking-[2.5px] sm:text-[24px]"
+          style={{
+            color: copy.tone,
+            textShadow: `0 0 20px ${copy.tone}66`,
+          }}
+        >
+          {copy.title}
+        </h1>
+
+        <p className="mb-6 text-[13.5px] leading-relaxed text-slate-300">
+          {copy.body}
+        </p>
+
+        {screen.username && (
+          <div
+            className="mb-6 inline-flex items-center gap-2 rounded-xl border px-4 py-2 font-mono text-xs tracking-wider"
+            style={{
+              borderColor: `${copy.tone}40`,
+              background: `${copy.tone}15`,
+              color: copy.tone,
+            }}
+          >
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: copy.tone }} />
+            USER: {screen.username}
+          </div>
+        )}
+
+        {/* Back to sign in button with cursor-pointer and hover glow */}
+        <div>
+          <button
+            ref={backRef}
+            type="button"
+            onClick={onDismiss}
+            className="group relative inline-flex w-full cursor-pointer items-center justify-center gap-2 overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] px-6 py-3 text-[13px] font-semibold text-slate-200 shadow-md backdrop-blur-md transition-all duration-200 hover:border-sky-500/50 hover:bg-sky-500/10 hover:text-white hover:shadow-[0_0_25px_rgba(56,189,248,0.35)] active:scale-[0.98]"
+          >
+            <svg
+              className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            <span>Back to sign in</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

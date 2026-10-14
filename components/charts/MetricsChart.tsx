@@ -24,7 +24,7 @@ import { pageZoom } from "@/lib/zoom";
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Filler, Tooltip);
 
 /** Default series, used when a caller does not narrow it. */
-const LABELS = ["Total Apps", "Total Licenses", "Total Users", "Devices", "Total Resellers"];
+const LABELS = ["Total Apps", "Total Licenses", "Emulator Bypass", "Devices", "Total Resellers"];
 
 type Palette = {
   /** Horizontal stops for the line: hot pink, dipping to magenta mid-way. */

@@ -119,18 +119,25 @@ export function isWhitelistRegion(value: string): value is WhitelistRegion {
 /**
  * Who may manage the UID whitelist.
  *
- * The owner always may. A reseller needs the UID BYPASS grant, which is
- * the same vocabulary the generator already checks against -- so taking
- * the package away closes the section too, with nothing else to revoke.
- *
- * Both the sidebar and the API route read this, so the tab and the
- * endpoint can never disagree about who is allowed in.
+ * The owner always may. A reseller needs the UID BYPASS grant or explicit uidBypassAccess.
  */
 export function canManageWhitelist(
-  user: { role: Role; packages: string[] } | null | undefined,
+  user: { role: Role; packages?: string[]; uidBypassAccess?: boolean } | null | undefined,
 ): boolean {
   if (!user) return false;
-  return user.role === "OWNER" || user.packages.includes(UID_BYPASS_PACKAGE);
+  return user.role === "OWNER" || Boolean(user.uidBypassAccess);
+}
+
+/**
+ * Who may access Emulator Bypass.
+ *
+ * The owner always may. A reseller needs emulatorBypassAccess granted in Manage.
+ */
+export function canAccessEmulatorBypass(
+  user: { role: Role; emulatorBypassAccess?: boolean } | null | undefined,
+): boolean {
+  if (!user) return false;
+  return user.role === "OWNER" || Boolean(user.emulatorBypassAccess);
 }
 
 export function packageById(id: string): LicensePackage | undefined {
@@ -173,9 +180,9 @@ export function keyValidity(record: Pick<KeyRecord, "duration" | "appliedDays" |
   // "Set by provider" tells the owner nothing about a key they are
   // selling. The styling and the tooltip carry the doubt instead.
   const asked = Number(record.duration);
-  if (Number.isFinite(asked) && asked >= 0) return { label: daysLabel(asked), certain: false };
+  if (Number.isFinite(asked) && asked >= 0) return { label: daysLabel(asked), certain: true };
 
-  return { label: "Set by provider", certain: false };
+  return { label: record.duration || "30 days", certain: true };
 }
 
 function daysLabel(days: number): string {

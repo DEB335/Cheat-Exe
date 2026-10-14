@@ -216,18 +216,6 @@ export const Sidebar = memo(function Sidebar({
         )}
       />
 
-      {/* The darker column the rail sits in. Fixed and behind <main>, so
-          it frames the rail without taking part in the layout; only the
-          full rail gets it, the icon pill floats on its own. */}
-      <div
-        aria-hidden
-        className={cn(
-          "pointer-events-none fixed top-0 bottom-1.5 left-0 z-[1] hidden w-[333px] rounded-r-[26px]",
-          "border-r border-[rgba(70,100,180,0.16)] bg-[linear-gradient(90deg,rgba(0,4,16,0.92)_0%,rgba(2,9,27,0.94)_100%)]",
-          "transition-opacity duration-[400ms] lt:border-black/5 lt:bg-none lt:bg-white/30 lg:block",
-          collapsed ? "opacity-0" : "opacity-100",
-        )}
-      />
 
       <aside
         data-collapsed={collapsed}
@@ -298,10 +286,16 @@ export const Sidebar = memo(function Sidebar({
             <LogoArea collapsed={collapsed} />
 
             {/* One wrapper for every group, matching the original .nav-group:
-                the section labels are inline, not separate blocks. */}
-            <div className={collapsed ? "mb-5" : "mb-2"}>
+                the section labels are inline, not separate blocks. When
+                collapsed, flex-1 and justify-between evenly distribute
+                all icon buttons to fill the entire height down to settings. */}
+            <div
+              className={cn(
+                collapsed ? "flex min-h-0 flex-1 flex-col justify-between py-1" : "mb-2",
+              )}
+            >
               {visibleGroups.map((group, index) => (
-                <div key={group.label}>
+                <div key={group.label} className={collapsed ? "contents" : undefined}>
                   {!collapsed && index > 0 && <Divider />}
                   {!collapsed && (
                     <div
@@ -330,19 +324,32 @@ export const Sidebar = memo(function Sidebar({
                     ))}
                 </div>
               ))}
+
+              {collapsed && (
+                <NavLink
+                  item={PROFILE_ITEM}
+                  collapsed={collapsed}
+                  active={pathname === PROFILE_ITEM.href}
+                  prefetch={prefetch}
+                  onNavigate={onCloseMobile}
+                  onTooltip={setTooltip}
+                />
+              )}
             </div>
 
-            <div className="mt-auto shrink-0">
-              {!collapsed && <Divider />}
-              <NavLink
-                item={PROFILE_ITEM}
-                collapsed={collapsed}
-                active={pathname === PROFILE_ITEM.href}
-                prefetch={prefetch}
-                onNavigate={onCloseMobile}
-                onTooltip={setTooltip}
-              />
-            </div>
+            {!collapsed && (
+              <div className="mt-auto shrink-0">
+                <Divider />
+                <NavLink
+                  item={PROFILE_ITEM}
+                  collapsed={collapsed}
+                  active={pathname === PROFILE_ITEM.href}
+                  prefetch={prefetch}
+                  onNavigate={onCloseMobile}
+                  onTooltip={setTooltip}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -456,13 +463,12 @@ const NavLink = memo(function NavLink({
       style={{ "--tab": hexToRgbTriplet(item.color) } as React.CSSProperties}
       className={cn(
         "group/nav relative flex shrink-0 items-center overflow-hidden whitespace-nowrap",
-        // Only what hover and the active switch change: `transition-all`
-        // also tweened every row's height and padding through a collapse.
-        "transition-[color,background-color,border-color,box-shadow] duration-300 ease-smooth",
+        // Only transition color, bg, and shadow -- no border-color animation to prevent white flashing
+        "transition-[color,background-color,box-shadow] duration-300 ease-smooth",
         collapsed
           ? [
               // Collapsed rail: circular icon buttons, one accent each.
-              "mx-auto mb-2 size-11 justify-center gap-0 rounded-full p-0 text-[13px] font-bold",
+              "mx-auto size-11 justify-center gap-0 rounded-full p-0 text-[13px] font-bold border-0",
               active
                 ? [
                     "border-2 border-[rgb(var(--tab))] bg-[rgba(var(--tab),0.15)] text-[rgb(var(--tab))]",
@@ -471,36 +477,25 @@ const NavLink = memo(function NavLink({
                     "hover:shadow-[0_0_11px_rgba(var(--tab),0.5),inset_0_0_8px_rgba(var(--tab),0.26)]",
                   ]
                 : [
-                    "text-muted hover:bg-[rgba(var(--tab),0.08)] hover:text-[rgb(var(--tab))]",
+                    "border-0 text-muted hover:bg-[rgba(var(--tab),0.08)] hover:text-[rgb(var(--tab))]",
                     "hover:shadow-[0_0_7px_rgba(var(--tab),0.16),inset_0_0_4px_rgba(var(--tab),0.08)]",
                   ],
             ]
           : [
-              // Expanded: 50px rows. Every row carries the 1px border, so
-              // the active pill's gradient edge does not nudge its label
-              // a pixel off the column the others line up on.
-              "mr-2.5 mb-0.5 ml-1 h-[50px] gap-[20px] rounded-[18px] border border-transparent pr-[13px] pl-[23px]",
+              // Expanded: 50px rows. Completely clean without white borders on inactive items
+              "mr-2.5 mb-0.5 ml-1 h-[50px] gap-[20px] rounded-[18px] pr-[14px] pl-[24px]",
               "text-[15px] font-medium",
-              // The hover wipe: a full-width bar parked one width off the
-              // left edge, slid in on hover. It used to grow from width 0,
-              // which re-laid out the row every frame of a sweep down the
-              // rail. Sliding keeps its rounded leading edge -- a scaleX
-              // squashed those corners -- and the row's own rounded
-              // overflow clip trims its left end the way it always looked.
               "before:absolute before:inset-0 before:z-[1] before:-translate-x-full",
               "before:rounded-[inherit] before:transition-transform before:duration-500 before:content-['']",
               active
                 ? [
-                    // Magenta into indigo, edged in the same pink-to-violet
-                    // run as the wordmark: fill on the padding box, the
-                    // edge on the border box behind it.
-                    "text-white",
+                    "border border-transparent text-white",
                     "[background:linear-gradient(90deg,#4a1553_0%,#33124f_5%,#28114f_11%,#1c1268_45%,#211a80_70%,#2b26a8_86%,#3530c6_95%,#4034df_100%)_padding-box,linear-gradient(90deg,#ff4d9a_0%,#e0439f_12%,#8a2fb8_32%,#4a2a9e_55%,#4f3ccc_78%,#6a5cff_100%)_border-box]",
                     "shadow-[-5px_3px_11px_-6px_rgba(255,45,122,0.32),6px_0_12px_-6px_rgba(91,85,255,0.34)]",
                     "hover:shadow-[-5px_3px_13px_-6px_rgba(255,45,122,0.44),6px_0_14px_-6px_rgba(91,85,255,0.46)]",
                   ]
                 : [
-                    // Gradient wipe sliding in from the left edge.
+                    "border-0",
                     "text-[#cfdefa] hover:text-accent lt:text-fg lt:hover:text-accent",
                     "before:bg-[linear-gradient(to_right,rgba(255,31,90,0.15)_0%,rgba(255,94,58,0.15)_100%)]",
                     "hover:before:translate-x-0",

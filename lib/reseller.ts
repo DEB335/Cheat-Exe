@@ -49,6 +49,15 @@ export function keysRemaining(
   return Math.max(0, user.keyLimit - used);
 }
 
+/** Emulator bypass credits remaining, or null when uncapped. */
+export function emulatorCreditsRemaining(
+  user: Pick<Reseller, "emulatorCredits">,
+  used: number,
+): number | null {
+  if (typeof user.emulatorCredits !== "number" || user.emulatorCredits <= 0) return null;
+  return Math.max(0, user.emulatorCredits - used);
+}
+
 /**
  * Keys reserved by a generate request that has not finished, but only
  * while the reservation is fresh.

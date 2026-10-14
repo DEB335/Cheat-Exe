@@ -52,6 +52,14 @@ export interface Reseller {
    */
   pendingKeys?: number;
   pendingSince?: string;
+  /** Whether reseller has access to UID Bypass overview & whitelist */
+  uidBypassAccess?: boolean;
+  /** Whether reseller has access to Emulator Bypass */
+  emulatorBypassAccess?: boolean;
+  /** Credit / key generation limit for Emulator Bypass (0 = unlimited) */
+  emulatorCredits?: number;
+  /** Allowed validity day presets for Emulator Bypass keys (e.g. [1, 3, 7]) */
+  emulatorAllowedDays?: number[];
 }
 
 export interface KeyRecord {
@@ -93,6 +101,10 @@ export interface KeyRecord {
   /** "admin" for the owner, otherwise the reseller username. */
   creator: string;
   date: string;
+  engine?: string;
+  note?: string;
+  keyName?: string;
+  banned?: boolean;
 }
 
 export interface AuditLog {
@@ -226,10 +238,20 @@ export interface Database {
    * of fields, so this never reaches a browser.
    */
   cheatExeWhitelistOwners: Record<string, string>;
+  /** Whitelisted UID entries stored locally (used in development/mock fallback) */
+  cheatExeWhitelistEntries?: WhitelistEntry[];
   adminUser: string;
   /** bcrypt hash of the owner password. */
   adminPassHash: string;
   profile: ProfileSettings;
+  emulatorBypassMaintenance?: {
+    active: boolean;
+    reason?: string;
+    engine?: "V1" | "V2" | "ALL";
+    v1Maintenance?: boolean;
+    v2Maintenance?: boolean;
+    recommended?: "V1" | "V2";
+  };
 }
 
 /** Shape returned to the browser: no hashes, ever. */
@@ -241,8 +263,17 @@ export interface PublicDatabase {
   cheatExeBannedUsers: BannedUser[];
   cheatExeBans: BanRule[];
   cheatExeMessages: PublicAnnouncement[];
+  cheatExeWhitelistEntries?: WhitelistEntry[];
   adminUser: string;
   profile: ProfileSettings;
+  emulatorBypassMaintenance?: {
+    active: boolean;
+    reason?: string;
+    engine?: "V1" | "V2" | "ALL";
+    v1Maintenance?: boolean;
+    v2Maintenance?: boolean;
+    recommended?: "V1" | "V2";
+  };
 }
 
 export interface SessionUser {
@@ -251,6 +282,10 @@ export interface SessionUser {
   /** Packages this user may generate keys for. Owner gets all. */
   packages: string[];
   sessionId: string;
+  uidBypassAccess?: boolean;
+  emulatorBypassAccess?: boolean;
+  emulatorCredits?: number;
+  emulatorAllowedDays?: number[];
 }
 
 /**

@@ -109,6 +109,7 @@ interface PanelHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "t
   /** Bends a solid tile's gradient toward a second tone. */
   iconTone2?: NeonTone;
   iconVariant?: IconTileVariant;
+  iconClassName?: string;
   title: React.ReactNode;
   subtitle?: React.ReactNode;
   /** Sits inline after the title, e.g. <NeonChip>BANNED USERS</NeonChip>. */
@@ -131,6 +132,7 @@ export function PanelHeader({
   iconTone = "violet",
   iconTone2,
   iconVariant = "solid",
+  iconClassName,
   title,
   subtitle,
   badge,
@@ -151,7 +153,11 @@ export function PanelHeader({
             tone2={iconTone2}
             variant={iconVariant}
             size="lg"
-            className="max-sm:size-12 max-sm:rounded-[14px] max-sm:[&>svg]:size-6"
+            className={cn(
+              "max-sm:size-12 max-sm:rounded-[14px] max-sm:[&>svg]:size-6",
+              "transition-all duration-300 ease-out hover:scale-110 hover:-rotate-3 hover:shadow-[0_0_22px_rgba(var(--tone-hi),0.55)] cursor-pointer group/tile",
+              iconClassName,
+            )}
           >
             {icon}
           </IconTile>

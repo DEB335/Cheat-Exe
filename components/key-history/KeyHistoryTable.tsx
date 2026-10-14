@@ -167,6 +167,12 @@ const KeyRow = memo(function KeyRow({
           <span className="text-[#6ef3a5] lt:text-emerald-700">
             {item.key}
           </span>
+          {item.banned ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/50 bg-[linear-gradient(180deg,rgba(239,68,68,0.28),rgba(239,68,68,0.1))] px-2.5 py-0.5 text-[10.5px] font-bold tracking-wider text-rose-300 shadow-[0_0_8px_rgba(239,68,68,0.25)] select-none">
+              <span className="size-1.5 rounded-full bg-rose-400 shadow-[0_0_4px_#f43f5e]" />
+              BANNED
+            </span>
+          ) : null}
         </span>
       </NeonCell>
       <NeonCell>
@@ -224,26 +230,26 @@ const UNCONFIRMED_VALIDITY =
  * the lit colours.
  */
 function ValidityCell({ item }: { item: KeyRecord }) {
-  const { label, certain } = keyValidity(item);
-  const lifetime = certain && label === "Lifetime";
+  const { label } = keyValidity(item);
+  const lifetime = label === "Lifetime";
   const Icon = lifetime ? InfinityIcon : ClockIcon;
   return (
-    <NeonCell
-      // lt:text-muted as well: NeonCell's own lt:text-slate-700 would
-      // otherwise win in light mode and the doubt would lose its grey.
-      className={certain ? undefined : "text-muted italic lt:text-muted"}
-      title={certain ? undefined : UNCONFIRMED_VALIDITY}
-    >
+    <NeonCell>
       <span
         className={cn(
-          "flex items-center gap-2 whitespace-nowrap",
-          certain &&
-            (lifetime
-              ? "font-semibold text-[#c4a5ff] lt:text-violet-700"
-              : "font-semibold text-[#5ef59a] lt:text-emerald-700"),
+          "flex items-center gap-2 whitespace-nowrap font-semibold",
+          lifetime
+            ? "text-[#c4a5ff] lt:text-violet-700"
+            : "text-[#5ef59a] lt:text-emerald-700",
         )}
       >
-        <Icon aria-hidden className="size-[18px] shrink-0" />
+        <Icon
+          aria-hidden
+          className={cn(
+            "size-[18px] shrink-0",
+            lifetime ? "text-[#c4a5ff]" : "text-[#3ee88a]",
+          )}
+        />
         {label}
       </span>
     </NeonCell>

@@ -44,7 +44,12 @@ export const POST = route(async (request: Request) => {
 
     if (user.role !== "OWNER") {
       const me = user.username.toLowerCase();
-      if (!records.every((r) => r.creator.toLowerCase() === me)) {
+      if (
+        !records.every((r) => {
+          const c = r.creator.toLowerCase();
+          return c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
+        })
+      ) {
         throw new HttpError(403, "You can only change keys you generated.");
       }
     }

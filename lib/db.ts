@@ -1,5 +1,7 @@
 import "server-only";
 
+import { promises as fs } from "node:fs";
+import path from "node:path";
 import bcrypt from "bcryptjs";
 import type postgres from "postgres";
 
@@ -22,6 +24,33 @@ export const DEFAULT_PROFILE: ProfileSettings = {
 const DEFAULT_ADMIN_USER = process.env.ADMIN_USER ?? "JACK";
 const DEFAULT_ADMIN_PASS = process.env.ADMIN_PASSWORD ?? "22153310";
 
+const DB_PATH = path.join(process.cwd(), "data", "db.json");
+
+async function readRawFile(): Promise<Database> {
+  try {
+    const text = await fs.readFile(DB_PATH, "utf8");
+    const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
+    return normalise(parsed);
+  } catch (err) {
+    const legacyPath = path.join(process.cwd(), "old", "db.json");
+    try {
+      const text = await fs.readFile(legacyPath, "utf8");
+      const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
+      return normalise(parsed);
+    } catch {
+      const fresh = emptyDb(await bcrypt.hash(DEFAULT_ADMIN_PASS, 10));
+      return fresh;
+    }
+  }
+}
+
+async function writeRawFile(db: Database): Promise<void> {
+  await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
+  const tmp = `${DB_PATH}.${process.pid}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(db, null, 4), "utf8");
+  await fs.rename(tmp, DB_PATH);
+}
+
 function emptyDb(adminPassHash: string): Database {
   return {
     cheatExeUsers: {},
@@ -32,6 +61,7 @@ function emptyDb(adminPassHash: string): Database {
     cheatExeBans: [],
     cheatExeMessages: [],
     cheatExeWhitelistOwners: {},
+    cheatExeWhitelistEntries: [],
     adminUser: DEFAULT_ADMIN_USER,
     adminPassHash,
     profile: { ...DEFAULT_PROFILE },
@@ -67,8 +97,10 @@ function withDefaults(stored: Partial<Database>): Omit<Database, "adminPassHash"
     cheatExeBans: stored.cheatExeBans ?? [],
     cheatExeMessages: stored.cheatExeMessages ?? [],
     cheatExeWhitelistOwners: stored.cheatExeWhitelistOwners ?? {},
+    cheatExeWhitelistEntries: stored.cheatExeWhitelistEntries ?? [],
     adminUser: stored.adminUser ?? DEFAULT_ADMIN_USER,
     profile: { ...DEFAULT_PROFILE, ...stored.profile },
+    emulatorBypassMaintenance: stored.emulatorBypassMaintenance ?? { active: false },
   };
 }
 
@@ -85,6 +117,10 @@ async function normalise(stored: Partial<Database> & { adminPass?: string }): Pr
 
 /** Reads the current state, seeding a fresh database on first run. */
 export async function readDb(): Promise<Database> {
+  if (!process.env.DATABASE_URL) {
+    return readRawFile();
+  }
+
   const db = sql();
   const rows = await db<{ data: Partial<Database> }[]>`
     select data from app_state where id = 1
@@ -127,6 +163,13 @@ export type SliceField = keyof Sliceable;
 export async function readSlice<K extends SliceField>(
   fields: readonly K[],
 ): Promise<Pick<Sliceable, K>> {
+  if (!process.env.DATABASE_URL) {
+    const source = await readRawFile();
+    const slice = {} as Pick<Sliceable, K>;
+    for (const field of fields) slice[field] = source[field];
+    return slice;
+  }
+
   const db = sql();
   const rows = await db<{ data: Partial<Database> | null }[]>`
     select (
@@ -165,6 +208,13 @@ export type Tx = postgres.TransactionSql<Record<string, never>>;
 export async function updateDb<T>(
   mutate: (db: Database, tx: Tx) => T | Promise<T>,
 ): Promise<T> {
+  if (!process.env.DATABASE_URL) {
+    const current = await readRawFile();
+    const result = await mutate(current, undefined as unknown as Tx);
+    await writeRawFile(current);
+    return result;
+  }
+
   const db = sql();
 
   return db.begin(async (tx) => {
@@ -208,6 +258,7 @@ export function toPublic(db: Database): PublicDatabase {
     cheatExeMessages: [],
     adminUser: db.adminUser,
     profile: db.profile,
+    emulatorBypassMaintenance: db.emulatorBypassMaintenance ?? { active: false },
   };
 }
 

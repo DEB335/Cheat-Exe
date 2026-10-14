@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { BackgroundMusic } from "@/components/effects/BackgroundMusic";
 import { CursorSparks } from "@/components/effects/CursorSparks";
+import { Wind404 } from "@/components/effects/Wind404";
 import { GridBackdrop } from "@/components/effects/GridBackdrop";
 import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { Header } from "@/components/layout/Header";
@@ -85,8 +86,8 @@ const TERMINATED_COPY: Record<Terminated, { title: string; body: string; tone: s
   },
   timeout: {
     title: "SESSION EXPIRED",
-    body: `Sessions last ${SESSION_LIFETIME_MINUTES} minutes. Sign in again to continue.`,
-    tone: "#60a5fa",
+    body: "Sessions expire after 1 hour of inactivity. Sign in again to continue.",
+    tone: "#38bdf8",
   },
 };
 
@@ -117,14 +118,7 @@ export function Shell({
   const packages = useMyPackages();
 
   // Losing a package while standing on the page it unlocked should not
-  // leave someone parked there. Hiding the sidebar entry does nothing for
-  // whoever is already on /uid-bypass -- the tab simply disappears from
-  // under them and the page stays up, making its own requests, which the
-  // API now answers with 403.
-  //
-  // Waiting for `storeUser` matters: it is null for the first render,
-  // and useMyPackages answers [] for a null user. Acting on that would
-  // bounce the owner off their own page every time the panel loaded.
+  // leave someone parked there.
   useEffect(() => {
     if (terminated || !storeUser) return;
     if (!pathname.startsWith("/uid-bypass")) return;
@@ -134,49 +128,18 @@ export function Shell({
     router.replace("/dashboard");
   }, [terminated, storeUser, packages, pathname, router, toast]);
 
-  // Keyed by value. The layout hands over a new `user` object whenever it
-  // re-renders on the server -- a router refresh, a hot reload -- and
-  // keyed by identity each of those refetched the whole snapshot even
-  // though nothing about the account had changed.
   const userKey = JSON.stringify(user);
   useEffect(() => {
     setUser(JSON.parse(userKey) as SessionUser);
     void refresh();
   }, [userKey, setUser, refresh]);
 
-  /**
-   * Ends the session on the deadline itself.
-   *
-   * The poll below would notice within five seconds, but only while it
-   * is running -- it stops with a hidden tab, so a panel left in the
-   * background would go on looking signed in until someone came back to
-   * it. The server stopped honouring the cookie at the deadline either
-   * way; this is so the screen stops claiming otherwise at the same
-   * moment. Nothing here grants access, so a tab that is asleep when the
-   * timer should fire is not a hole: it wakes to a session the server
-   * already refuses.
-   */
-  useEffect(() => {
-    if (terminated) return;
-    const id = window.setTimeout(() => setTerminated("timeout"), expiresIn * 1000);
-    return () => window.clearTimeout(id);
-  }, [expiresIn, terminated]);
-
-  // Replaces the old client-side banned poll: the server decides. A
-  // terminated session is told what happened -- a reseller who is
-  // suspended mid-session used to be bounced to the login screen with no
-  // explanation at all -- and then sent out.
-  // Asks the server whether this session may still be open, and what to
-  // say if not. Lifted out of the poll so the realtime channel can run it
-  // too: a suspension pings, and without this the ping would only trigger
-  // a data refresh, leaving the reason to arrive on the next tick.
-  const check = useCallback(async () => {
+  // Check and touch session
+  const check = useCallback(async (touch = false) => {
     try {
-      // Timed to the response headers, the same moment the overview's
-      // ping pill used to measure with a request of its own to this very
-      // endpoint. It reads this figure now instead (lib/ping).
       const started = performance.now();
-      const response = await fetch("/api/auth/session", { cache: "no-store" }).catch(() => null);
+      const url = touch ? "/api/auth/session?touch=1" : "/api/auth/session";
+      const response = await fetch(url, { cache: "no-store" }).catch(() => null);
       publishPing(response ? performance.now() - started : null);
       if (!response) return;
       const data = (await response.json()) as {
@@ -187,13 +150,6 @@ export function Shell({
 
       if (data.user) {
         const store = useDashboard.getState();
-
-        // A grant the owner changed mid-session. Both halves are needed:
-        // setUser so the session carries it, and a refetch because
-        // useMyPackages prefers the account record and would otherwise go
-        // on reporting the copy already in the store. Compared as a set,
-        // since the order the owner happened to tick the boxes in is not
-        // a change worth a refetch.
         const held = store.user?.packages ?? [];
         const now = data.user.packages;
         if (held.length !== now.length || !now.every((p) => held.includes(p))) {
@@ -201,12 +157,6 @@ export function Shell({
           void refresh();
         }
 
-        // The poll carries the unread count, so a new announcement costs
-        // no extra request -- pull the messages themselves only when the
-        // server's count disagrees with what is already loaded. Not while
-        // a read is already on its way: the first check runs alongside
-        // the first load, against a store that is still empty, and would
-        // otherwise fetch the whole snapshot a second time.
         const loaded = store.db.cheatExeMessages.filter((m) => !m.read).length;
         if (typeof data.unread === "number" && data.unread !== loaded && !isRefreshing()) {
           void refresh();
@@ -220,19 +170,55 @@ export function Shell({
     }
   }, [refresh, setUser]);
 
+  /**
+   * User Activity Tracking & Sliding Idle Expiry:
+   * 1. If user is actively typing, clicking, scrolling, or interacting,
+   *    we extend the session token by pinging /api/auth/session?touch=1 (throttled).
+   * 2. If idle with no interaction for 1 hour (3600 seconds), session expires.
+   */
   useEffect(() => {
     if (terminated) return;
 
-    // Only poll a tab someone is actually looking at.
-    //
-    // At five seconds a panel left open in a background tab would spend
-    // the day asking a question nobody is there to read the answer to.
-    // Hidden tabs stop entirely and catch up the moment they come back,
-    // which also means a returning tab is up to date immediately rather
-    // than after the next tick.
+    let lastActivity = Date.now();
+    let lastTouch = Date.now();
+
+    const onActivity = () => {
+      lastActivity = Date.now();
+      // Throttle renewal touch to every 2 minutes of active use
+      if (Date.now() - lastTouch > 2 * 60 * 1000) {
+        lastTouch = Date.now();
+        void check(true);
+      }
+    };
+
+    const events = ["mousedown", "keydown", "touchstart", "scroll", "mousemove"] as const;
+    for (const evt of events) {
+      window.addEventListener(evt, onActivity, { passive: true });
+    }
+
+    // Check idle duration every 10 seconds
+    const interval = window.setInterval(() => {
+      const idleMs = Date.now() - lastActivity;
+      const maxIdleMs = (expiresIn || 3600) * 1000;
+      if (idleMs >= maxIdleMs) {
+        setTerminated("timeout");
+      }
+    }, 10_000);
+
+    return () => {
+      for (const evt of events) {
+        window.removeEventListener(evt, onActivity);
+      }
+      window.clearInterval(interval);
+    };
+  }, [expiresIn, terminated, check]);
+
+  useEffect(() => {
+    if (terminated) return;
+
     let id = 0;
     const start = () => {
-      if (!id) id = window.setInterval(check, SESSION_POLL_MS);
+      if (!id) id = window.setInterval(() => void check(false), SESSION_POLL_MS);
     };
     const stop = () => {
       if (id) {
@@ -246,12 +232,10 @@ export function Shell({
         stop();
         return;
       }
-      void check();
+      void check(false);
       start();
     };
 
-    // One check straight away as well, so the overview's ping pill has a
-    // figure on the first paint rather than five seconds in.
     onVisibility();
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -275,10 +259,12 @@ export function Shell({
     void refresh();
   });
 
-  // Hold the notice on screen long enough to read, then hand over to the
-  // login page, which shows the same reason.
+  // Hold the notice on screen to allow interaction, then hand over to login
   useEffect(() => {
     if (!terminated) return;
+    // For timeout, let the user interact with the detective screen or click back;
+    // for security kicks/bans, redirect after NOTICE_MS
+    if (terminated === "timeout") return;
     const id = window.setTimeout(() => {
       router.replace(`/login?reason=${terminated}`);
       router.refresh();
@@ -331,24 +317,72 @@ export function Shell({
 
 /** Full-screen takeover shown the moment a session stops being valid. */
 function TerminatedNotice({ reason }: { reason: Terminated }) {
+  const router = useRouter();
+
+  if (reason === "timeout") {
+    return (
+      <Wind404
+        title="404"
+        subtitle="Nothing at this address but the wind. Sessions expire after 1 hour of inactivity."
+        backText="Back to sign in"
+        onBack={() => {
+          router.replace("/login?reason=timeout");
+          router.refresh();
+        }}
+      />
+    );
+  }
+
   const copy = TERMINATED_COPY[reason];
 
   return (
     <div
       role="alertdialog"
       aria-modal
-      className="fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[rgba(4,7,17,0.96)] px-6 text-center backdrop-blur-[6px]"
+      className="fixed inset-0 z-[999999] flex flex-col items-center justify-center bg-[#050814]/95 px-4 text-center backdrop-blur-2xl"
     >
-      <h1
-        className="mb-3 text-[22px] font-extrabold tracking-[2px] sm:text-[28px]"
-        style={{ color: copy.tone }}
+      <div
+        className="pointer-events-none absolute h-[320px] w-[320px] rounded-full blur-[100px] opacity-25"
+        style={{ background: copy.tone }}
+      />
+      <div
+        className="relative z-10 w-full max-w-[420px] rounded-3xl border border-white/10 bg-[#0c1228]/85 p-8 shadow-[0_0_50px_rgba(0,0,0,0.8),0_0_30px_rgba(56,189,248,0.12)] backdrop-blur-xl"
+        style={{ borderColor: `${copy.tone}33` }}
       >
-        {copy.title}
-      </h1>
-      <p className="max-w-[420px] text-[13.5px] leading-[1.6] text-muted">{copy.body}</p>
-      <p className="mt-6 text-[12px] tracking-[1.5px] text-muted uppercase">
-        Returning to sign in...
-      </p>
+        <div
+          className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border shadow-inner"
+          style={{
+            borderColor: `${copy.tone}4d`,
+            background: `radial-gradient(circle, ${copy.tone}22 0%, ${copy.tone}05 100%)`,
+            boxShadow: `0 0 24px ${copy.tone}33`,
+          }}
+        >
+          <svg
+            className="h-8 w-8"
+            style={{ color: copy.tone }}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.75}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+        </div>
+        <h1
+          className="mb-2 text-[20px] font-black tracking-[2px] sm:text-[24px]"
+          style={{
+            color: copy.tone,
+            textShadow: `0 0 20px ${copy.tone}66`,
+          }}
+        >
+          {copy.title}
+        </h1>
+        <p className="mb-6 text-[13.5px] leading-relaxed text-slate-300">{copy.body}</p>
+        <div className="flex items-center justify-center gap-2 text-xs font-medium tracking-widest text-slate-400 uppercase">
+          <span className="h-1.5 w-1.5 animate-ping rounded-full bg-sky-400" />
+          <span>Returning to sign in...</span>
+        </div>
+      </div>
     </div>
   );
 }

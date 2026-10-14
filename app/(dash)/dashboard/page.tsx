@@ -6,7 +6,7 @@ import { useMemo } from "react";
 import { DevicesBanner } from "@/components/dashboard/DevicesBanner";
 import { PerformanceCard } from "@/components/dashboard/PerformanceCard";
 import { LiveDevices } from "@/components/devices/LiveDevices";
-import { AppsIcon, BriefcaseIcon, CpuIcon, LinkIcon, UsersIcon } from "@/components/icons";
+import { AppsIcon, BriefcaseIcon, CpuIcon, GamepadIcon, LinkIcon } from "@/components/icons";
 import { Card } from "@/components/ui/Card";
 import { StatCard, type StatAccent } from "@/components/ui/StatCard";
 import { useDashboard, useMetrics } from "@/lib/store";
@@ -25,16 +25,30 @@ export default function OverviewPage() {
   const router = useRouter();
   const metrics = useMetrics();
   const trends = useTileTrends();
-  const isOwner = useDashboard((s) => s.user?.role === "OWNER");
+  const user = useDashboard((s) => s.user);
+  const dbUsers = useDashboard((s) => s.db.cheatExeUsers);
+  const isOwner = user?.role === "OWNER";
 
-  // Nothing records who used a reseller's keys, and a reseller has no
-  // sub-resellers -- so for them those two tiles could only ever show a
-  // hardcoded 0. Drop them rather than dress up a number nobody can know.
+  // Check if current user is owner or reseller with emulator bypass permission
+  const hasEmulatorAccess = useMemo(() => {
+    if (isOwner) return true;
+    if (user?.emulatorBypassAccess) return true;
+    if (!user?.username) return false;
+    const ownRec = Object.entries(dbUsers).find(
+      ([name]) => name.toLowerCase() === user.username.toLowerCase(),
+    );
+    return Boolean(ownRec?.[1]?.emulatorBypassAccess);
+  }, [isOwner, user, dbUsers]);
+
+  // Resellers have no sub-resellers -- so for them that tile is hidden.
   const ownerOnly = (tile: Tile): Tile[] => (isOwner ? [tile] : []);
+  // Resellers only see Emulator Bypass if access was granted by the owner.
+  const emulatorOnly = (tile: Tile): Tile[] => (hasEmulatorAccess ? [tile] : []);
+
   const tiles: Tile[] = [
     { key: "apps", label: "Total Apps", value: metrics.apps, accent: "purple", icon: <AppsIcon className="size-6" /> },
     { key: "licenses", label: "Total Licenses", value: metrics.licenses, accent: "red", icon: <LinkIcon className="size-6" /> },
-    ...ownerOnly({ key: "users", label: "Total Users", value: metrics.users, accent: "cyan", icon: <UsersIcon className="size-6" /> }),
+    ...emulatorOnly({ key: "emulatorBypass", label: "Emulator Bypass", value: metrics.emulatorBypass, accent: "cyan", icon: <GamepadIcon className="size-6" /> }),
     { key: "devices", label: "Devices", value: metrics.devices, accent: "green", icon: <CpuIcon className="size-6" />, live: true },
     ...ownerOnly({ key: "resellers", label: "Total Resellers", value: metrics.resellers, accent: "orange", icon: <BriefcaseIcon className="size-6" /> }),
   ];

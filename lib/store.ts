@@ -285,12 +285,24 @@ export function useMetrics() {
   const stats = useDashboard((s) => s.stats);
   const packageCount = useDashboard((s) => s.packages.length);
   const mine = useMyPackages();
+  const emulatorBypassCount = useDashboard((s) => {
+    const isOwnerRole = s.user?.role === "OWNER";
+    const me = s.user?.username?.toLowerCase() ?? "";
+    return s.db.cheatExeKeyHistory.filter((k) => {
+      if (k.package !== "EMULATOR BYPASS") return false;
+      if (isOwnerRole) return true;
+      if (!me) return false;
+      const c = (k.creator || "").toLowerCase();
+      return c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
+    }).length;
+  });
 
   if (isOwner && stats) {
     return {
       apps: packageCount,
       licenses: stats.totalKeys,
       users: stats.usedKeys,
+      emulatorBypass: emulatorBypassCount,
       devices: deviceCount,
       resellers: resellerCount,
       live: true,
@@ -305,16 +317,11 @@ export function useMetrics() {
   // to keys *they* created, so counting it is correct, not a guess.
   // `resellers` stays 0 for a fact, not a placeholder: this data model
   // has no sub-resellers, so a reseller managing zero of them is true.
-  // `users` has no such fact to fall back on -- nothing here tracks who
-  // used a reseller's keys, so any number would be invented. It stays 0
-  // rather than fabricate one, but the tile that renders it lives in
-  // app/(dash)/dashboard/page.tsx, outside this file; ideally that tile
-  // is hidden for non-owners instead of showing a zero that reads as a
-  // measurement.
   return {
     apps: isOwner ? packageCount : mine.length,
     licenses: keyCount,
     users: 0,
+    emulatorBypass: emulatorBypassCount,
     devices: deviceCount,
     resellers: isOwner ? resellerCount : 0,
     live: false,

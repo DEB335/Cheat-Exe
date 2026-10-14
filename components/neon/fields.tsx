@@ -535,14 +535,16 @@ export function NeonToggle({
           )}
         />
       </button>
-      <span className="min-w-0">
-        <span className="block text-[14.5px] font-bold text-white lt:text-slate-900">{title}</span>
-        {description ? (
-          <span id={helpId} className="mt-1 block text-[13px] leading-snug text-[#a9b8e0] lt:text-slate-500">
-            {description}
-          </span>
-        ) : null}
-      </span>
+      {title ? (
+        <span className="min-w-0">
+          <span className="block text-[14.5px] font-bold text-white lt:text-slate-900">{title}</span>
+          {description ? (
+            <span id={helpId} className="mt-1 block text-[13px] leading-snug text-[#a9b8e0] lt:text-slate-500">
+              {description}
+            </span>
+          ) : null}
+        </span>
+      ) : null}
     </label>
   );
 }

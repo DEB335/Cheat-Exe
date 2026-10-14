@@ -36,7 +36,11 @@ export const GET = route(async () => {
     cheatExeUsers: own ? { [own[0]]: own[1] } : {},
     cheatExeBannedUsers: [],
     cheatExeBans: [],
-    cheatExeKeyHistory: db.cheatExeKeyHistory.filter((k) => k.creator === user.username),
+    cheatExeKeyHistory: db.cheatExeKeyHistory.filter((k) => {
+      const c = (k.creator || "").toLowerCase();
+      const me = user.username.toLowerCase();
+      return c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
+    }),
     cheatExeDevices: db.cheatExeDevices.filter((d) => d.sessionId === user.sessionId),
     cheatExeAuditLogs: db.cheatExeAuditLogs.filter((log) =>
       log.user.toLowerCase().startsWith(user.username.toLowerCase()),

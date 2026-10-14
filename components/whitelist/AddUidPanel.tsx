@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { GlobeIcon, SearchIcon, UserIcon, UserPlusIcon } from "@/components/icons";
 import { NeonButton, NeonCta, NeonInput, NeonPanel, NeonSelect, PanelHeader, PlusCircleIcon } from "@/components/neon";
 import { WhitelistScene } from "@/components/scenes/WhitelistScene";
+import { KeyHistoryAmbient } from "@/components/scenes/KeyHistoryScene";
 import { useToast } from "@/components/ui/Toast";
 import { patchJson, postJson } from "@/lib/client-api";
 import { DEFAULT_WHITELIST_DAYS, DEFAULT_WHITELIST_REGION, isWhitelistDays } from "@/lib/packages";
@@ -183,7 +184,15 @@ export function AddUidPanel({
   };
 
   return (
-    <NeonPanel rim="violet" className="mb-[30px]">
+    <NeonPanel rim="violet" className="relative mb-[30px] overflow-hidden">
+      {/* Ambient perspective floor and particle glow */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 hidden h-[320px] overflow-hidden rounded-t-[24px] [mask-image:linear-gradient(180deg,#000_55%,transparent)] sm:block"
+      >
+        <KeyHistoryAmbient className="size-full" />
+      </div>
+
       {/* The hologram takes the panel's right-hand side from lg up, and
           the content keeps out of its way with matching right padding.
           Below lg there is no room beside the fields, so it goes. */}

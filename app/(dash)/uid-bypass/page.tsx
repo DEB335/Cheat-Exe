@@ -5,6 +5,8 @@ import { useMemo } from "react";
 import {
   CheckCircleIcon,
   CpuChipIcon,
+  GamepadIcon,
+  KeyIcon,
   LockIcon,
   RefreshIcon,
   XSquareIcon,
@@ -18,6 +20,7 @@ import { UID_BYPASS_PACKAGE } from "@/lib/packages";
 import { useDashboard } from "@/lib/store";
 import { useStoredFlag } from "@/lib/use-external";
 import { cn } from "@/lib/utils";
+import { daysLeft as accountDaysLeft, formatExpiry } from "@/lib/reseller";
 
 import { isExpired, useWhitelist } from "./use-whitelist";
 
@@ -34,15 +37,18 @@ export default function UidBypassOverviewPage() {
   const active = entries.length - expired;
   const activeShare = entries.length === 0 ? 0 : Math.round((active / entries.length) * 100);
 
-  // The row for this very session carries the address and platform the
-  // panel saw at sign-in, which is exactly what the provider's own
-  // overview reports. No second source needed.
   const session = db.cheatExeDevices.find((device) => device.sessionId === user?.sessionId);
 
-  const accountExpiry =
-    user && user.role === "RESELLER"
-      ? (db.cheatExeUsers[user.username]?.expiresAt ?? "Never")
-      : "Never";
+  const accountExpiry = useMemo(() => {
+    if (!user || user.role === "OWNER") return "Never (Permanent)";
+    const record = db.cheatExeUsers[user.username];
+    if (!record || !record.expiresAt) return "Never (Permanent)";
+    const left = accountDaysLeft(record);
+    const dateStr = formatExpiry(record);
+    if (left === null) return "Never";
+    if (left <= 0) return `${dateStr} (Expired)`;
+    return `${dateStr} (${left} day${left === 1 ? "" : "s"} left)`;
+  }, [user, db.cheatExeUsers]);
 
   // Region, not sync platform. The whitelist's move onto the admin API
   // took `sync_target` with it, so a tile reading that field would say
@@ -56,6 +62,88 @@ export default function UidBypassOverviewPage() {
     }
     return [...counts].sort((a, b) => b[1] - a[1]);
   }, [entries]);
+
+  const isOwner = user?.role === "OWNER";
+  const showEmulatorStats = isOwner || Boolean(user?.emulatorBypassAccess);
+
+  const emulatorKeysCount = useMemo(() => {
+    if (!showEmulatorStats) return 0;
+    if (isOwner) {
+      return db.cheatExeKeyHistory.filter((k) => k.package === "EMULATOR BYPASS").length;
+    }
+    if (!user) return 0;
+    return db.cheatExeKeyHistory.filter(
+      (k) =>
+        k.package === "EMULATOR BYPASS" &&
+        k.creator.toLowerCase() === user.username.toLowerCase(),
+    ).length;
+  }, [showEmulatorStats, isOwner, db.cheatExeKeyHistory, user]);
+
+  const emulatorCreditsDisplay = useMemo(() => {
+    if (!showEmulatorStats) return 0;
+    if (isOwner) return "Unlimited";
+    if (!user) return 0;
+    const record = Object.entries(db.cheatExeUsers).find(
+      ([name]) => name.toLowerCase() === user.username.toLowerCase(),
+    )?.[1];
+    const totalCredits = record?.emulatorCredits ?? user.emulatorCredits ?? 0;
+    if (totalCredits <= 0) return "Unlimited";
+    const used = db.cheatExeKeyHistory.filter(
+      (k) =>
+        k.package === "EMULATOR BYPASS" &&
+        k.creator.toLowerCase() === user.username.toLowerCase(),
+    ).length;
+    return Math.max(0, totalCredits - used);
+  }, [showEmulatorStats, isOwner, db.cheatExeUsers, db.cheatExeKeyHistory, user]);
+
+  const myEmulatorKeys = useMemo(() => {
+    if (isOwner) {
+      return db.cheatExeKeyHistory.filter((k) => k.package === "EMULATOR BYPASS");
+    }
+    if (!user) return [];
+    return db.cheatExeKeyHistory.filter(
+      (k) =>
+        k.package === "EMULATOR BYPASS" &&
+        k.creator.toLowerCase() === user.username.toLowerCase(),
+    );
+  }, [isOwner, db.cheatExeKeyHistory, user]);
+
+  const { activeEmulatorKeys, expiredEmulatorKeys } = useMemo(() => {
+    let act = 0;
+    let exp = 0;
+    const now = Date.now();
+    for (const k of myEmulatorKeys) {
+      const days = k.appliedDays ?? Number(k.duration) ?? 0;
+      if (days <= 0) {
+        act++;
+        continue;
+      }
+      const parsedDate = Date.parse(k.date);
+      if (Number.isFinite(parsedDate)) {
+        const expiryMs = parsedDate + days * 86_400_000;
+        if (now > expiryMs) {
+          exp++;
+        } else {
+          act++;
+        }
+      } else {
+        act++;
+      }
+    }
+    return { activeEmulatorKeys: act, expiredEmulatorKeys: exp };
+  }, [myEmulatorKeys]);
+
+  const emulatorActiveShare = useMemo(() => {
+    const total = myEmulatorKeys.length;
+    if (total === 0) return 100;
+    return Math.round((activeEmulatorKeys / total) * 100);
+  }, [myEmulatorKeys.length, activeEmulatorKeys]);
+
+  const uidMaintenance = maintenance;
+  const uidReason = reason;
+  const emulatorMaintenance = Boolean(db.emulatorBypassMaintenance?.active);
+  const emulatorReason = db.emulatorBypassMaintenance?.reason;
+  const bothUnderMaintenance = uidMaintenance && emulatorMaintenance;
 
   return (
     <>
@@ -78,6 +166,22 @@ export default function UidBypassOverviewPage() {
           value={loading ? "…" : expired}
           label="Expired"
         />
+        {showEmulatorStats && (
+          <>
+            <StatCard
+              accent="purple"
+              icon={<GamepadIcon className="size-5" />}
+              value={emulatorKeysCount}
+              label="Emulator Bypass Keys"
+            />
+            <StatCard
+              accent="cyan"
+              icon={<KeyIcon className="size-5" />}
+              value={emulatorCreditsDisplay}
+              label="Emulator Bypass Credits"
+            />
+          </>
+        )}
         <StatCard
           accent="orange"
           icon={<LockIcon className="size-5" />}
@@ -86,90 +190,202 @@ export default function UidBypassOverviewPage() {
         />
       </div>
 
-      {/* The usage card reads the provider; Account Information reads
-          this session. Only the first one has nothing to say while the
-          service is down, so only the first one is replaced. */}
-      {maintenance && (
-        <div className="mb-[30px]">
-          <MaintenanceNotice reason={reason} />
-        </div>
-      )}
+      {/* Maintenance Notices */}
+      {(() => {
+        if (bothUnderMaintenance) {
+          return (
+            <div className="mb-[30px] grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <MaintenanceNotice
+                title="UID Bypass is under maintenance"
+                serviceName="UID Bypass"
+                tone="orange"
+                compact
+                reason={uidReason}
+              />
+              <MaintenanceNotice
+                title="Emulator Bypass is under maintenance"
+                description="The Emulator Bypass service is undergoing updates and maintenance. Key generation is temporarily paused until it is back. Existing keys keep working."
+                serviceName="Emulator Bypass"
+                tone="pink"
+                icon={<GamepadIcon className="size-7" />}
+                compact
+                reason={emulatorReason}
+              />
+            </div>
+          );
+        }
 
-      <div className={cn("grid gap-[30px]", !maintenance && "lg:grid-cols-2")}>
+        if (uidMaintenance) {
+          return (
+            <div className="mb-[30px]">
+              <MaintenanceNotice
+                title="UID Bypass is under maintenance"
+                serviceName="UID Bypass"
+                tone="orange"
+                reason={uidReason}
+              />
+            </div>
+          );
+        }
+
+        if (emulatorMaintenance) {
+          return (
+            <div className="mb-[30px]">
+              <MaintenanceNotice
+                title="Emulator Bypass is under maintenance"
+                description="The Emulator Bypass service is undergoing updates and maintenance. Key generation is temporarily paused until it is back. Existing keys keep working."
+                serviceName="Emulator Bypass"
+                tone="pink"
+                icon={<GamepadIcon className="size-7" />}
+                reason={emulatorReason}
+              />
+            </div>
+          );
+        }
+
+        return null;
+      })()}
+
+      <div
+        className={cn(
+          "grid gap-[30px]",
+          showEmulatorStats && !maintenance && !emulatorMaintenance
+            ? "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
+            : (!maintenance || (showEmulatorStats && !emulatorMaintenance))
+              ? "grid-cols-1 lg:grid-cols-2"
+              : "grid-cols-1",
+        )}
+      >
         <Card flat>
           <CardHeader title="Account Information" subtitle="How this session reaches the service." />
 
           <dl className="flex flex-col gap-2.5">
             <InfoRow label="Registered IP" value={session?.ip ?? "—"} mono />
             <InfoRow label="Browser / Platform" value={session?.device ?? "—"} />
-            <InfoRow label="Account Expiry" value={accountExpiry} mono={accountExpiry !== "Never"} />
+            <InfoRow
+              label="Account Expiry"
+              value={accountExpiry}
+              mono={!accountExpiry.startsWith("Never")}
+            />
             <InfoRow
               label="Package Access"
-              value={UID_BYPASS_PACKAGE}
-              tone={user?.role === "OWNER" ? "blue" : "green"}
+              value={
+                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                  <span className="rounded-md border border-[rgba(14,165,233,0.3)] bg-[rgba(14,165,233,0.1)] px-2 py-0.5 text-[11px] font-bold tracking-wide text-[#38bdf8] uppercase">
+                    UID BYPASS
+                  </span>
+                  {showEmulatorStats && (
+                    <span className="rounded-md border border-[rgba(236,72,153,0.3)] bg-[rgba(236,72,153,0.1)] px-2 py-0.5 text-[11px] font-bold tracking-wide text-[#f472b6] uppercase">
+                      EMULATOR BYPASS
+                    </span>
+                  )}
+                </div>
+              }
             />
           </dl>
         </Card>
 
         {!maintenance && (
-        <Card flat>
-          <CardHeader
-            title="Whitelist Usage"
-            subtitle="Live counts read straight from the provider."
-            actions={
-              <TintButton tone="green" onClick={() => void reload()}>
-                <RefreshIcon className="size-[13px]" />
-                Refresh
-              </TintButton>
-            }
-          />
-
-          <div className="mb-2 flex items-baseline gap-3">
-            <span className="font-display text-[40px] leading-none font-extrabold text-fg">
-              {loading ? "—" : `${activeShare}%`}
-            </span>
-            <span className="text-[11px] font-bold tracking-[1px] text-muted uppercase">
-              Still Active
-            </span>
-          </div>
-
-          <div className="mb-6 h-2.5 w-full overflow-hidden rounded-full bg-white/6">
-            <div
-              className="h-full rounded-full bg-[linear-gradient(90deg,#8b5cf6,#22d3ee)] transition-[width] duration-700 ease-smooth"
-              style={{ width: `${activeShare}%` }}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <MiniTile label="Active" value={loading ? "—" : active} dot="#22d3ee" />
-            <MiniTile label="Expired" value={loading ? "—" : expired} dot="#a855f7" />
-            <MiniTile
-              label="Regions"
-              value={
-                byRegion.length === 0 ? (
-                  "—"
-                ) : (
-                  <span className="text-[13px]">
-                    <span className="text-[#60a5fa]">
-                      {byRegion[0][0]}: {byRegion[0][1]}
-                    </span>
-                    {byRegion.length > 1 && (
-                      <span className="text-muted"> +{byRegion.length - 1} more</span>
-                    )}
-                  </span>
-                )
+          <Card flat>
+            <CardHeader
+              title="Whitelist Usage"
+              subtitle="Live counts read straight from the provider."
+              actions={
+                <TintButton tone="green" onClick={() => void reload()}>
+                  <RefreshIcon className="size-[13px]" />
+                  Refresh
+                </TintButton>
               }
             />
-            {/* Only ever stable here. An unreachable provider replaces
-                this whole card with the maintenance notice, so there is
-                no longer an unreachable state for the tile to report. */}
-            <MiniTile
-              label="Engine Sync"
-              value={<span className="text-[#34d399]">STABLE</span>}
-              dot="#10b981"
+
+            <div className="mb-2 flex items-baseline gap-3">
+              <span className="font-display text-[40px] leading-none font-extrabold text-fg">
+                {loading ? "—" : `${activeShare}%`}
+              </span>
+              <span className="text-[11px] font-bold tracking-[1px] text-muted uppercase">
+                Still Active
+              </span>
+            </div>
+
+            <div className="mb-6 h-2.5 w-full overflow-hidden rounded-full bg-white/6">
+              <div
+                className="h-full rounded-full bg-[linear-gradient(90deg,#8b5cf6,#22d3ee)] transition-[width] duration-700 ease-smooth"
+                style={{ width: `${activeShare}%` }}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <MiniTile label="Active" value={loading ? "—" : active} dot="#22d3ee" />
+              <MiniTile label="Expired" value={loading ? "—" : expired} dot="#a855f7" />
+              <MiniTile
+                label="Regions"
+                value={
+                  byRegion.length === 0 ? (
+                    "—"
+                  ) : (
+                    <span className="text-[13px]">
+                      <span className="text-[#60a5fa]">
+                        {byRegion[0][0]}: {byRegion[0][1]}
+                      </span>
+                      {byRegion.length > 1 && (
+                        <span className="text-muted"> +{byRegion.length - 1} more</span>
+                      )}
+                    </span>
+                  )
+                }
+              />
+              <MiniTile
+                label="Engine Sync"
+                value={<span className="text-[#34d399]">STABLE</span>}
+                dot="#10b981"
+              />
+            </div>
+          </Card>
+        )}
+
+        {showEmulatorStats && !emulatorMaintenance && (
+          <Card flat>
+            <CardHeader
+              title="Emulator Bypass Usage"
+              subtitle="Live key generation and engine metrics."
+              actions={
+                <TintButton tone="green" onClick={() => void reload()}>
+                  <RefreshIcon className="size-[13px]" />
+                  Refresh
+                </TintButton>
+              }
             />
-          </div>
-        </Card>
+
+            <div className="mb-2 flex items-baseline gap-3">
+              <span className="font-display text-[40px] leading-none font-extrabold text-fg">
+                {emulatorActiveShare}%
+              </span>
+              <span className="text-[11px] font-bold tracking-[1px] text-muted uppercase">
+                Still Active
+              </span>
+            </div>
+
+            <div className="mb-6 h-2.5 w-full overflow-hidden rounded-full bg-white/6">
+              <div
+                className="h-full rounded-full bg-[linear-gradient(90deg,#ec4899,#8b5cf6)] transition-[width] duration-700 ease-smooth"
+                style={{ width: `${emulatorActiveShare}%` }}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <MiniTile label="Active" value={activeEmulatorKeys} dot="#ec4899" />
+              <MiniTile label="Expired" value={expiredEmulatorKeys} dot="#a855f7" />
+              <MiniTile
+                label="Bypass Core"
+                value={<span className="text-[13px] font-bold text-[#ec4899]">V1 & V2 HYBRID</span>}
+              />
+              <MiniTile
+                label="Engine Sync"
+                value={<span className="text-[#34d399]">STABLE</span>}
+                dot="#10b981"
+              />
+            </div>
+          </Card>
         )}
       </div>
     </>
@@ -183,7 +399,7 @@ function InfoRow({
   tone,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   mono?: boolean;
   tone?: "green" | "blue";
 }) {
@@ -198,7 +414,7 @@ function InfoRow({
           tone === "blue" && "text-[#60a5fa]",
           !tone && "text-fg",
         )}
-        title={value}
+        title={typeof value === "string" ? value : undefined}
       >
         {value}
       </dd>

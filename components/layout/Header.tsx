@@ -550,7 +550,7 @@ function QuickSearch() {
   // anywhere on the page, including from inside another field.
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() !== "k" || event.altKey || event.shiftKey) return;
+      if (event.key?.toLowerCase() !== "k" || event.altKey || event.shiftKey) return;
       if (!(event.metaKey || event.ctrlKey)) return;
 
       // Below md the box is display:none and cannot take focus. Leave the

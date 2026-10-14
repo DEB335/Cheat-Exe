@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 
 import { HttpError, requireUser } from "@/lib/auth";
 import { readJson, route } from "@/lib/api-helpers";
+import { updateDb } from "@/lib/db";
 import { getKeyInfo } from "@/lib/license-api";
+import { ping } from "@/lib/realtime";
 
 interface Body {
   key?: string;
@@ -24,6 +26,22 @@ export const POST = route(async (request: Request) => {
     return NextResponse.json({
       success: false,
       message: data.message ?? "License key not found.",
+    });
+  }
+
+  if (data.status) {
+    const isBanned = data.status.toLowerCase() === "banned";
+    await updateDb(async (db, tx) => {
+      let changed = false;
+      for (const k of db.cheatExeKeyHistory) {
+        if (k.key.toUpperCase() === trimmed.toUpperCase()) {
+          if (k.banned !== isBanned) {
+            k.banned = isBanned;
+            changed = true;
+          }
+        }
+      }
+      if (changed) await ping("key", tx);
     });
   }
 

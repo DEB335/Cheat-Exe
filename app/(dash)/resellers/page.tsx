@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { ActiveResellersPanel, type ResellerActions } from "@/components/resellers/ActiveResellersPanel";
 import { CreateResellerPanel } from "@/components/resellers/CreateResellerPanel";
 import { togglePackage } from "@/components/resellers/PackageToggles";
-import { PassModal, PermsModal, RenewModal } from "@/components/resellers/ResellerModals";
+import { PassModal, PermsModal, RenewModal, ManageModal } from "@/components/resellers/ResellerModals";
 import { useToast } from "@/components/ui/Toast";
 import { del, patchJson } from "@/lib/client-api";
 import {
@@ -41,6 +41,12 @@ export default function ResellersPage() {
   const [renewFor, setRenewFor] = useState<string | null>(null);
   const [renewDays, setRenewDays] = useState("30");
   const [renewLimit, setRenewLimit] = useState("");
+  const [renewEmulatorCredits, setRenewEmulatorCredits] = useState("0");
+  const [renewEmulatorAllowedDays, setRenewEmulatorAllowedDays] = useState<number[]>([1, 3, 7, 30, 60, 90, 180, 365]);
+
+  const [manageFor, setManageFor] = useState<string | null>(null);
+  const [manageUidBypass, setManageUidBypass] = useState(false);
+  const [manageEmulatorBypass, setManageEmulatorBypass] = useState(false);
 
   const patch = async (name: string, body: Record<string, unknown>, message: string) => {
     // Status is the one field worth painting ahead of the server -- it is
@@ -80,6 +86,11 @@ export default function ResellersPage() {
       setPermsFor(name);
       setPermsDraft(user.packages);
     },
+    openManage: (name, user) => {
+      setManageFor(name);
+      setManageUidBypass(Boolean(user.uidBypassAccess));
+      setManageEmulatorBypass(Boolean(user.emulatorBypassAccess));
+    },
     openPass: (name) => {
       setPassFor(name);
       setNewPass("");
@@ -88,10 +99,12 @@ export default function ResellersPage() {
     openRenew: (name, user) => {
       setRenewFor(name);
       // Prefill with days still left (or 30 for an account with no end
-      // date), and the current key limit.
+      // date), and the current key limit and emulator config.
       const left = daysLeft(user);
       setRenewDays(String(left && left > 0 ? left : 30));
       setRenewLimit(user.keyLimit ? String(user.keyLimit) : "");
+      setRenewEmulatorCredits(String(user.emulatorCredits ?? 0));
+      setRenewEmulatorAllowedDays(user.emulatorAllowedDays ?? [1, 3, 7, 30, 60, 90, 180, 365]);
     },
   };
 
@@ -104,18 +117,54 @@ export default function ResellersPage() {
         name={renewFor}
         days={renewDays}
         limit={renewLimit}
+        emulatorCredits={renewEmulatorCredits}
+        emulatorAllowedDays={renewEmulatorAllowedDays}
         onDays={setRenewDays}
         onLimit={setRenewLimit}
+        onEmulatorCredits={setRenewEmulatorCredits}
+        onToggleAllowedDay={(day) => {
+          setRenewEmulatorAllowedDays((prev) =>
+            prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
+          );
+        }}
         onClose={() => setRenewFor(null)}
         onSave={async () => {
           if (renewFor) {
+            const credits = Number(renewEmulatorCredits) || 0;
             await patch(
               renewFor,
-              { validityDays: Number(renewDays) || 0, keyLimit: Number(renewLimit) || 0 },
-              `Validity and limit updated for ${renewFor}.`,
+              {
+                validityDays: Number(renewDays) || 0,
+                keyLimit: Number(renewLimit) || 0,
+                emulatorCredits: credits,
+                emulatorAllowedDays: renewEmulatorAllowedDays,
+              },
+              `Validity, limits and emulator configuration updated for ${renewFor}.`,
             );
           }
           setRenewFor(null);
+        }}
+      />
+
+      <ManageModal
+        name={manageFor}
+        uidBypassAccess={manageUidBypass}
+        emulatorBypassAccess={manageEmulatorBypass}
+        onUidBypassAccess={setManageUidBypass}
+        onEmulatorBypassAccess={setManageEmulatorBypass}
+        onClose={() => setManageFor(null)}
+        onSave={async () => {
+          if (manageFor) {
+            await patch(
+              manageFor,
+              {
+                uidBypassAccess: manageUidBypass,
+                emulatorBypassAccess: manageEmulatorBypass,
+              },
+              `Access updated for ${manageFor}.`,
+            );
+          }
+          setManageFor(null);
         }}
       />
 

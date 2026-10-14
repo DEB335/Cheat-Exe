@@ -111,7 +111,15 @@ async function authorize<T extends AccessState>(
   // package they no longer hold. Every authenticated route resolves its
   // permissions here, from the database, so a revocation lands on the
   // next request.
-  const live: SessionUser = { ...user, packages: livePackages(db, user) };
+  const resellerRec = user.role === "RESELLER" ? findReseller(db, user.username)?.user : null;
+  const live: SessionUser = {
+    ...user,
+    packages: livePackages(db, user),
+    uidBypassAccess: user.role === "OWNER" ? true : Boolean(resellerRec?.uidBypassAccess),
+    emulatorBypassAccess: user.role === "OWNER" ? true : Boolean(resellerRec?.emulatorBypassAccess),
+    emulatorCredits: user.role === "OWNER" ? 999999 : (resellerRec?.emulatorCredits ?? 0),
+    emulatorAllowedDays: user.role === "OWNER" ? [1, 3, 7, 30, 60, 90, 180, 365] : (resellerRec?.emulatorAllowedDays ?? [1, 3, 7]),
+  };
 
   const blocked = accountBlock(db, user.username, user.role);
   if (blocked) throw new HttpError(403, BLOCK_MESSAGE[blocked]);
@@ -161,9 +169,26 @@ export function livePackages(db: Pick<Database, "cheatExeUsers">, user: SessionU
  * the reseller records.
  */
 export async function withLivePackages(user: SessionUser): Promise<SessionUser> {
-  if (user.role === "OWNER") return { ...user, packages: PACKAGE_NAMES };
+  if (user.role === "OWNER") {
+    return {
+      ...user,
+      packages: PACKAGE_NAMES,
+      uidBypassAccess: true,
+      emulatorBypassAccess: true,
+      emulatorCredits: 999999,
+      emulatorAllowedDays: [1, 3, 7, 30, 60, 90, 180, 365],
+    };
+  }
   const db = await readSlice(["cheatExeUsers"]);
-  return { ...user, packages: livePackages(db, user) };
+  const resellerRec = findReseller(db, user.username)?.user;
+  return {
+    ...user,
+    packages: livePackages(db, user),
+    uidBypassAccess: Boolean(resellerRec?.uidBypassAccess),
+    emulatorBypassAccess: Boolean(resellerRec?.emulatorBypassAccess),
+    emulatorCredits: resellerRec?.emulatorCredits ?? 0,
+    emulatorAllowedDays: resellerRec?.emulatorAllowedDays ?? [1, 3, 7],
+  };
 }
 
 export async function requireOwner(): Promise<SessionUser> {

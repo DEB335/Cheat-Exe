@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { HistoryIcon, KeyIcon, LockIcon, RefreshIcon, RotateIcon, TrashIcon, UserIcon, UsersIcon } from "@/components/icons";
+import { HistoryIcon, KeyIcon, LockIcon, RefreshIcon, RotateIcon, SlidersIcon, TrashIcon, UserIcon, UsersIcon } from "@/components/icons";
 import {
   IconTile,
   NeonButton,
@@ -20,12 +20,12 @@ import {
   type NeonStatus,
 } from "@/components/neon";
 import { useToast } from "@/components/ui/Toast";
-import { daysLeft, effectiveStatus, formatExpiry, keysRemaining } from "@/lib/reseller";
+import { daysLeft, effectiveStatus, emulatorCreditsRemaining, formatExpiry, keysRemaining } from "@/lib/reseller";
 import { useDashboard } from "@/lib/store";
 import type { PublicDatabase, ResellerStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const COLUMNS = ["Username", "Status", "Validity", "Keys", "Device", "Allowed Packages", "Actions"];
+const COLUMNS = ["Username", "Status", "Validity", "Keys", "Bypass Credits", "Device", "Allowed Packages", "Actions"];
 
 /** Pill colour per status: live green, suspended red, waiting amber, lapsed grey. */
 const STATUS_LOOK: Record<ResellerStatus, NeonStatus> = {
@@ -44,6 +44,7 @@ export interface ResellerActions {
   patch: (name: string, body: Record<string, unknown>, message: string) => Promise<void>;
   remove: (name: string) => Promise<void>;
   openPerms: (name: string, user: ResellerView) => void;
+  openManage: (name: string, user: ResellerView) => void;
   openPass: (name: string) => void;
   openRenew: (name: string, user: ResellerView) => void;
 }
@@ -65,16 +66,19 @@ export function ActiveResellersPanel({ actions }: { actions: ResellerActions }) 
 
   const entries = Object.entries(users);
 
-  // How many keys each reseller has generated, for the quota column. The
-  // owner's /api/db payload already carries the full history, so this
-  // needs no extra request.
-  const keysUsed = useMemo(() => {
-    const counts: Record<string, number> = {};
+  // How many keys each reseller has generated, separated by regular license keys vs emulator bypass keys.
+  const { keysUsed, emulatorKeysUsed } = useMemo(() => {
+    const regular: Record<string, number> = {};
+    const emulator: Record<string, number> = {};
     for (const record of history) {
       const creator = record.creator.toLowerCase();
-      counts[creator] = (counts[creator] ?? 0) + 1;
+      if (record.package === "EMULATOR BYPASS") {
+        emulator[creator] = (emulator[creator] ?? 0) + 1;
+      } else {
+        regular[creator] = (regular[creator] ?? 0) + 1;
+      }
     }
-    return counts;
+    return { keysUsed: regular, emulatorKeysUsed: emulator };
   }, [history]);
 
   return (
@@ -102,7 +106,7 @@ export function ActiveResellersPanel({ actions }: { actions: ResellerActions }) 
 
       <NeonTable
         columns={COLUMNS}
-        minWidth={1400}
+        minWidth={1520}
         empty={
           <NeonEmpty icon={<UsersIcon />}>{loading ? "Loading resellers…" : "No reseller accounts yet."}</NeonEmpty>
         }
@@ -114,6 +118,7 @@ export function ActiveResellersPanel({ actions }: { actions: ResellerActions }) 
             name={name}
             user={user}
             used={keysUsed[name.toLowerCase()] ?? 0}
+            emulatorUsed={emulatorKeysUsed[name.toLowerCase()] ?? 0}
             actions={actions}
           />
         ))}
@@ -127,12 +132,14 @@ function ResellerRow({
   name,
   user,
   used,
+  emulatorUsed,
   actions,
 }: {
   index: number;
   name: string;
   user: ResellerView;
   used: number;
+  emulatorUsed: number;
   actions: ResellerActions;
 }) {
   // effectiveStatus, not user.status: the stored value can still say
@@ -141,6 +148,7 @@ function ResellerRow({
   const status = effectiveStatus(user);
   const left = daysLeft(user);
   const remaining = keysRemaining(user, used);
+  const emulatorRemaining = emulatorCreditsRemaining(user, emulatorUsed);
 
   return (
     <NeonRow index={index}>
@@ -186,6 +194,32 @@ function ResellerRow({
         <div className={cn("mt-0.5 whitespace-nowrap", MUTED)}>
           {remaining === null ? "unlimited" : remaining === 0 ? "none left" : `${remaining} left`}
         </div>
+      </NeonCell>
+
+      <NeonCell>
+        {user.emulatorBypassAccess ? (
+          <>
+            <div className="text-[15px] font-bold whitespace-nowrap text-white lt:text-slate-900">
+              {user.emulatorCredits ? `${emulatorUsed} / ${user.emulatorCredits}` : emulatorUsed}
+            </div>
+            <div className={cn("mt-0.5 whitespace-nowrap", MUTED)}>
+              {emulatorRemaining === null ? (
+                <span className="font-medium text-[#38ef7d] lt:text-emerald-600">unlimited</span>
+              ) : emulatorRemaining === 0 ? (
+                <span className="font-medium text-[#ff8aa0] lt:text-rose-600">none left</span>
+              ) : (
+                `${emulatorRemaining} left`
+              )}
+            </div>
+          </>
+        ) : (
+          <div>
+            <div className="text-[14.5px] font-semibold text-[#8f9bc4]/50 lt:text-slate-400">—</div>
+            <div className="mt-0.5 text-[11.5px] font-medium tracking-wide uppercase text-[#ff8aa0]/60 lt:text-rose-500/70">
+              Disabled
+            </div>
+          </div>
+        )}
       </NeonCell>
 
       <NeonCell>
@@ -256,6 +290,17 @@ function ResellerRow({
             onClick={() => actions.openPerms(name, user)}
           >
             Perms
+          </NeonButton>
+
+          <NeonButton
+            variant="filled"
+            size="xs"
+            tone="pink"
+            icon={<SlidersIcon />}
+            title="Manage feature access, emulator bypass & credits"
+            onClick={() => actions.openManage(name, user)}
+          >
+            Manage
           </NeonButton>
 
           <NeonButton
