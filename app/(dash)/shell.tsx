@@ -121,9 +121,13 @@ export function Shell({
   // leave someone parked there.
   useEffect(() => {
     if (terminated || !effectiveUser) return;
-    if (pathname.startsWith("/uid-bypass")) {
+    if (pathname.startsWith("/uid-bypass/whitelist")) {
       if (canManageWhitelist(effectiveUser)) return;
-      toast("UID Bypass access was removed from your account.", "error");
+      toast("Whitelist UID access is not enabled on your account.", "error");
+      router.replace("/uid-bypass");
+    } else if (pathname.startsWith("/uid-bypass")) {
+      if (canManageWhitelist(effectiveUser) || canAccessEmulatorBypass(effectiveUser)) return;
+      toast("Bypass access was removed from your account.", "error");
       router.replace("/dashboard");
     } else if (pathname.startsWith("/emulator-bypass")) {
       if (canAccessEmulatorBypass(effectiveUser)) return;

@@ -87,9 +87,9 @@ interface WhitelistState extends Snapshot {
  * equally a reason not to offer a form that spends credits. Both land on
  * the same flag, and `reason` is what tells them apart afterwards.
  */
-export function useWhitelist(auto: boolean): WhitelistState {
+export function useWhitelist(auto: boolean, enabled: boolean = true): WhitelistState {
   const [entries, setEntries] = useState<WhitelistEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(enabled);
   const [error, setError] = useState<string | null>(null);
   const [maintenance, setMaintenance] = useState(false);
   const [reason, setReason] = useState<string | null>(null);
@@ -112,6 +112,10 @@ export function useWhitelist(auto: boolean): WhitelistState {
   // `alive` guard can wrap it: the upstream call can outlive the page,
   // and a response landing after a navigation must not write state.
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     let alive = true;
 
     void (async () => {
@@ -128,7 +132,7 @@ export function useWhitelist(auto: boolean): WhitelistState {
     return () => {
       alive = false;
     };
-  }, [apply, fail]);
+  }, [enabled, apply, fail]);
 
   const mutate = useCallback(
     (updater: (prev: WhitelistEntry[]) => WhitelistEntry[]) => setEntries(updater),
@@ -136,6 +140,7 @@ export function useWhitelist(auto: boolean): WhitelistState {
   );
 
   const reload = useCallback(async () => {
+    if (!enabled) return;
     try {
       apply(await fetchState());
     } catch (err) {
@@ -143,13 +148,13 @@ export function useWhitelist(auto: boolean): WhitelistState {
     } finally {
       setLoading(false);
     }
-  }, [apply, fail]);
+  }, [enabled, apply, fail]);
 
   // Only while someone can see the list. A hidden tab stops asking the
   // provider, and on coming back catches up at once if a tick was missed,
   // then carries on at the usual pace.
   useEffect(() => {
-    if (!auto) return;
+    if (!auto || !enabled) return;
 
     let timer = 0;
     let last = Date.now();
@@ -179,7 +184,7 @@ export function useWhitelist(auto: boolean): WhitelistState {
       stop();
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [auto, reload]);
+  }, [auto, enabled, reload]);
 
   return { entries, loading, error, maintenance, reason, reload, mutate };
 }

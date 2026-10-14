@@ -215,7 +215,10 @@ export function canSeeItem(
 ): boolean {
   const role: Role = user?.role ?? "RESELLER";
   if (!item.roles.includes(role)) return false;
-  if (item.href === "/uid-bypass" || item.href === "/uid-bypass/whitelist") {
+  if (item.href === "/uid-bypass") {
+    return user !== null && (canManageWhitelist(user) || canAccessEmulatorBypass(user));
+  }
+  if (item.href === "/uid-bypass/whitelist") {
     return user !== null && canManageWhitelist(user);
   }
   if (item.href === "/emulator-bypass") {

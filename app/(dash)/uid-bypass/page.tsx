@@ -27,11 +27,15 @@ import { isExpired, useWhitelist } from "./use-whitelist";
 const AUTO_KEY = "uidBypassAutoRefresh";
 
 export default function UidBypassOverviewPage() {
-  const [auto] = useStoredFlag(AUTO_KEY);
-  const { entries, loading, maintenance, reason, reload } = useWhitelist(auto);
-
   const user = useDashboard((s) => s.user);
   const db = useDashboard((s) => s.db);
+
+  const isOwner = user?.role === "OWNER";
+  const showUidStats = isOwner || Boolean(user?.uidBypassAccess);
+  const showEmulatorStats = isOwner || Boolean(user?.emulatorBypassAccess);
+
+  const [auto] = useStoredFlag(AUTO_KEY);
+  const { entries, loading, maintenance, reason, reload } = useWhitelist(auto, showUidStats);
 
   const expired = useMemo(() => entries.filter(isExpired).length, [entries]);
   const active = entries.length - expired;
@@ -50,11 +54,6 @@ export default function UidBypassOverviewPage() {
     return `${dateStr} (${left} day${left === 1 ? "" : "s"} left)`;
   }, [user, db.cheatExeUsers]);
 
-  // Region, not sync platform. The whitelist's move onto the admin API
-  // took `sync_target` with it, so a tile reading that field would say
-  // "Bot: everything" forever. Region is what became real in the same
-  // move, and it is the figure worth watching: a customer whitelisted on
-  // the wrong server is a spent credit.
   const byRegion = useMemo(() => {
     const counts = new Map<string, number>();
     for (const entry of entries) {
@@ -62,9 +61,6 @@ export default function UidBypassOverviewPage() {
     }
     return [...counts].sort((a, b) => b[1] - a[1]);
   }, [entries]);
-
-  const isOwner = user?.role === "OWNER";
-  const showEmulatorStats = isOwner || Boolean(user?.emulatorBypassAccess);
 
   const emulatorKeysCount = useMemo(() => {
     if (!showEmulatorStats) return 0;
@@ -149,24 +145,28 @@ export default function UidBypassOverviewPage() {
   return (
     <>
       <div className="mb-[30px] grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-5">
-        <StatCard
-          accent="cyan"
-          icon={<CpuChipIcon className="size-5" />}
-          value={loading ? "…" : entries.length}
-          label="Whitelisted UIDs"
-        />
-        <StatCard
-          accent="green"
-          icon={<CheckCircleIcon className="size-5" />}
-          value={loading ? "…" : active}
-          label="Active"
-        />
-        <StatCard
-          accent="red"
-          icon={<XSquareIcon className="size-5" />}
-          value={loading ? "…" : expired}
-          label="Expired"
-        />
+        {showUidStats && (
+          <>
+            <StatCard
+              accent="cyan"
+              icon={<CpuChipIcon className="size-5" />}
+              value={loading ? "…" : entries.length}
+              label="Whitelisted UIDs"
+            />
+            <StatCard
+              accent="green"
+              icon={<CheckCircleIcon className="size-5" />}
+              value={loading ? "…" : active}
+              label="Active"
+            />
+            <StatCard
+              accent="red"
+              icon={<XSquareIcon className="size-5" />}
+              value={loading ? "…" : expired}
+              label="Expired"
+            />
+          </>
+        )}
         {showEmulatorStats && (
           <>
             <StatCard
@@ -193,7 +193,10 @@ export default function UidBypassOverviewPage() {
 
       {/* Maintenance Notices */}
       {(() => {
-        if (bothUnderMaintenance) {
+        const showUidMaint = showUidStats && uidMaintenance;
+        const showEmuMaint = showEmulatorStats && emulatorMaintenance;
+
+        if (showUidMaint && showEmuMaint) {
           return (
             <div className="mb-[30px] grid grid-cols-1 gap-6 lg:grid-cols-2">
               <MaintenanceNotice
@@ -216,7 +219,7 @@ export default function UidBypassOverviewPage() {
           );
         }
 
-        if (uidMaintenance) {
+        if (showUidMaint) {
           return (
             <div className="mb-[30px]">
               <MaintenanceNotice
@@ -229,7 +232,7 @@ export default function UidBypassOverviewPage() {
           );
         }
 
-        if (emulatorMaintenance) {
+        if (showEmuMaint) {
           return (
             <div className="mb-[30px]">
               <MaintenanceNotice
@@ -250,9 +253,9 @@ export default function UidBypassOverviewPage() {
       <div
         className={cn(
           "grid gap-[30px]",
-          showEmulatorStats && !maintenance && !emulatorMaintenance
+          showUidStats && !maintenance && showEmulatorStats && !emulatorMaintenance
             ? "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
-            : (!maintenance || (showEmulatorStats && !emulatorMaintenance))
+            : (showUidStats && !maintenance) || (showEmulatorStats && !emulatorMaintenance)
               ? "grid-cols-1 lg:grid-cols-2"
               : "grid-cols-1",
         )}
@@ -272,13 +275,18 @@ export default function UidBypassOverviewPage() {
               label="Package Access"
               value={
                 <div className="flex flex-wrap items-center justify-end gap-1.5">
-                  <span className="rounded-md border border-[rgba(14,165,233,0.3)] bg-[rgba(14,165,233,0.1)] px-2 py-0.5 text-[11px] font-bold tracking-wide text-[#38bdf8] uppercase">
-                    UID BYPASS
-                  </span>
+                  {showUidStats && (
+                    <span className="rounded-md border border-[rgba(14,165,233,0.3)] bg-[rgba(14,165,233,0.1)] px-2 py-0.5 text-[11px] font-bold tracking-wide text-[#38bdf8] uppercase">
+                      UID BYPASS
+                    </span>
+                  )}
                   {showEmulatorStats && (
                     <span className="rounded-md border border-[rgba(236,72,153,0.3)] bg-[rgba(236,72,153,0.1)] px-2 py-0.5 text-[11px] font-bold tracking-wide text-[#f472b6] uppercase">
                       EMULATOR BYPASS
                     </span>
+                  )}
+                  {!showUidStats && !showEmulatorStats && (
+                    <span className="text-[12px] text-muted">None</span>
                   )}
                 </div>
               }
@@ -286,7 +294,7 @@ export default function UidBypassOverviewPage() {
           </dl>
         </Card>
 
-        {!maintenance && (
+        {showUidStats && !maintenance && (
           <Card flat>
             <CardHeader
               title="Whitelist Usage"
