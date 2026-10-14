@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { withLivePackages } from "@/lib/auth";
+import { ACCESS_FIELDS, withLivePackages } from "@/lib/auth";
+import { accountBlock, readSlice } from "@/lib/db";
 import { SESSION_COOKIE, readSessionState, secondsUntil } from "@/lib/session";
 
 import { Shell } from "./shell";
@@ -20,15 +21,20 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
     redirect(state.status === "expired" ? "/login?reason=timeout" : "/login");
   }
 
-  // How long this session has left, resolved here rather than in the
-  // browser. The deadline is the server's, and a client whose clock runs
-  // fast or slow would otherwise place it minutes off; a remaining count
-  // started at mount is immune to that, since only the elapsed time
-  // matters and both agree on how long a second is.
-  // Permissions resolved from the account record, not from the copy the
-  // token was signed with. Without this a hard reload paints the sidebar
-  // from a grant that may have been revoked hours ago, and the section
-  // only vanishes once the first /api/db lands.
+  // Ensure account is still valid, not deleted, suspended, or kicked
+  const accessDb = await readSlice([...ACCESS_FIELDS, "cheatExeDevices"]);
+  const blocked = accountBlock(accessDb, state.user.username, state.user.role);
+  if (blocked) {
+    redirect(`/login?reason=${blocked}`);
+  }
+
+  const kicked =
+    state.user.role !== "OWNER" &&
+    !accessDb.cheatExeDevices.some((d) => d.sessionId === state.user.sessionId);
+  if (kicked) {
+    redirect("/login?reason=kicked");
+  }
+
   const user = await withLivePackages(state.user);
 
   return (

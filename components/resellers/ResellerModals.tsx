@@ -233,7 +233,23 @@ export function ManageModal({
     >
       <div className="mb-7 flex flex-col gap-4">
         {/* UID Bypass Toggle Card */}
-        <div className="flex items-center justify-between rounded-xl border border-[#1e294b] bg-[rgba(10,16,36,0.65)] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all lt:border-slate-200 lt:bg-slate-50">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onUidBypassAccess(!uidBypassAccess)}
+          onKeyDown={(e) => {
+            if (e.key === " " || e.key === "Enter") {
+              e.preventDefault();
+              onUidBypassAccess(!uidBypassAccess);
+            }
+          }}
+          className={cn(
+            "flex cursor-pointer select-none items-center justify-between rounded-xl border p-4 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all",
+            uidBypassAccess
+              ? "border-[rgba(56,189,248,0.55)] bg-[rgba(10,24,52,0.8)] shadow-[0_0_20px_rgba(56,189,248,0.15)] lt:border-sky-300 lt:bg-sky-50"
+              : "border-[#1e294b] bg-[rgba(10,16,36,0.65)] hover:border-[#2a3a68] lt:border-slate-200 lt:bg-slate-50",
+          )}
+        >
           <div className="flex items-center gap-3.5 pr-3">
             <IconTile tone="cyan" variant="ring" size="sm">
               <CpuChipIcon />
@@ -245,18 +261,36 @@ export function ManageModal({
               </p>
             </div>
           </div>
-          <NeonToggle
-            id="manage-uid-bypass"
-            title=""
-            tone="cyan"
-            boxed={false}
-            checked={uidBypassAccess}
-            onChange={onUidBypassAccess}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <NeonToggle
+              id="manage-uid-bypass"
+              title=""
+              tone="cyan"
+              boxed={false}
+              checked={uidBypassAccess}
+              onChange={onUidBypassAccess}
+            />
+          </div>
         </div>
 
         {/* Emulator Bypass Toggle Card */}
-        <div className="flex items-center justify-between rounded-xl border border-[#2b1b42] bg-[rgba(18,12,32,0.65)] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all lt:border-slate-200 lt:bg-slate-50">
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onEmulatorBypassAccess(!emulatorBypassAccess)}
+          onKeyDown={(e) => {
+            if (e.key === " " || e.key === "Enter") {
+              e.preventDefault();
+              onEmulatorBypassAccess(!emulatorBypassAccess);
+            }
+          }}
+          className={cn(
+            "flex cursor-pointer select-none items-center justify-between rounded-xl border p-4 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all",
+            emulatorBypassAccess
+              ? "border-[rgba(244,114,182,0.55)] bg-[rgba(32,14,38,0.8)] shadow-[0_0_20px_rgba(244,114,182,0.15)] lt:border-pink-300 lt:bg-pink-50"
+              : "border-[#2b1b42] bg-[rgba(18,12,32,0.65)] hover:border-[#3d275d] lt:border-slate-200 lt:bg-slate-50",
+          )}
+        >
           <div className="flex items-center gap-3.5 pr-3">
             <IconTile tone="pink" variant="ring" size="sm">
               <GamepadIcon />
@@ -270,14 +304,16 @@ export function ManageModal({
               </p>
             </div>
           </div>
-          <NeonToggle
-            id="manage-emulator-bypass"
-            title=""
-            tone="pink"
-            boxed={false}
-            checked={emulatorBypassAccess}
-            onChange={onEmulatorBypassAccess}
-          />
+          <div onClick={(e) => e.stopPropagation()}>
+            <NeonToggle
+              id="manage-emulator-bypass"
+              title=""
+              tone="pink"
+              boxed={false}
+              checked={emulatorBypassAccess}
+              onChange={onEmulatorBypassAccess}
+            />
+          </div>
         </div>
       </div>
       <DialogActions onSave={onSave} onCancel={onClose} />

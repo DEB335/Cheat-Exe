@@ -206,7 +206,10 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
       }
     }
 
-    if (changed) await ping("reseller", tx);
+    if (changed) {
+      await ping("reseller", tx);
+      await ping("device", tx);
+    }
   });
 
   return NextResponse.json({ success: true });
@@ -234,6 +237,7 @@ export const DELETE = route(async (_request: Request, ctx: Ctx) => {
     // The not-found case threw above, so reaching here always deleted
     // something.
     await ping("reseller", tx);
+    await ping("device", tx);
   });
 
   return NextResponse.json({ success: true });

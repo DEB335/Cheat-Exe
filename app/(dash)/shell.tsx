@@ -223,35 +223,55 @@ export function Shell({
     };
   }, [expiresIn, terminated, check]);
 
+  // Immediate client-side check if reseller account was deleted or suspended
+  const dbUsers = useDashboard((s) => s.db.cheatExeUsers);
+  const dbLoading = useDashboard((s) => s.loading);
+  useEffect(() => {
+    if (terminated || !user || user.role === "OWNER" || dbLoading) return;
+    if (Object.keys(dbUsers).length > 0) {
+      const match = Object.entries(dbUsers).find(
+        ([name]) => name.toLowerCase() === user.username.toLowerCase(),
+      );
+      if (!match) {
+        setTerminated("deleted");
+        void check(false);
+      } else if (match[1].status === "SUSPENDED") {
+        setTerminated("suspended");
+        void check(false);
+      }
+    }
+  }, [terminated, user, dbUsers, dbLoading, check]);
+
+  // Listen for terminal events from background fetch errors
+  useEffect(() => {
+    const onSessionTerminated = (e: Event) => {
+      const custom = e as CustomEvent<Terminated>;
+      if (custom.detail) {
+        setTerminated(custom.detail);
+      } else {
+        void check(false);
+      }
+    };
+    window.addEventListener("session-terminated", onSessionTerminated);
+    return () => window.removeEventListener("session-terminated", onSessionTerminated);
+  }, [check]);
+
   useEffect(() => {
     if (terminated) return;
 
-    let id = 0;
-    const start = () => {
-      if (!id) id = window.setInterval(() => void check(false), SESSION_POLL_MS);
-    };
-    const stop = () => {
-      if (id) {
-        window.clearInterval(id);
-        id = 0;
-      }
-    };
+    const id = window.setInterval(() => void check(false), SESSION_POLL_MS);
 
-    const onVisibility = () => {
-      if (document.hidden) {
-        stop();
-        return;
-      }
+    const onWake = () => {
       void check(false);
-      start();
     };
 
-    onVisibility();
-    document.addEventListener("visibilitychange", onVisibility);
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("focus", onWake);
 
     return () => {
-      stop();
-      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("focus", onWake);
     };
   }, [terminated, check]);
 

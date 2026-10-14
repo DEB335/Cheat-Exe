@@ -490,9 +490,9 @@ export function NeonToggle({
 }) {
   const { controlId, helpId } = useFieldIds(id);
   return (
-    <label
-      htmlFor={controlId}
+    <div
       style={toneVars(tone)}
+      onClick={() => !disabled && onChange(!checked)}
       className={cn(
         "flex items-center gap-4",
         disabled ? "cursor-not-allowed opacity-55" : "cursor-pointer",
@@ -513,7 +513,10 @@ export function NeonToggle({
         aria-checked={checked}
         aria-describedby={description ? helpId : undefined}
         disabled={disabled}
-        onClick={() => onChange(!checked)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onChange(!checked);
+        }}
         className={cn(
           "relative h-[30px] w-[56px] shrink-0 cursor-pointer rounded-full border transition-[background,border-color,box-shadow] duration-300",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--tone-hi))] disabled:cursor-not-allowed",
@@ -545,7 +548,7 @@ export function NeonToggle({
           ) : null}
         </span>
       ) : null}
-    </label>
+    </div>
   );
 }
 

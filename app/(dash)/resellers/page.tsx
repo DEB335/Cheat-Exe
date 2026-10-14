@@ -190,17 +190,18 @@ export default function ResellersPage() {
         onEmulatorBypassAccess={setManageEmulatorBypass}
         onClose={() => setManageFor(null)}
         onSave={async () => {
-          if (manageFor) {
+          const target = manageFor;
+          setManageFor(null);
+          if (target) {
             await patch(
-              manageFor,
+              target,
               {
                 uidBypassAccess: manageUidBypass,
                 emulatorBypassAccess: manageEmulatorBypass,
               },
-              `Access updated for ${manageFor}.`,
+              `Access updated for ${target}.`,
             );
           }
-          setManageFor(null);
         }}
       />
 

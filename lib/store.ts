@@ -189,11 +189,29 @@ export const useDashboard = create<DashboardState>((set, get) => ({
           // hard navigation is right: it discards every piece of client state
           // along with the dead cookie.
           //
-          // 403 is different. The session exists but the account was just
-          // suspended, expired, banned or device-locked, and the shell's
-          // session check knows *which* -- it shows that reason and then
-          // redirects with it. Redirecting from here would race that check and
-          // win, dumping the user on a blank login page with no idea why.
+          if (response.status === 403) {
+            try {
+              const err = (await response.json()) as { message?: string };
+              let reason = "kicked";
+              const msg = err.message?.toLowerCase() ?? "";
+              if (msg.includes("removed") || msg.includes("deleted") || msg.includes("no longer exists")) {
+                reason = "deleted";
+              } else if (msg.includes("suspend")) {
+                reason = "suspended";
+              } else if (msg.includes("ban")) {
+                reason = "banned";
+              } else if (msg.includes("expired") || msg.includes("validity")) {
+                reason = "expired";
+              }
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("session-terminated", { detail: reason }));
+              }
+            } catch {
+              if (typeof window !== "undefined") {
+                window.dispatchEvent(new CustomEvent("session-terminated", { detail: "kicked" }));
+              }
+            }
+          }
           if (response.status === 401) {
             // eslint-disable-next-line @next/next/no-location-assign-relative-destination
             window.location.href = "/login";
