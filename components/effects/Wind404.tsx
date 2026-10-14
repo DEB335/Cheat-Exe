@@ -307,10 +307,19 @@ export function Wind404({
 
         {/* Back to sign in button */}
         <div className="mt-8">
-          <button
-            type="button"
-            onClick={onBack}
-            className="group relative inline-flex w-full cursor-pointer items-center justify-center gap-2.5 overflow-hidden rounded-2xl border border-sky-400/30 bg-gradient-to-r from-sky-500/20 via-blue-600/20 to-amber-500/20 px-6 py-3.5 text-sm font-bold text-white shadow-[0_0_30px_rgba(56,189,248,0.25)] backdrop-blur-md transition-all duration-300 hover:border-sky-300 hover:shadow-[0_0_40px_rgba(56,189,248,0.45)] hover:scale-[1.01] active:scale-[0.98]"
+          <a
+            href="/login"
+            onClick={(e) => {
+              if (onBack) {
+                e.preventDefault();
+                try {
+                  onBack();
+                } catch {
+                  window.location.href = "/login";
+                }
+              }
+            }}
+            className="group relative inline-flex w-full cursor-pointer items-center justify-center gap-2.5 overflow-hidden rounded-2xl border border-sky-400/30 bg-gradient-to-r from-sky-500/20 via-blue-600/20 to-amber-500/20 px-6 py-3.5 text-sm font-bold text-white shadow-[0_0_30px_rgba(56,189,248,0.25)] backdrop-blur-md transition-all duration-300 hover:border-sky-300 hover:shadow-[0_0_40px_rgba(56,189,248,0.45)] hover:scale-[1.01] active:scale-[0.98] text-center"
           >
             <svg
               className="h-4 w-4 transition-transform duration-300 group-hover:-translate-x-1"
@@ -322,7 +331,7 @@ export function Wind404({
               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
             <span className="tracking-wide">{backText}</span>
-          </button>
+          </a>
         </div>
       </div>
     </div>

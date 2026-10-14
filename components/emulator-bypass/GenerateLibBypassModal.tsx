@@ -28,14 +28,12 @@ export function GenerateLibBypassModal({
 
   // Dynamic Engine maintenance calculation
   const maint = db.emulatorBypassMaintenance;
-  const isV2Maintenance = Boolean(
-    maint?.v2Maintenance ||
-      (maint?.active && (maint?.engine === "V2" || maint?.engine === "ALL" || !maint?.engine)),
-  );
-  const isV1Maintenance = Boolean(
-    maint?.v1Maintenance ||
-      (maint?.active && (maint?.engine === "V1" || maint?.engine === "ALL")),
-  );
+  const isV2Maintenance = maint?.v2Maintenance !== undefined 
+    ? Boolean(maint.v2Maintenance) 
+    : Boolean(maint?.active && (maint?.engine === "V2" || maint?.engine === "ALL"));
+  const isV1Maintenance = maint?.v1Maintenance !== undefined 
+    ? Boolean(maint.v1Maintenance) 
+    : true;
 
   // Selected engine: points to whichever engine is active
   const [engine, setEngine] = useState<"V1" | "V2">(() => {

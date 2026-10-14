@@ -15,9 +15,10 @@ import {
   UserIcon,
   WifiOffIcon,
 } from "@/components/icons";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { parseDevice, parseDeviceUser } from "@/lib/device-parse";
-import type { DeviceSession, Role } from "@/lib/types";
+import type { BanScope, DeviceSession, Role } from "@/lib/types";
 import { deviceRules, useDeviceActions } from "@/lib/use-device-actions";
 import { cn, splitStampForDisplay } from "@/lib/utils";
 import { pageZoom } from "@/lib/zoom";
@@ -44,6 +45,36 @@ export function LiveDevicesTable({
   emptyMessage?: string;
 }) {
   const { kick, block } = useDeviceActions();
+
+  const [pendingAction, setPendingAction] = useState<{
+    title: string;
+    description: string;
+    confirmText: string;
+    action: () => Promise<void> | void;
+  } | null>(null);
+
+  const handleRequestKick = async (sessionId: string, name: string) => {
+    setPendingAction({
+      title: "Kick & Ban Session",
+      description: `Are you sure you want to kick and terminate the active device session for "${name}"?`,
+      confirmText: "Kick Session",
+      action: () => kick(sessionId, name),
+    });
+  };
+
+  const handleRequestBlock = async (
+    rules: Array<{ scope: BanScope; value: string }>,
+    label: string,
+    name: string,
+  ) => {
+    const isIp = label.toLowerCase().includes("ip");
+    setPendingAction({
+      title: isIp ? "Ban IP Address" : "Ban Device HWID",
+      description: `Are you sure you want to block ${label} for "${name}"? Nobody will be able to sign in from it.`,
+      confirmText: isIp ? "Ban IP" : "Ban HWID",
+      action: () => block(rules, label, name),
+    });
+  };
 
   return (
     // Phones scroll the table sideways rather than squash six columns
@@ -81,14 +112,30 @@ export function LiveDevicesTable({
                   device={device}
                   index={index}
                   isCurrent={device.sessionId === currentSessionId}
-                  onKick={kick}
-                  onBlock={block}
+                  onKick={handleRequestKick}
+                  onBlock={handleRequestBlock}
                 />
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(pendingAction)}
+        title={pendingAction?.title ?? ""}
+        description={pendingAction?.description ?? ""}
+        confirmText={pendingAction?.confirmText ?? "Confirm"}
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={async () => {
+          if (pendingAction) {
+            await pendingAction.action();
+            setPendingAction(null);
+          }
+        }}
+        onCancel={() => setPendingAction(null)}
+      />
     </div>
   );
 }

@@ -326,8 +326,9 @@ function TerminatedNotice({ reason }: { reason: Terminated }) {
         subtitle="Nothing at this address but the wind. Sessions expire after 1 hour of inactivity."
         backText="Back to sign in"
         onBack={() => {
-          router.replace("/login?reason=timeout");
-          router.refresh();
+          if (typeof window !== "undefined") {
+            window.location.href = "/login?reason=timeout";
+          }
         }}
       />
     );

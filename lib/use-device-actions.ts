@@ -19,7 +19,6 @@ export function useDeviceActions() {
   const restore = useDashboard((s) => s.restore);
 
   const kick = async (sessionId: string, name: string) => {
-    if (!confirm(`Kick and ban the session for ${name}?`)) return;
     // The row disappears on click; the write and the vault entry that
     // follows it catch up behind.
     const snapshot = patchDb((db) => applyKickDevice(db, sessionId));
@@ -45,7 +44,6 @@ export function useDeviceActions() {
     label: string,
     name: string,
   ) => {
-    if (!confirm(`Block ${label} for ${name}? Nobody will be able to sign in from it.`)) return;
     toast(`${label} blocked.`, "success");
     try {
       await postJson("/api/bans", { rules, reason: `Blocked from Active Devices`, user: name });

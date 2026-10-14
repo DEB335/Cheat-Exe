@@ -6,6 +6,7 @@ import { ActiveResellersPanel, type ResellerActions } from "@/components/reselle
 import { CreateResellerPanel } from "@/components/resellers/CreateResellerPanel";
 import { togglePackage } from "@/components/resellers/PackageToggles";
 import { PassModal, PermsModal, RenewModal, ManageModal } from "@/components/resellers/ResellerModals";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { del, patchJson } from "@/lib/client-api";
 import {
@@ -66,8 +67,16 @@ export default function ResellersPage() {
     }
   };
 
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
   const remove = async (name: string) => {
-    if (!confirm(`Delete reseller ${name}?`)) return;
+    setDeleteTarget(name);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    const name = deleteTarget;
+    setDeleteTarget(null);
     const snapshot = patchDb((db) => applyRemoveReseller(db, name));
     toast("Reseller deleted.", "success");
     try {
@@ -191,6 +200,17 @@ export default function ResellersPage() {
           if (passFor) await patch(passFor, { password: newPass }, "Password updated.");
           setPassFor(null);
         }}
+      />
+
+      <ConfirmDialog
+        isOpen={Boolean(deleteTarget)}
+        title="Delete Reseller"
+        description={`Are you sure you want to permanently remove reseller "${deleteTarget}"? This cannot be undone.`}
+        confirmText="Delete Reseller"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
       />
     </>
   );

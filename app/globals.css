@@ -838,3 +838,70 @@ html {
     linear-gradient(#000 0 0);
   mask-composite: exclude;
 }
+
+/* ---------------------------------------------------------------
+   Cheat Exe Capsule Spotlight & Light-Sweep Button
+   --------------------------------------------------------------- */
+@keyframes glassLightSweep {
+  0% {
+    opacity: 0;
+    left: -90%;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    left: 150%;
+  }
+}
+
+.cheatexe-btn {
+  position: relative;
+  overflow: hidden;
+  border-radius: 9999px;
+  transform-style: preserve-3d;
+  will-change: transform;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: transform 80ms ease-out, background 0.25s, border-color 0.25s, box-shadow 0.25s;
+}
+
+.cheatexe-btn::after {
+  content: "";
+  pointer-events: none;
+  opacity: 0;
+  z-index: 5;
+  background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.08) 20%, rgba(255, 255, 255, 0.75) 50%, rgba(255, 255, 255, 0.08) 80%, transparent 100%);
+  width: 60%;
+  height: 220%;
+  position: absolute;
+  top: -60%;
+  left: -90%;
+  transform: rotate(25deg);
+}
+
+.cheatexe-btn:hover::after {
+  opacity: 1;
+  animation: 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards glassLightSweep;
+}
+
+.cheatexe-btn-glare {
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0;
+  z-index: 6;
+  mix-blend-mode: overlay;
+  transition: opacity 0.25s;
+  position: absolute;
+  inset: 0;
+}
+

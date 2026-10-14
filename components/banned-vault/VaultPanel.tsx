@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { CalendarIcon, CloseIcon, RefreshIcon, SearchIcon, ShieldCheckIcon, TrashIcon } from "@/components/icons";
 import { NeonButton, NeonChip, NeonInput, NeonPanel, NeonStat, PanelHeader, RunIcon, XCircleIcon } from "@/components/neon";
 import { VaultLockScene, VaultShieldScene } from "@/components/scenes/VaultScenes";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { del } from "@/lib/client-api";
 import { applyRemoveVaultEntry } from "@/lib/optimistic";
@@ -51,9 +52,17 @@ export function VaultPanel() {
     );
   }, [banned, query]);
 
-  const act = async (username: string, restore: boolean) => {
-    const label = restore ? "Unban and restore" : "Delete the vault record for";
-    if (!confirm(`${label} ${username}?`)) return;
+  const [clearVaultOpen, setClearVaultOpen] = useState(false);
+  const [vaultActionTarget, setVaultActionTarget] = useState<{ username: string; restore: boolean } | null>(null);
+
+  const act = (username: string, restore: boolean) => {
+    setVaultActionTarget({ username, restore });
+  };
+
+  const handleConfirmVaultAction = async () => {
+    if (!vaultActionTarget) return;
+    const { username, restore } = vaultActionTarget;
+    setVaultActionTarget(null);
     const snapshot = patchDb((db) => applyRemoveVaultEntry(db, username));
     toast(restore ? `${username} restored.` : `Record for ${username} deleted.`, "success");
     try {
@@ -65,8 +74,8 @@ export function VaultPanel() {
     }
   };
 
-  const clearAll = async () => {
-    if (!confirm("Clear the entire vault?")) return;
+  const handleConfirmClearVault = async () => {
+    setClearVaultOpen(false);
     try {
       await del("/api/banned");
       await refresh();
@@ -137,7 +146,7 @@ export function VaultPanel() {
                 >
                   Refresh Vault
                 </NeonButton>
-                <NeonButton tone="pink" icon={<TrashIcon />} onClick={clearAll}>
+                <NeonButton tone="pink" icon={<TrashIcon />} onClick={() => setClearVaultOpen(true)}>
                   Clear Vault
                 </NeonButton>
               </>
@@ -229,6 +238,34 @@ export function VaultPanel() {
       ) : null}
 
       <VaultTable records={filtered} query={query} onAct={act} className="mt-6" />
+
+      {/* Centered Translucent Confirm Dialog for Clear Vault */}
+      <ConfirmDialog
+        isOpen={clearVaultOpen}
+        title="Clear Banned Users Vault"
+        description="Are you sure you want to permanently clear all kicked and banned account records from the vault? This cannot be undone."
+        confirmText="Clear Vault"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmClearVault}
+        onCancel={() => setClearVaultOpen(false)}
+      />
+
+      {/* Centered Translucent Confirm Dialog for Individual Record Action (Unban or Delete) */}
+      <ConfirmDialog
+        isOpen={Boolean(vaultActionTarget)}
+        title={vaultActionTarget?.restore ? "Unban & Restore User" : "Delete Vault Record"}
+        description={
+          vaultActionTarget?.restore
+            ? `Are you sure you want to unban and restore access for "${vaultActionTarget?.username}"?`
+            : `Are you sure you want to delete the vault record for "${vaultActionTarget?.username}"?`
+        }
+        confirmText={vaultActionTarget?.restore ? "Restore Access" : "Delete Record"}
+        cancelText="Cancel"
+        variant={vaultActionTarget?.restore ? "primary" : "danger"}
+        onConfirm={handleConfirmVaultAction}
+        onCancel={() => setVaultActionTarget(null)}
+      />
     </NeonPanel>
   );
 }

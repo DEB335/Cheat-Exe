@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { AuditStats } from "@/components/audit-logs/AuditStats";
 import { AuditTable } from "@/components/audit-logs/AuditTable";
 import { FileTextIcon, RefreshIcon, TrashIcon } from "@/components/icons";
 import { NeonButton, NeonPanel, PanelHeader } from "@/components/neon";
 import { AuditScene } from "@/components/scenes/AuditScene";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { del } from "@/lib/client-api";
 import { useDashboard } from "@/lib/store";
@@ -15,8 +17,9 @@ export default function AuditLogsPage() {
   const logs = useDashboard((s) => s.db.cheatExeAuditLogs);
   const isOwner = useDashboard((s) => s.user?.role === "OWNER");
 
-  const clear = async () => {
-    if (!confirm("Clear all audit logs?")) return;
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+
+  const handleConfirmClear = async () => {
     try {
       await del("/api/audit");
       await refresh();
@@ -27,7 +30,8 @@ export default function AuditLogsPage() {
   };
 
   return (
-    <NeonPanel rim="aurora" className="overflow-hidden">
+    <>
+      <NeonPanel rim="aurora" className="overflow-hidden">
       {/* The hologram takes the room the stats leave on the right: below
           the header buttons, a little smaller, while the stats are two
           by two, and beside the buttons at full size once a window is
@@ -59,7 +63,11 @@ export default function AuditLogsPage() {
                 Refresh Logs
               </NeonButton>
               {isOwner && (
-                <NeonButton tone="red" icon={<TrashIcon strokeWidth={2.5} />} onClick={clear}>
+                <NeonButton
+                  tone="red"
+                  icon={<TrashIcon strokeWidth={2.5} />}
+                  onClick={() => setConfirmClearOpen(true)}
+                >
                   Clear Logs
                 </NeonButton>
               )}
@@ -74,5 +82,17 @@ export default function AuditLogsPage() {
 
       <AuditTable logs={logs} />
     </NeonPanel>
-  );
+
+    <ConfirmDialog
+      isOpen={confirmClearOpen}
+      title="Clear All Audit Logs"
+      description="Are you sure you want to permanently delete all recorded audit activities and system event logs? This cannot be recovered."
+      confirmText="Clear Logs"
+      cancelText="Cancel"
+      variant="danger"
+      onConfirm={handleConfirmClear}
+      onCancel={() => setConfirmClearOpen(false)}
+    />
+  </>
+);
 }

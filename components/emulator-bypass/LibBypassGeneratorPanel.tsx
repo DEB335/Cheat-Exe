@@ -38,16 +38,14 @@ export function LibBypassGeneratorPanel() {
   const refresh = useDashboard((s) => s.refresh);
   const isOwner = user?.role === "OWNER";
 
-  // Dynamic Engine maintenance calculation
+  // Dynamic Engine maintenance calculation (V1 currently in upstream maintenance, V2 operational)
   const maint = db.emulatorBypassMaintenance;
-  const isV2Maintenance = Boolean(
-    maint?.v2Maintenance ||
-    (maint?.active && (maint?.engine === "V2" || maint?.engine === "ALL" || !maint?.engine)),
-  );
-  const isV1Maintenance = Boolean(
-    maint?.v1Maintenance ||
-    (maint?.active && (maint?.engine === "V1" || maint?.engine === "ALL")),
-  );
+  const isV2Maintenance = maint?.v2Maintenance !== undefined 
+    ? Boolean(maint.v2Maintenance) 
+    : Boolean(maint?.active && (maint?.engine === "V2" || maint?.engine === "ALL"));
+  const isV1Maintenance = maint?.v1Maintenance !== undefined 
+    ? Boolean(maint.v1Maintenance) 
+    : true;
 
   // Recommended engine badge: dynamically V1 or V2
   const recommendedEngine = useMemo(() => {
@@ -139,8 +137,9 @@ export function LibBypassGeneratorPanel() {
   }, [isOwner, user, db.cheatExeUsers, usedCredits]);
 
   const usesDisplay = useMemo(() => {
+    if (isOwner) return "Unlimited";
     return String(usedCredits);
-  }, [usedCredits]);
+  }, [isOwner, usedCredits]);
 
   const expiryPreview = useMemo(() => {
     const at = new Date(Date.now() + days * 86_400_000);
@@ -290,7 +289,7 @@ export function LibBypassGeneratorPanel() {
                 <div
                   onClick={() => {
                     if (isV1Maintenance) {
-                      toast("Version 1 (V1) is currently under maintenance.", "error");
+                      toast("Version 1 (V1) is currently under maintenance and cannot be selected.", "error");
                     } else {
                       setEngine("V1");
                     }
@@ -298,7 +297,7 @@ export function LibBypassGeneratorPanel() {
                   className={cn(
                     "relative flex flex-col justify-between rounded-xl border-2 p-3.5 text-left select-none transition-all duration-200",
                     isV1Maintenance
-                      ? "border-white/10 bg-[#0e1328]/60 opacity-60 cursor-not-allowed"
+                      ? "border-amber-500/25 bg-[#0e1328]/40 opacity-55 cursor-not-allowed hover:border-amber-500/40"
                       : [
                         "cursor-pointer",
                         engine === "V1"
@@ -306,26 +305,36 @@ export function LibBypassGeneratorPanel() {
                           : "border-white/10 bg-[#0e1328] hover:border-slate-400",
                       ],
                   )}
-                  title={isV1Maintenance ? "Version 1 is under maintenance" : "Select Version 1"}
+                  title={isV1Maintenance ? "Version 1 is currently in maintenance and cannot be selected" : "Select Version 1"}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-amber-400 text-base">⚡</span>
-                      <span className="text-sm font-bold text-slate-100">Version 1 (V1)</span>
+                      <span className={cn("text-sm font-bold", isV1Maintenance ? "text-slate-400 line-through/none" : "text-slate-100")}>
+                        Version 1 (V1)
+                      </span>
                     </div>
                     {isV1Maintenance ? (
-                      <span className="text-[10px] font-bold uppercase text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                        Maintenance
+                      <span className="text-[10px] font-bold uppercase text-amber-400 bg-amber-500/10 border border-amber-500/35 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.25)]">
+                        <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        In Maintenance
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold uppercase text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="text-[10px] font-bold uppercase text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(16,185,129,0.25)]">
                         <span className="size-1 rounded-full bg-emerald-400" />
                         Active Engine
                       </span>
                     )}
                   </div>
-                  <span className={cn("mt-2 text-xs font-medium", isV1Maintenance ? "text-slate-400" : "text-slate-300")}>
-                    Discord Bot Engine
+                  <span className={cn("mt-2 text-xs font-medium", isV1Maintenance ? "text-amber-400/80 flex items-center gap-1.5" : "text-slate-300")}>
+                    {isV1Maintenance ? (
+                      <>
+                        <span>🔒</span>
+                        <span>Discord Bot Engine • Blocked (Maintenance)</span>
+                      </>
+                    ) : (
+                      "Discord Bot Engine"
+                    )}
                   </span>
                 </div>
 
@@ -333,7 +342,7 @@ export function LibBypassGeneratorPanel() {
                 <div
                   onClick={() => {
                     if (isV2Maintenance) {
-                      toast("Version 2 (V2) is currently under maintenance.", "error");
+                      toast("Version 2 (V2) is currently under maintenance and cannot be selected.", "error");
                     } else {
                       setEngine("V2");
                     }
@@ -341,7 +350,7 @@ export function LibBypassGeneratorPanel() {
                   className={cn(
                     "relative flex flex-col justify-between rounded-xl border-2 p-3.5 text-left select-none transition-all duration-200",
                     isV2Maintenance
-                      ? "border-white/10 bg-[#0e1328]/60 opacity-60 cursor-not-allowed"
+                      ? "border-amber-500/25 bg-[#0e1328]/40 opacity-55 cursor-not-allowed hover:border-amber-500/40"
                       : [
                         "cursor-pointer",
                         engine === "V2"
@@ -349,26 +358,36 @@ export function LibBypassGeneratorPanel() {
                           : "border-white/10 bg-[#0e1328] hover:border-slate-400",
                       ],
                   )}
-                  title={isV2Maintenance ? "Version 2 is under maintenance" : "Select Version 2"}
+                  title={isV2Maintenance ? "Version 2 is currently in maintenance and cannot be selected" : "Select Version 2"}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-red-400 text-base">🚀</span>
-                      <span className="text-sm font-bold text-white">Version 2 (V2)</span>
+                      <span className={cn("text-sm font-bold", isV2Maintenance ? "text-slate-400" : "text-white")}>
+                        Version 2 (V2)
+                      </span>
                     </div>
                     {isV2Maintenance ? (
-                      <span className="text-[10px] font-bold uppercase text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                        Maintenance
+                      <span className="text-[10px] font-bold uppercase text-amber-400 bg-amber-500/10 border border-amber-500/35 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(245,158,11,0.25)]">
+                        <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        In Maintenance
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold uppercase text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="text-[10px] font-bold uppercase text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(16,185,129,0.25)]">
                         <span className="size-1 rounded-full bg-emerald-400" />
                         Active Engine
                       </span>
                     )}
                   </div>
-                  <span className={cn("mt-2 text-xs font-medium", isV2Maintenance ? "text-slate-400" : "text-slate-300")}>
-                    Sensix Direct Server Engine
+                  <span className={cn("mt-2 text-xs font-medium", isV2Maintenance ? "text-amber-400/80 flex items-center gap-1.5" : "text-slate-300")}>
+                    {isV2Maintenance ? (
+                      <>
+                        <span>🔒</span>
+                        <span>Sensix Direct Server Engine • Blocked (Maintenance)</span>
+                      </>
+                    ) : (
+                      "Sensix Direct Server Engine"
+                    )}
                   </span>
                 </div>
               </div>

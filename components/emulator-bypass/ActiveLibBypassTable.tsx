@@ -23,6 +23,7 @@ import {
   toneVars,
 } from "@/components/neon";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { del, patchJson, postJson } from "@/lib/client-api";
 import { KeyHistoryAmbient, KeyHistoryEmblem } from "@/components/scenes/KeyHistoryScene";
 import { useDashboard } from "@/lib/store";
@@ -166,6 +167,10 @@ export function ActiveLibBypassTable() {
     }
   };
 
+  // Delete dialog state
+  const [deleteTargetKey, setDeleteTargetKey] = useState<string | null>(null);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+
   // Reset HWID action
   const handleResetHwid = async (key: string) => {
     setActingKey(key);
@@ -181,8 +186,10 @@ export function ActiveLibBypassTable() {
   };
 
   // Delete single key
-  const handleDeleteKey = async (key: string) => {
-    if (!confirm(`Are you sure you want to delete Lib Bypass key "${key}"?`)) return;
+  const confirmDeleteKey = async () => {
+    if (!deleteTargetKey) return;
+    const key = deleteTargetKey;
+    setDeleteTargetKey(null);
     setActingKey(key);
     try {
       await del(`/api/emulator-bypass/keys?key=${encodeURIComponent(key)}`);
@@ -197,9 +204,9 @@ export function ActiveLibBypassTable() {
   };
 
   // Bulk delete selected
-  const handleBulkDelete = async () => {
+  const confirmBulkDelete = async () => {
+    setShowBulkConfirm(false);
     if (selectedKeys.length === 0) return;
-    if (!confirm(`Are you sure you want to delete ${selectedKeys.length} selected keys?`)) return;
 
     let deletedCount = 0;
     for (const key of selectedKeys) {
@@ -295,7 +302,7 @@ export function ActiveLibBypassTable() {
                 tone="red"
                 size="sm"
                 icon={<TrashIcon />}
-                onClick={handleBulkDelete}
+                onClick={() => setShowBulkConfirm(true)}
               >
                 Delete ({selectedKeys.length})
               </NeonButton>
@@ -547,7 +554,7 @@ export function ActiveLibBypassTable() {
                             tone="red"
                             size="sm"
                             icon={<TrashIcon className="size-3.5" />}
-                            onClick={() => handleDeleteKey(record.key)}
+                            onClick={() => setDeleteTargetKey(record.key)}
                             disabled={actingKey === record.key}
                             title="Delete Key"
                           >
@@ -563,6 +570,30 @@ export function ActiveLibBypassTable() {
           </table>
         </div>
       </NeonPanel>
+
+      {/* Centered Translucent Confirm Dialog for Single Key Deletion */}
+      <ConfirmDialog
+        isOpen={Boolean(deleteTargetKey)}
+        title="Delete Lib Bypass Key"
+        description={`Are you sure you want to delete license key "${deleteTargetKey}"? This will terminate and remove it from the upstream Sensix engine permanently.`}
+        confirmText="Delete Key"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={confirmDeleteKey}
+        onCancel={() => setDeleteTargetKey(null)}
+      />
+
+      {/* Centered Translucent Confirm Dialog for Bulk Deletion */}
+      <ConfirmDialog
+        isOpen={showBulkConfirm}
+        title="Delete Selected Keys"
+        description={`Are you sure you want to delete ${selectedKeys.length} selected Lib Bypass key(s)? This action cannot be reversed.`}
+        confirmText={`Delete ${selectedKeys.length} Keys`}
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setShowBulkConfirm(false)}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { MegaphoneIcon, SendIcon, TrashIcon, UsersIcon } from "@/components/icons";
 import { PrimaryButton, TintButton } from "@/components/ui/buttons";
 import { Card, CardHeader } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { FormLabel, HelpText } from "@/components/ui/form";
 import { useToast } from "@/components/ui/Toast";
 import { del, patchJson, postJson } from "@/lib/client-api";
@@ -64,15 +65,15 @@ export default function MessagesPage() {
     }
   };
 
+  const [clearAllOpen, setClearAllOpen] = useState(false);
+  const [deleteMsgId, setDeleteMsgId] = useState<string | null>(null);
+
   /**
    * Owner clears for everyone (they wrote them); a reseller clears only
    * their own view, so tidying up never silences someone else's panel.
    */
-  const clearAll = async () => {
-    const question = isOwner
-      ? "Delete every announcement for everyone? This cannot be undone."
-      : "Clear all announcements from your list? Others keep theirs.";
-    if (!confirm(question)) return;
+  const handleConfirmClearAll = async () => {
+    setClearAllOpen(false);
     const snapshot = patch(applyClearMine);
     try {
       await del(`/api/messages?scope=${isOwner ? "all" : "mine"}`);
@@ -83,8 +84,10 @@ export default function MessagesPage() {
     }
   };
 
-  const remove = async (id: string) => {
-    if (!confirm("Delete this announcement for everyone?")) return;
+  const handleConfirmDeleteOne = async () => {
+    if (!deleteMsgId) return;
+    const id = deleteMsgId;
+    setDeleteMsgId(null);
     const snapshot = patch((db) => applyDeleteMessage(db, id));
     try {
       await del(`/api/messages/${id}`);
@@ -151,7 +154,7 @@ export default function MessagesPage() {
             messages.length > 0 ? (
               <TintButton
                 tone="red"
-                onClick={clearAll}
+                onClick={() => setClearAllOpen(true)}
                 title={
                   isOwner
                     ? "Delete every announcement for everyone"
@@ -177,12 +180,40 @@ export default function MessagesPage() {
                 message={m}
                 isOwner={isOwner}
                 onReact={(r) => react(m, r)}
-                onDelete={() => remove(m.id)}
+                onDelete={() => setDeleteMsgId(m.id)}
               />
             ))}
           </div>
         )}
       </Card>
+
+      {/* Centered Translucent Confirm Dialog for Delete All / Clear All */}
+      <ConfirmDialog
+        isOpen={clearAllOpen}
+        title={isOwner ? "Delete All Announcements" : "Clear All Announcements"}
+        description={
+          isOwner
+            ? "Are you sure you want to delete every announcement for everyone? This cannot be undone."
+            : "Are you sure you want to clear all announcements from your list? Others will keep theirs."
+        }
+        confirmText={isOwner ? "Delete All" : "Clear All"}
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmClearAll}
+        onCancel={() => setClearAllOpen(false)}
+      />
+
+      {/* Centered Translucent Confirm Dialog for Single Announcement Delete */}
+      <ConfirmDialog
+        isOpen={Boolean(deleteMsgId)}
+        title="Delete Announcement"
+        description="Are you sure you want to permanently delete this announcement for everyone?"
+        confirmText="Delete Announcement"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDeleteOne}
+        onCancel={() => setDeleteMsgId(null)}
+      />
     </>
   );
 }

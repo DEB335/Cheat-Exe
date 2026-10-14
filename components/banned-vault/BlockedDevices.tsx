@@ -21,6 +21,7 @@ import {
   type NeonTone,
 } from "@/components/neon";
 import { NetworkGlobeScene } from "@/components/scenes/VaultScenes";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { del, postJson } from "@/lib/client-api";
 import { applyLiftBan } from "@/lib/optimistic";
@@ -110,8 +111,12 @@ export function BlockedDevices() {
     }
   };
 
-  const lift = async (rule: { scope: BanScope; value: string }) => {
-    if (!confirm(`Lift the block on ${rule.value}?`)) return;
+  const [liftTarget, setLiftTarget] = useState<{ scope: BanScope; value: string } | null>(null);
+
+  const handleConfirmLift = async () => {
+    if (!liftTarget) return;
+    const rule = liftTarget;
+    setLiftTarget(null);
     const snapshot = patchDb((db) => applyLiftBan(db, rule.scope, rule.value));
     toast("Block lifted.", "success");
     try {
@@ -226,7 +231,7 @@ export function BlockedDevices() {
                 </NeonCell>
 
                 <NeonCell align="right">
-                  <NeonButton tone="green" variant="filled" size="xs" icon={<CheckIcon />} onClick={() => lift(rule)}>
+                  <NeonButton tone="green" variant="filled" size="xs" icon={<CheckIcon />} onClick={() => setLiftTarget(rule)}>
                     Lift
                   </NeonButton>
                 </NeonCell>
@@ -235,6 +240,17 @@ export function BlockedDevices() {
           })}
         </NeonTable>
       </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(liftTarget)}
+        title="Lift Block"
+        description={`Are you sure you want to lift the block on ${liftTarget?.value}? This will restore access for this target.`}
+        confirmText="Lift Block"
+        cancelText="Cancel"
+        variant="primary"
+        onConfirm={handleConfirmLift}
+        onCancel={() => setLiftTarget(null)}
+      />
     </NeonPanel>
   );
 }
