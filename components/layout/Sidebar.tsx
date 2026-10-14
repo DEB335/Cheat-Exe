@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import { emitClickWave } from "@/components/effects/ClickWave";
 import { AppsIcon, ChevronLeftIcon, ChevronRightIcon, LinkIcon } from "@/components/icons";
@@ -162,6 +162,28 @@ export const Sidebar = memo(function Sidebar({
 }) {
   const pathname = usePathname();
   const user = useDashboard((s) => s.user);
+  const dbUser = useDashboard((s) => {
+    if (!s.user) return null;
+    return Object.entries(s.db.cheatExeUsers).find(
+      ([name]) => name.toLowerCase() === s.user?.username.toLowerCase(),
+    )?.[1];
+  });
+  const effectiveUser = useMemo(() => {
+    if (!user) return null;
+    if (user.role === "OWNER") return user;
+    return {
+      ...user,
+      ...(dbUser
+        ? {
+            uidBypassAccess: dbUser.uidBypassAccess ?? user.uidBypassAccess,
+            emulatorBypassAccess: dbUser.emulatorBypassAccess ?? user.emulatorBypassAccess,
+            emulatorCredits: dbUser.emulatorCredits ?? user.emulatorCredits,
+            emulatorAllowedDays: dbUser.emulatorAllowedDays ?? user.emulatorAllowedDays,
+          }
+        : {}),
+    };
+  }, [user, dbUser]);
+
   // The three counts the badges print, each its own selector, so the rail
   // re-renders when a count moves rather than whenever anything in the
   // snapshot does.
@@ -169,7 +191,7 @@ export const Sidebar = memo(function Sidebar({
   const bannedCount = useDashboard((s) => s.db.cheatExeBannedUsers.length);
   const unreadCount = useDashboard((s) => countUnread(s.db.cheatExeMessages));
   const prefetch = usePrefetchReady();
-  const role: Role = user?.role ?? "RESELLER";
+  const role: Role = effectiveUser?.role ?? "RESELLER";
   // Grants as they stand, not as they were at sign-in -- a permission the
   // owner revokes pings, the ping refetches the account record, and the
   // section disappears on the spot instead of at the next sign-in.
@@ -201,7 +223,7 @@ export const Sidebar = memo(function Sidebar({
   const visibleGroups = NAV_GROUPS.filter(
     (group) =>
       group.roles.includes(role) &&
-      group.items.some((item) => canSeeItem(item, user, packages)),
+      group.items.some((item) => canSeeItem(item, effectiveUser, packages)),
   );
 
   return (
@@ -309,7 +331,7 @@ export const Sidebar = memo(function Sidebar({
                     </div>
                   )}
                   {group.items
-                    .filter((item) => canSeeItem(item, user, packages))
+                    .filter((item) => canSeeItem(item, effectiveUser, packages))
                     .map((item) => (
                       <NavLink
                         key={`${group.label}-${item.href}-${item.label}`}

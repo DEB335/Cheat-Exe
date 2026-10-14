@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { ACCESS_FIELDS, asDatabase, clientIp, livePackages } from "@/lib/auth";
 import { pushAudit, route } from "@/lib/api-helpers";
 import { matchBan } from "@/lib/bans";
-import { accountBlock, findReseller, readSlice, updateDb } from "@/lib/db";
+import { accountBlock, findReseller, getDbUpdatedAt, readSlice, updateDb } from "@/lib/db";
 import { deviceIdentity } from "@/lib/device";
 import { unreadFor } from "@/lib/messages";
 import { lockedToAnotherDevice } from "@/lib/device-lock";
@@ -69,6 +69,7 @@ export const GET = route(async (req: NextRequest) => {
       emulatorAllowedDays: user.role === "OWNER" ? [1, 3, 7, 30, 60, 90, 180, 365] : (resellerRec?.emulatorAllowedDays ?? [1, 3, 7]),
     },
     unread: unreadFor(db.cheatExeMessages, user.username),
+    updatedAt: await getDbUpdatedAt(),
   });
 
   // Sliding session renewal: if touched while the user is actively working, refresh token

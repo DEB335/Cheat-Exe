@@ -14,6 +14,9 @@ import type {
   Reseller,
   ResellerStatus,
 } from "./types";
+import { isCreatorMatch } from "./utils";
+
+let fileStoreUpdatedAt = new Date().toISOString();
 
 export const DEFAULT_PROFILE: ProfileSettings = {
   displayName: "Cheat Exe",
@@ -49,6 +52,7 @@ async function writeRawFile(db: Database): Promise<void> {
   const tmp = `${DB_PATH}.${process.pid}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(db, null, 4), "utf8");
   await fs.rename(tmp, DB_PATH);
+  fileStoreUpdatedAt = new Date().toISOString();
 }
 
 function emptyDb(adminPassHash: string): Database {
@@ -329,8 +333,7 @@ export function expireOverdue(db: Database): number {
 
 /** Keys this reseller has generated, for the quota check. */
 export function keysUsedBy(db: Database, username: string): number {
-  const lower = username.toLowerCase();
-  return db.cheatExeKeyHistory.filter((k) => k.creator.toLowerCase() === lower).length;
+  return db.cheatExeKeyHistory.filter((k) => isCreatorMatch(k.creator, username)).length;
 }
 
 export function hashPassword(plain: string): Promise<string> {
@@ -339,4 +342,23 @@ export function hashPassword(plain: string): Promise<string> {
 
 export function verifyPassword(plain: string, hash: string): Promise<boolean> {
   return bcrypt.compare(plain, hash);
+}
+
+/** Returns the latest updated_at timestamp of the database */
+export async function getDbUpdatedAt(): Promise<string> {
+  if (!process.env.DATABASE_URL) {
+    return fileStoreUpdatedAt;
+  }
+  try {
+    const db = sql();
+    const rows = await db<{ updated_at: Date | string }[]>`
+      select updated_at from app_state where id = 1
+    `;
+    if (rows.length > 0 && rows[0]?.updated_at) {
+      return new Date(rows[0].updated_at).toISOString();
+    }
+  } catch {
+    /* fallback */
+  }
+  return fileStoreUpdatedAt;
 }

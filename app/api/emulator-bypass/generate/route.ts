@@ -6,7 +6,7 @@ import { findReseller, updateDb } from "@/lib/db";
 import { generateLibKey } from "@/lib/emulator-bypass-api";
 import { ping } from "@/lib/realtime";
 import type { KeyRecord } from "@/lib/types";
-import { displayUser, formatTimestamp } from "@/lib/utils";
+import { displayUser, formatTimestamp, isCreatorMatch } from "@/lib/utils";
 
 interface GenerateBody {
   days: number;
@@ -55,8 +55,8 @@ export const POST = route(async (request: Request) => {
     if (limit > 0) {
       const used = currentDb.cheatExeKeyHistory.filter(
         (k) =>
-          k.creator.toLowerCase() === user.username.toLowerCase() &&
-          k.package === "EMULATOR BYPASS",
+          k.package === "EMULATOR BYPASS" &&
+          isCreatorMatch(k.creator, user.username),
       ).length;
 
       if (used >= limit) {

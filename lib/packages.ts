@@ -125,7 +125,11 @@ export function canManageWhitelist(
   user: { role: Role; packages?: string[]; uidBypassAccess?: boolean } | null | undefined,
 ): boolean {
   if (!user) return false;
-  return user.role === "OWNER" || Boolean(user.uidBypassAccess);
+  return (
+    user.role === "OWNER" ||
+    Boolean(user.uidBypassAccess) ||
+    Boolean(user.packages?.includes(UID_BYPASS_PACKAGE))
+  );
 }
 
 /**

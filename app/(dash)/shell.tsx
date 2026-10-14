@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BackgroundMusic } from "@/components/effects/BackgroundMusic";
 import { CursorSparks } from "@/components/effects/CursorSparks";
@@ -25,11 +25,9 @@ import type { SessionUser } from "@/lib/types";
  *
  * This is also what delivers announcements and what makes a ban, a
  * suspension or a device lock take effect, so it doubles as the panel's
- * worst-case latency for all of them. The request is small -- one row
- * read, answering with the session and an unread count -- and the
- * messages themselves are only fetched when that count actually changes.
+ * worst-case latency for all of them. Polled at 2.5s for fast real-time sync.
  */
-const SESSION_POLL_MS = 5_000;
+const SESSION_POLL_MS = 2_500;
 
 /** Reason codes /api/auth/session returns when it terminates a session. */
 type Terminated =
@@ -117,16 +115,22 @@ export function Shell({
   const storeUser = useDashboard((s) => s.user);
   const packages = useMyPackages();
 
+  const lastUpdatedAt = useRef<string | null>(null);
+
   // Losing a package while standing on the page it unlocked should not
   // leave someone parked there.
   useEffect(() => {
     if (terminated || !storeUser) return;
-    if (!pathname.startsWith("/uid-bypass")) return;
-    if (canManageWhitelist({ role: storeUser.role, packages })) return;
-
-    toast("The UID BYPASS package was removed from your account.", "error");
-    router.replace("/dashboard");
-  }, [terminated, storeUser, packages, pathname, router, toast]);
+    if (pathname.startsWith("/uid-bypass")) {
+      if (canManageWhitelist(storeUser)) return;
+      toast("The UID BYPASS package was removed from your account.", "error");
+      router.replace("/dashboard");
+    } else if (pathname.startsWith("/emulator-bypass")) {
+      if (storeUser.role === "OWNER" || storeUser.emulatorBypassAccess) return;
+      toast("Emulator Bypass access was revoked from your account.", "error");
+      router.replace("/dashboard");
+    }
+  }, [terminated, storeUser, pathname, router, toast]);
 
   const userKey = JSON.stringify(user);
   useEffect(() => {
@@ -146,13 +150,14 @@ export function Shell({
         user: SessionUser | null;
         terminated?: Terminated;
         unread?: number;
+        updatedAt?: string;
       };
 
       if (data.user) {
         const store = useDashboard.getState();
-        const held = store.user?.packages ?? [];
-        const now = data.user.packages;
-        if (held.length !== now.length || !now.every((p) => held.includes(p))) {
+        const prevUserStr = JSON.stringify(store.user);
+        const nextUserStr = JSON.stringify(data.user);
+        if (prevUserStr !== nextUserStr) {
           setUser(data.user);
           void refresh();
         }
@@ -160,6 +165,11 @@ export function Shell({
         const loaded = store.db.cheatExeMessages.filter((m) => !m.read).length;
         if (typeof data.unread === "number" && data.unread !== loaded && !isRefreshing()) {
           void refresh();
+        }
+
+        if (data.updatedAt && data.updatedAt !== lastUpdatedAt.current) {
+          lastUpdatedAt.current = data.updatedAt;
+          if (!isRefreshing()) void refresh();
         }
         return;
       }

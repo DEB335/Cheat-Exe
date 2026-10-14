@@ -239,6 +239,10 @@ export const useDashboard = create<DashboardState>((set, get) => ({
   },
 }));
 
+export function patchDb(apply: (db: PublicDatabase) => PublicDatabase): PublicDatabase {
+  return useDashboard.getState().patch(apply);
+}
+
 /**
  * The packages this account may generate for, as they stand right now.
  *

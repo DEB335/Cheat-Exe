@@ -4,7 +4,7 @@ import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
 import { deleteLibKey, getLibKeyInfo, resetLibHwid } from "@/lib/emulator-bypass-api";
 import { ping } from "@/lib/realtime";
-import { displayUser } from "@/lib/utils";
+import { displayUser, isCreatorMatch } from "@/lib/utils";
 
 export const GET = route(async (request: Request) => {
   await requireUserWithDb();
@@ -38,7 +38,7 @@ export const DELETE = route(async (request: Request) => {
   if (
     user.role !== "OWNER" &&
     existing &&
-    existing.creator.toLowerCase() !== user.username.toLowerCase()
+    !isCreatorMatch(existing.creator, user.username)
   ) {
     throw new HttpError(403, "You do not have permission to delete this key.");
   }
@@ -60,7 +60,7 @@ export const DELETE = route(async (request: Request) => {
     db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => {
       if (k.key !== targetKey) return true;
       if (user.role === "OWNER") return false;
-      const isMine = k.creator.toLowerCase() === user.username.toLowerCase();
+      const isMine = isCreatorMatch(k.creator, user.username);
       return !isMine;
     });
 
@@ -93,7 +93,7 @@ export const PATCH = route(async (request: Request) => {
 
   if (
     user.role !== "OWNER" &&
-    existing.creator.toLowerCase() !== user.username.toLowerCase()
+    !isCreatorMatch(existing.creator, user.username)
   ) {
     throw new HttpError(403, "You do not have permission to reset this key.");
   }

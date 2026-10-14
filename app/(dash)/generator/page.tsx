@@ -18,8 +18,9 @@ import {
 import { useToast } from "@/components/ui/Toast";
 import { postJson } from "@/lib/client-api";
 import { keysRemaining } from "@/lib/reseller";
-import { useDashboard, useMyPackages } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { patchDb, useDashboard, useMyPackages } from "@/lib/store";
+import type { KeyRecord } from "@/lib/types";
+import { cn, formatTimestamp } from "@/lib/utils";
 
 // The mockup's fields carry a glyph at the right end, where the browser
 // would otherwise draw its spinner. The arrow keys still step the value.
@@ -97,6 +98,22 @@ export default function GeneratorPage() {
 
       if (generated.length > 0) {
         setKeys(generated);
+
+        const pkgName = allowed.find((p) => p.id === active)?.name ?? active;
+        const newRecords: KeyRecord[] = generated.map((key) => ({
+          key,
+          package: pkgName,
+          duration: days,
+          appliedDays: Number.isFinite(Number(days)) && Number(days) >= 0 ? Number(days) : undefined,
+          hwidLock,
+          creator: isOwner ? "admin" : (user?.username ?? ""),
+          date: formatTimestamp(),
+        }));
+
+        patchDb((currentDb) => ({
+          ...currentDb,
+          cheatExeKeyHistory: [...newRecords, ...currentDb.cheatExeKeyHistory],
+        }));
 
         // Confirm in the same tick the keys appear. Everything that used
         // to sit in front of this toast has been moved behind it: the

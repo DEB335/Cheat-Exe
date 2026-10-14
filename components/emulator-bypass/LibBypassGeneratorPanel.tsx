@@ -15,8 +15,9 @@ import { PRESET_VALIDITY_OPTIONS } from "@/components/resellers/ResellerModals";
 import { KeyHistoryAmbient } from "@/components/scenes/KeyHistoryScene";
 import { useToast } from "@/components/ui/Toast";
 import { postJson } from "@/lib/client-api";
-import { useDashboard } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { patchDb, useDashboard } from "@/lib/store";
+import type { KeyRecord } from "@/lib/types";
+import { cn, isCreatorMatch } from "@/lib/utils";
 
 const ALL_PRESET_DAYS = PRESET_VALIDITY_OPTIONS.map((p) => p.days);
 
@@ -74,11 +75,14 @@ export function LibBypassGeneratorPanel() {
   // Key Name / Username input
   const [keyName, setKeyName] = useState("");
 
-  // Allowed days from reseller account or all for owner
+  // Allowed days from live reseller record or user session or all for owner
   const allowedDays = useMemo(() => {
     if (isOwner) return ALL_PRESET_DAYS;
-    return user?.emulatorAllowedDays ?? [1, 3, 7];
-  }, [isOwner, user?.emulatorAllowedDays]);
+    const record = Object.entries(db.cheatExeUsers).find(
+      ([name]) => name.toLowerCase() === user?.username.toLowerCase(),
+    )?.[1];
+    return record?.emulatorAllowedDays ?? user?.emulatorAllowedDays ?? [1, 3, 7];
+  }, [isOwner, user?.username, user?.emulatorAllowedDays, db.cheatExeUsers]);
 
   // Selected duration
   const [days, setDays] = useState<number>(() => {
@@ -87,6 +91,15 @@ export function LibBypassGeneratorPanel() {
   const [customDaysInput, setCustomDaysInput] = useState(() => {
     return String(allowedDays.includes(1) ? 1 : allowedDays[0] ?? 1);
   });
+
+  // Automatically update selected days if permissions update dynamically
+  useEffect(() => {
+    if (!isOwner && !allowedDays.includes(days) && allowedDays.length > 0) {
+      const fallback = allowedDays.includes(1) ? 1 : allowedDays[0];
+      setDays(fallback);
+      setCustomDaysInput(String(fallback));
+    }
+  }, [isOwner, allowedDays, days]);
 
   // Number of keys (fixed 1 with anti-flood rule)
   const [keyCount] = useState("1");
@@ -116,12 +129,10 @@ export function LibBypassGeneratorPanel() {
   const usedCredits = useMemo(() => {
     if (!user) return 0;
     const isOwnerRole = user.role === "OWNER";
-    const me = user.username.toLowerCase();
     return db.cheatExeKeyHistory.filter((k) => {
       if (k.package !== "EMULATOR BYPASS") return false;
       if (isOwnerRole) return true;
-      const c = (k.creator || "").toLowerCase();
-      return c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
+      return isCreatorMatch(k.creator, user.username);
     }).length;
   }, [user, db.cheatExeKeyHistory]);
 
@@ -141,15 +152,18 @@ export function LibBypassGeneratorPanel() {
     return String(usedCredits);
   }, [isOwner, usedCredits]);
 
-  const expiryPreview = useMemo(() => {
+  const [previewStamp, setPreviewStamp] = useState("");
+  useEffect(() => {
     const at = new Date(Date.now() + days * 86_400_000);
     const y = at.getFullYear();
     const m = String(at.getMonth() + 1).padStart(2, "0");
     const d = String(at.getDate()).padStart(2, "0");
     const hh = String(at.getHours()).padStart(2, "0");
     const mm = String(at.getMinutes()).padStart(2, "0");
-    return `${y}-${m}-${d} ${hh}:${mm}`;
+    setPreviewStamp(`${y}-${m}-${d} ${hh}:${mm}`);
   }, [days]);
+
+  const expiryPreview = previewStamp || "Calculating...";
 
   const handleSelectPreset = (d: number) => {
     if (!allowedDays.includes(d)) {
@@ -223,7 +237,45 @@ export function LibBypassGeneratorPanel() {
         },
       );
 
-      setCreatedKey(res.key);
+      const generatedKey = res.key;
+      const clientStamp = new Date().toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      });
+
+      const expDate = new Date(Date.now() + days * 86_400_000);
+      const expY = expDate.getFullYear();
+      const expM = String(expDate.getMonth() + 1).padStart(2, "0");
+      const expD = String(expDate.getDate()).padStart(2, "0");
+      const expH = String(expDate.getHours()).padStart(2, "0");
+      const expMin = String(expDate.getMinutes()).padStart(2, "0");
+      const formattedExpiry = `${expY}-${expM}-${expD} ${expH}:${expMin}`;
+
+      const newRecord: KeyRecord = {
+        key: generatedKey,
+        keyName: keyName.trim().toUpperCase() || generatedKey,
+        package: "EMULATOR BYPASS",
+        engine,
+        duration: String(days),
+        appliedDays: days,
+        expiry: formattedExpiry,
+        creator: isOwner ? "Owner (OWNER)" : `${user?.username ?? ""} (RESELLER)`,
+        note: `Lib Bypass Client [${engine === "V2" ? "V2 Sensix" : "V1 Bot"}]`,
+        date: clientStamp,
+        hwidLock,
+      };
+
+      patchDb((currentDb) => ({
+        ...currentDb,
+        cheatExeKeyHistory: [newRecord, ...currentDb.cheatExeKeyHistory.filter((k) => k.key !== generatedKey)],
+      }));
+
+      setCreatedKey(generatedKey);
       setCooldown(30);
 
       // Form reset back to default initial state
@@ -232,7 +284,7 @@ export function LibBypassGeneratorPanel() {
       setDays(defaultDay);
       setCustomDaysInput(String(defaultDay));
 
-      toast(`Successfully generated Lib Bypass Key: ${res.key}!`, "success");
+      toast(`Successfully generated Lib Bypass Key: ${generatedKey}!`, "success");
       void refresh();
     } catch (err) {
       toast((err as Error).message, "error");

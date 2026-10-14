@@ -123,3 +123,25 @@ export function hexToRgbTriplet(hex: string): string {
   const b = parseInt(value.slice(4, 6), 16);
   return `${r}, ${g}, ${b}`;
 }
+
+/** Extracts the raw username from creator strings like "alex (RESELLER)" or "alex". */
+export function cleanCreatorUsername(creator: string | undefined | null): string {
+  if (!creator) return "";
+  const raw = creator.trim();
+  return raw.split(/\s*[\(\[]/)[0]?.trim() || raw;
+}
+
+/** Checks whether a key's creator matches a username (case-insensitive, handling "(RESELLER)"). */
+export function isCreatorMatch(
+  creator: string | undefined | null,
+  username: string | undefined | null,
+): boolean {
+  if (!creator || !username) return false;
+  const c = creator.toLowerCase().trim();
+  const u = username.toLowerCase().trim();
+  if (c === u) return true;
+  if (c.startsWith(`${u} `) || c.startsWith(`${u}(`)) return true;
+  const stripped = cleanCreatorUsername(c).toLowerCase();
+  return stripped === u;
+}
+

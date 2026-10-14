@@ -23,7 +23,7 @@ import { useToast } from "@/components/ui/Toast";
 import { daysLeft, effectiveStatus, emulatorCreditsRemaining, formatExpiry, keysRemaining } from "@/lib/reseller";
 import { useDashboard } from "@/lib/store";
 import type { PublicDatabase, ResellerStatus } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cleanCreatorUsername, cn } from "@/lib/utils";
 
 const COLUMNS = ["Username", "Status", "Validity", "Keys", "Bypass Credits", "Device", "Allowed Packages", "Actions"];
 
@@ -71,7 +71,8 @@ export function ActiveResellersPanel({ actions }: { actions: ResellerActions }) 
     const regular: Record<string, number> = {};
     const emulator: Record<string, number> = {};
     for (const record of history) {
-      const creator = record.creator.toLowerCase();
+      const raw = (record.creator || "").trim();
+      const creator = cleanCreatorUsername(raw).toLowerCase();
       if (record.package === "EMULATOR BYPASS") {
         emulator[creator] = (emulator[creator] ?? 0) + 1;
       } else {

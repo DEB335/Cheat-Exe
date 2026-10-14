@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import { CopyIcon, LockIcon, XSquareIcon } from "@/components/icons";
 import { useToast } from "@/components/ui/Toast";
 import { postJson } from "@/lib/client-api";
-import { useDashboard } from "@/lib/store";
-import { cn } from "@/lib/utils";
+import { patchDb, useDashboard } from "@/lib/store";
+import type { KeyRecord } from "@/lib/types";
+import { cn, isCreatorMatch } from "@/lib/utils";
 
 const ALL_PRESET_DAYS = [1, 3, 7, 30, 60, 90, 180, 365];
 
@@ -53,11 +54,14 @@ export function GenerateLibBypassModal({
   // Key Name / Username input
   const [keyName, setKeyName] = useState("");
 
-  // Allowed days
+  // Allowed days from live reseller record or user session or all for owner
   const allowedDays = useMemo(() => {
     if (isOwner) return ALL_PRESET_DAYS;
-    return user?.emulatorAllowedDays ?? [1, 3, 7];
-  }, [isOwner, user?.emulatorAllowedDays]);
+    const record = Object.entries(db.cheatExeUsers).find(
+      ([name]) => name.toLowerCase() === user?.username.toLowerCase(),
+    )?.[1];
+    return record?.emulatorAllowedDays ?? user?.emulatorAllowedDays ?? [1, 3, 7];
+  }, [isOwner, user?.username, user?.emulatorAllowedDays, db.cheatExeUsers]);
 
   // Selected duration
   const [days, setDays] = useState<number>(30);
@@ -103,12 +107,10 @@ export function GenerateLibBypassModal({
   const usedCredits = useMemo(() => {
     if (!user) return 0;
     const isOwnerRole = user.role === "OWNER";
-    const me = user.username.toLowerCase();
     return db.cheatExeKeyHistory.filter((k) => {
       if (k.package !== "EMULATOR BYPASS") return false;
       if (isOwnerRole) return true;
-      const c = (k.creator || "").toLowerCase();
-      return c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
+      return isCreatorMatch(k.creator, user.username);
     }).length;
   }, [user, db.cheatExeKeyHistory]);
 
@@ -193,11 +195,49 @@ export function GenerateLibBypassModal({
         },
       );
 
-      setCreatedKey(res.key);
+      const generatedKey = res.key;
+      const clientStamp = new Date().toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      });
+
+      const expDate = new Date(Date.now() + days * 86_400_000);
+      const expY = expDate.getFullYear();
+      const expM = String(expDate.getMonth() + 1).padStart(2, "0");
+      const expD = String(expDate.getDate()).padStart(2, "0");
+      const expH = String(expDate.getHours()).padStart(2, "0");
+      const expMin = String(expDate.getMinutes()).padStart(2, "0");
+      const formattedExpiry = `${expY}-${expM}-${expD} ${expH}:${expMin}`;
+
+      const newRecord: KeyRecord = {
+        key: generatedKey,
+        keyName: keyName.trim().toUpperCase() || generatedKey,
+        package: "EMULATOR BYPASS",
+        engine,
+        duration: String(days),
+        appliedDays: days,
+        expiry: formattedExpiry,
+        creator: isOwner ? "Owner (OWNER)" : `${user?.username ?? ""} (RESELLER)`,
+        note: `Lib Bypass Client [${engine === "V2" ? "V2 Sensix" : "V1 Bot"}]`,
+        date: clientStamp,
+        hwidLock,
+      };
+
+      patchDb((currentDb) => ({
+        ...currentDb,
+        cheatExeKeyHistory: [newRecord, ...currentDb.cheatExeKeyHistory.filter((k) => k.key !== generatedKey)],
+      }));
+
+      setCreatedKey(generatedKey);
       setCooldown(30);
-      toast(`Successfully generated Lib Bypass Key: ${res.key}!`, "success");
+      toast(`Successfully generated Lib Bypass Key: ${generatedKey}!`, "success");
       void refresh();
-      if (onSuccess) onSuccess(res.key);
+      if (onSuccess) onSuccess(generatedKey);
     } catch (err) {
       toast((err as Error).message, "error");
     } finally {

@@ -50,13 +50,40 @@ export default function ResellersPage() {
   const [manageEmulatorBypass, setManageEmulatorBypass] = useState(false);
 
   const patch = async (name: string, body: Record<string, unknown>, message: string) => {
-    // Status is the one field worth painting ahead of the server -- it is
-    // the visible result of the click. Everything else lands on the
-    // refresh, which no longer blocks the confirmation.
-    const snapshot =
-      typeof body.status === "string"
-        ? patchDb((db) => applyResellerStatus(db, name, body.status as ResellerStatus))
-        : null;
+    const snapshot = patchDb((db) => {
+      const users = { ...db.cheatExeUsers };
+      const targetKey =
+        Object.keys(users).find((k) => k.toLowerCase() === name.toLowerCase()) || name;
+      if (users[targetKey]) {
+        users[targetKey] = {
+          ...users[targetKey],
+          ...(body.status ? { status: body.status as ResellerStatus } : {}),
+          ...(body.uidBypassAccess !== undefined
+            ? { uidBypassAccess: Boolean(body.uidBypassAccess) }
+            : {}),
+          ...(body.emulatorBypassAccess !== undefined
+            ? { emulatorBypassAccess: Boolean(body.emulatorBypassAccess) }
+            : {}),
+          ...(body.emulatorCredits !== undefined
+            ? { emulatorCredits: Number(body.emulatorCredits) }
+            : {}),
+          ...(body.emulatorAllowedDays !== undefined
+            ? { emulatorAllowedDays: body.emulatorAllowedDays as number[] }
+            : {}),
+          ...(body.packages !== undefined ? { packages: body.packages as string[] } : {}),
+          ...(body.keyLimit !== undefined ? { keyLimit: Number(body.keyLimit) } : {}),
+          ...(body.validityDays !== undefined
+            ? {
+                expiresAt:
+                  Number(body.validityDays) > 0
+                    ? new Date(Date.now() + Number(body.validityDays) * 86_400_000).toISOString()
+                    : undefined,
+              }
+            : {}),
+        };
+      }
+      return { ...db, cheatExeUsers: users };
+    });
     toast(message, "success");
     try {
       await patchJson(`/api/resellers/${encodeURIComponent(name)}`, body);

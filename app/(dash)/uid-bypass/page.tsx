@@ -19,7 +19,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { UID_BYPASS_PACKAGE } from "@/lib/packages";
 import { useDashboard } from "@/lib/store";
 import { useStoredFlag } from "@/lib/use-external";
-import { cn } from "@/lib/utils";
+import { cn, isCreatorMatch } from "@/lib/utils";
 import { daysLeft as accountDaysLeft, formatExpiry } from "@/lib/reseller";
 
 import { isExpired, useWhitelist } from "./use-whitelist";
@@ -75,7 +75,7 @@ export default function UidBypassOverviewPage() {
     return db.cheatExeKeyHistory.filter(
       (k) =>
         k.package === "EMULATOR BYPASS" &&
-        k.creator.toLowerCase() === user.username.toLowerCase(),
+        isCreatorMatch(k.creator, user.username),
     ).length;
   }, [showEmulatorStats, isOwner, db.cheatExeKeyHistory, user]);
 
@@ -91,7 +91,7 @@ export default function UidBypassOverviewPage() {
     const used = db.cheatExeKeyHistory.filter(
       (k) =>
         k.package === "EMULATOR BYPASS" &&
-        k.creator.toLowerCase() === user.username.toLowerCase(),
+        isCreatorMatch(k.creator, user.username),
     ).length;
     return Math.max(0, totalCredits - used);
   }, [showEmulatorStats, isOwner, db.cheatExeUsers, db.cheatExeKeyHistory, user]);
@@ -104,7 +104,7 @@ export default function UidBypassOverviewPage() {
     return db.cheatExeKeyHistory.filter(
       (k) =>
         k.package === "EMULATOR BYPASS" &&
-        k.creator.toLowerCase() === user.username.toLowerCase(),
+        isCreatorMatch(k.creator, user.username),
     );
   }, [isOwner, db.cheatExeKeyHistory, user]);
 
