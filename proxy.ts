@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { SESSION_COOKIE, readSessionToken } from "@/lib/session";
+import { SESSION_COOKIE, readSessionToken, sessionCookieOptions } from "@/lib/session";
 
 const OWNER_ONLY = ["/owner-history", "/resellers", "/devices", "/banned-vault"];
 
@@ -13,6 +13,11 @@ export async function proxy(request: NextRequest) {
   const user = await readSessionToken(request.cookies.get(SESSION_COOKIE)?.value);
 
   if (pathname === "/login") {
+    if (request.nextUrl.searchParams.has("reason") || request.nextUrl.searchParams.has("logout")) {
+      const response = NextResponse.next();
+      response.cookies.set(SESSION_COOKIE, "", { ...sessionCookieOptions, maxAge: 0 });
+      return response;
+    }
     if (user) return NextResponse.redirect(new URL("/dashboard", request.url));
     return NextResponse.next();
   }

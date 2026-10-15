@@ -38,8 +38,15 @@ export default async function DashboardLayout({ children }: LayoutProps<"/">) {
   const user = await withLivePackages(state.user);
 
   return (
-    <Shell user={user} expiresIn={secondsUntil(state.expiresAt)}>
-      {children}
-    </Shell>
+    <>
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `try{var s=sessionStorage.getItem('cheat_tab_session');if(!s||s!=='${state.user.sessionId}'){sessionStorage.removeItem('cheat_tab_session');location.replace('/login?reason=tab');}}catch(e){}`,
+        }}
+      />
+      <Shell user={user} expiresIn={secondsUntil(state.expiresAt)}>
+        {children}
+      </Shell>
+    </>
   );
 }

@@ -112,21 +112,23 @@ export function Shell({
   const openMobile = useCallback(() => setMobileOpen(true), []);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
   const [terminated, setTerminated] = useState<Terminated | null>(null);
-  const [tabAuthorized, setTabAuthorized] = useState(false);
+  const [tabAuthorized, setTabAuthorized] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const activeTab = sessionStorage.getItem("cheat_tab_session");
+    return Boolean(activeTab && (!user?.sessionId || activeTab === user.sessionId));
+  });
   const effectiveUser = useEffectiveUser();
   const packages = useMyPackages();
 
   // Validate that this tab belongs to the authenticated session.
   // If the user closed the previous tab or opened this URL in a fresh tab/browser,
-  // sessionStorage is empty, so we log out on the server and send them to /login.
+  // sessionStorage is empty, so we immediately redirect to /login?reason=tab without delay.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const activeTab = sessionStorage.getItem("cheat_tab_session");
     if (!activeTab || (user?.sessionId && activeTab !== user.sessionId)) {
-      void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
-        sessionStorage.removeItem("cheat_tab_session");
-        window.location.href = "/login";
-      });
+      sessionStorage.removeItem("cheat_tab_session");
+      window.location.replace("/login?reason=tab");
       return;
     }
     setTabAuthorized(true);
@@ -336,11 +338,7 @@ export function Shell({
   useHwidSweep();
 
   if (!tabAuthorized) {
-    return (
-      <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-[#040718]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -390,7 +388,7 @@ function TerminatedNotice({ reason }: { reason: Terminated }) {
         onBack={() => {
           if (typeof window !== "undefined") {
             sessionStorage.removeItem("cheat_tab_session");
-            window.location.href = "/login?reason=timeout";
+            window.location.replace("/login?reason=timeout");
           }
         }}
       />
