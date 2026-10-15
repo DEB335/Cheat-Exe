@@ -851,6 +851,9 @@ function ProfileMenu() {
 
   const logout = async () => {
     try {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("cheat_tab_session");
+      }
       await api("/api/auth/logout", { method: "POST" });
     } finally {
       router.push("/login");

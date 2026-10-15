@@ -112,8 +112,25 @@ export function Shell({
   const openMobile = useCallback(() => setMobileOpen(true), []);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
   const [terminated, setTerminated] = useState<Terminated | null>(null);
+  const [tabAuthorized, setTabAuthorized] = useState(false);
   const effectiveUser = useEffectiveUser();
   const packages = useMyPackages();
+
+  // Validate that this tab belongs to the authenticated session.
+  // If the user closed the previous tab or opened this URL in a fresh tab/browser,
+  // sessionStorage is empty, so we log out on the server and send them to /login.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const activeTab = sessionStorage.getItem("cheat_tab_session");
+    if (!activeTab || (user?.sessionId && activeTab !== user.sessionId)) {
+      void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+        sessionStorage.removeItem("cheat_tab_session");
+        window.location.href = "/login";
+      });
+      return;
+    }
+    setTabAuthorized(true);
+  }, [user?.sessionId]);
 
   const lastUpdatedAt = useRef<string | null>(null);
 
@@ -300,6 +317,9 @@ export function Shell({
     // for security kicks/bans, redirect after NOTICE_MS
     if (terminated === "timeout") return;
     const id = window.setTimeout(() => {
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("cheat_tab_session");
+      }
       router.replace(`/login?reason=${terminated}`);
       router.refresh();
     }, NOTICE_MS);
@@ -314,6 +334,14 @@ export function Shell({
   // Frees the device of every HWID-unlocked key every 20 s while this tab
   // is visible. See the hook.
   useHwidSweep();
+
+  if (!tabAuthorized) {
+    return (
+      <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-[#040718]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-sky-400 border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -361,6 +389,7 @@ function TerminatedNotice({ reason }: { reason: Terminated }) {
         backText="Back to sign in"
         onBack={() => {
           if (typeof window !== "undefined") {
+            sessionStorage.removeItem("cheat_tab_session");
             window.location.href = "/login?reason=timeout";
           }
         }}

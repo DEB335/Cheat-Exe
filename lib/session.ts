@@ -132,5 +132,4 @@ export const sessionCookieOptions = {
   sameSite: "lax",
   secure: process.env.NODE_ENV === "production",
   path: "/",
-  maxAge: COOKIE_MAX_AGE,
 } as const;

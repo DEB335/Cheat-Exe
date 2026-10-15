@@ -121,6 +121,12 @@ function LoginView() {
   // (see usePrewarm), so the first pull does not stall on it.
   usePrewarm(stageRef, !isBlocked);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("cheat_tab_session");
+    }
+  }, []);
+
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     // Belt and braces: the button is disabled until the check passes,
@@ -131,10 +137,16 @@ function LoginView() {
     setSuccess("");
 
     try {
-      const data = await postJson<{ message?: string }>("/api/auth/login", {
+      const data = await postJson<{
+        message?: string;
+        user?: { sessionId?: string };
+      }>("/api/auth/login", {
         username,
         password,
       });
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("cheat_tab_session", data.user?.sessionId || "active");
+      }
       setSuccess(data.message ?? "Login successful");
       const next = params.get("next") ?? "/dashboard";
       router.push(next);
