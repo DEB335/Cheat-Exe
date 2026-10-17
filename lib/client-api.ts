@@ -1,5 +1,7 @@
 "use client";
 
+import { broadcastPing } from "./broadcast";
+
 interface ApiResult {
   success?: boolean;
   message?: string;
@@ -36,6 +38,11 @@ export async function api<T extends ApiResult = ApiResult>(
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     if (response.status === 401) window.location.href = "/login";
     throw new Error(payload.message ?? `Request failed (${response.status})`);
+  }
+
+  const method = (init.method ?? "GET").toUpperCase();
+  if (method !== "GET") {
+    broadcastPing(path);
   }
 
   return payload;

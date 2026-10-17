@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 
+import { broadcastPing } from "./broadcast";
 import { PACKAGES } from "./packages";
 import type { LicensePackage, PublicDatabase, SessionUser } from "./types";
 
@@ -166,6 +167,7 @@ export const useDashboard = create<DashboardState>((set, get) => ({
   patch: (apply) => {
     const before = get().db;
     set({ db: apply(before) });
+    broadcastPing("store-patch");
     return before;
   },
   restore: (snapshot) => set({ db: snapshot }),

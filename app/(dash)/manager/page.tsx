@@ -31,6 +31,7 @@ const ACTIONS: {
 export default function ManagerPage() {
   const toast = useToast();
   const refresh = useDashboard((s) => s.refresh);
+  const patchDb = useDashboard((s) => s.patch);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [info, setInfo] = useState<KeyInfo | null>(null);
@@ -62,15 +63,41 @@ export default function ManagerPage() {
   };
 
   const run = async (action: KeyAction) => {
-    if (!key.trim()) {
+    const targetKey = key.trim();
+    if (!targetKey) {
       toast("Enter a valid license key first!", "error");
       return;
     }
     setBusy(action);
+
+    // Instant optimistic store mutation on click
+    if (action === "delete_key") {
+      patchDb((db) => ({
+        ...db,
+        cheatExeKeyHistory: db.cheatExeKeyHistory.filter(
+          (k) => k.key.toUpperCase() !== targetKey.toUpperCase(),
+        ),
+      }));
+    } else if (action === "ban_key") {
+      patchDb((db) => ({
+        ...db,
+        cheatExeKeyHistory: db.cheatExeKeyHistory.map((k) =>
+          k.key.toUpperCase() === targetKey.toUpperCase() ? { ...k, banned: true } : k,
+        ),
+      }));
+    } else if (action === "unban_key") {
+      patchDb((db) => ({
+        ...db,
+        cheatExeKeyHistory: db.cheatExeKeyHistory.map((k) =>
+          k.key.toUpperCase() === targetKey.toUpperCase() ? { ...k, banned: false } : k,
+        ),
+      }));
+    }
+
     try {
       const data = await postJson<{ success?: boolean; message?: string }>("/api/keys/manage", {
         action,
-        key,
+        key: targetKey,
       });
       toast(`Result: ${data.message ?? "Done"}`, data.success ? "success" : "error");
       if (data.success) {
@@ -83,9 +110,12 @@ export default function ManagerPage() {
           await lookup();
         }
         await refresh();
+      } else {
+        await refresh();
       }
     } catch (err) {
       toast((err as Error).message, "error");
+      await refresh();
     } finally {
       setBusy(null);
     }

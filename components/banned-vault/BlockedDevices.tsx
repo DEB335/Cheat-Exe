@@ -92,18 +92,33 @@ export function BlockedDevices() {
       toast("Enter a value to block.", "error");
       return;
     }
-    setBusy(true);
+    const newBanVal = value.trim();
+    const newBanReason = reason.trim() || "Manual Block";
+    setValue("");
+    setReason("");
+    patchDb((db) => ({
+      ...db,
+      cheatExeBans: [
+        {
+          scope,
+          value: newBanVal,
+          reason: newBanReason,
+          by: db.adminUser || "Owner",
+          at: new Date().toISOString(),
+        },
+        ...db.cheatExeBans,
+      ],
+    }));
     try {
       await postJson("/api/bans", {
-        rules: [{ scope, value: value.trim() }],
-        reason: reason.trim() || undefined,
+        rules: [{ scope, value: newBanVal }],
+        reason: newBanReason,
       });
-      setValue("");
-      setReason("");
       toast(`${SCOPE_META[scope].label} blocked.`, "success");
       void refresh();
     } catch (err) {
       toast((err as Error).message, "error");
+      void refresh();
     } finally {
       setBusy(false);
     }

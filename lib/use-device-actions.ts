@@ -44,10 +44,31 @@ export function useDeviceActions() {
     label: string,
     name: string,
   ) => {
+    patchDb((db) => {
+      const newBans = rules.map((r) => ({
+        scope: r.scope,
+        value: r.value,
+        reason: "Blocked from Active Devices",
+        by: "Owner",
+        user: name,
+        at: new Date().toISOString(),
+      }));
+      const ruleValues = new Set(rules.map((r) => r.value.toLowerCase()));
+      const remainingDevices = db.cheatExeDevices.filter((d) => {
+        if (ruleValues.has(d.ip.toLowerCase())) return false;
+        if (d.hwid && ruleValues.has(d.hwid.toLowerCase())) return false;
+        if (d.fingerprint && ruleValues.has(d.fingerprint.toLowerCase())) return false;
+        return true;
+      });
+      return {
+        ...db,
+        cheatExeBans: [...newBans, ...db.cheatExeBans],
+        cheatExeDevices: remainingDevices,
+      };
+    });
     toast(`${label} blocked.`, "success");
     try {
       await postJson("/api/bans", { rules, reason: `Blocked from Active Devices`, user: name });
-      // A block also ends sessions it now covers, so take the real list.
       void refresh();
     } catch (err) {
       toast((err as Error).message, "error");

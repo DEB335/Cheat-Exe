@@ -1,5 +1,6 @@
 import "server-only";
 
+import { EventEmitter } from "node:events";
 import type { Tx } from "./db";
 import { sql } from "./sql";
 
@@ -46,7 +47,28 @@ export type PingKind =
  * to every send, which is a meaningful slice of the delay it exists to
  * remove. Riding the existing transaction costs nothing.
  */
+declare global {
+  // eslint-disable-next-line no-var
+  var __cheatexeRealtimeEmitter: EventEmitter | undefined;
+}
+
+export function getRealtimeEmitter(): EventEmitter {
+  if (!globalThis.__cheatexeRealtimeEmitter) {
+    globalThis.__cheatexeRealtimeEmitter = new EventEmitter();
+    globalThis.__cheatexeRealtimeEmitter.setMaxListeners(300);
+  }
+  return globalThis.__cheatexeRealtimeEmitter;
+}
+
 export async function ping(kind: PingKind, tx?: Tx): Promise<void> {
+  // 1. In-process SSE & stream dispatch for immediate real-time updates
+  try {
+    getRealtimeEmitter().emit("ping", kind);
+  } catch {
+    /* ignore */
+  }
+
+  // 2. Supabase Postgres ping if database URL is configured
   if (!process.env.DATABASE_URL) return;
   try {
     const db = tx ?? sql();
@@ -62,3 +84,4 @@ export async function ping(kind: PingKind, tx?: Tx): Promise<void> {
     /* subscribers fall back to the poll */
   }
 }
+

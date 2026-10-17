@@ -18,14 +18,18 @@ export default function AuditLogsPage() {
   const isOwner = useDashboard((s) => s.user?.role === "OWNER");
 
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const patchDb = useDashboard((s) => s.patch);
 
   const handleConfirmClear = async () => {
+    setConfirmClearOpen(false);
+    patchDb((db) => ({ ...db, cheatExeAuditLogs: [] }));
     try {
       await del("/api/audit");
       await refresh();
       toast("Audit logs cleared.", "success");
     } catch (err) {
       toast((err as Error).message, "error");
+      await refresh();
     }
   };
 

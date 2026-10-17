@@ -18,7 +18,14 @@ import { isCreatorMatch } from "./utils";
 
 import os from "node:os";
 
-let fileStoreUpdatedAt = new Date().toISOString();
+declare global {
+  // eslint-disable-next-line no-var
+  var __cheatexeDbUpdatedAt: string | undefined;
+  // eslint-disable-next-line no-var
+  var __cheatexeMemoryDb: Database | undefined;
+}
+
+let fileStoreUpdatedAt = globalThis.__cheatexeDbUpdatedAt ?? new Date().toISOString();
 
 export const DEFAULT_PROFILE: ProfileSettings = {
   displayName: "Cheat Exe",
@@ -32,24 +39,24 @@ const DEFAULT_ADMIN_PASS = process.env.ADMIN_PASSWORD ?? "CHEAT@EXE";
 const DB_PATH = path.join(process.cwd(), "data", "db.json");
 const TMP_DB_PATH = path.join(os.tmpdir(), "cheat-exe-db.json");
 
-// In-memory cache for serverless environments where disk writes are restricted
-let memoryDb: Database | null = null;
-
 async function readRawFile(): Promise<Database> {
-  if (memoryDb) return memoryDb;
+  const globalAt = globalThis.__cheatexeDbUpdatedAt;
+  if (globalThis.__cheatexeMemoryDb && globalAt === fileStoreUpdatedAt) {
+    return globalThis.__cheatexeMemoryDb;
+  }
 
   try {
     const text = await fs.readFile(DB_PATH, "utf8");
     const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
     const db = await normalise(parsed);
-    memoryDb = db;
+    globalThis.__cheatexeMemoryDb = db;
     return db;
   } catch {
     try {
       const text = await fs.readFile(TMP_DB_PATH, "utf8");
       const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
       const db = await normalise(parsed);
-      memoryDb = db;
+      globalThis.__cheatexeMemoryDb = db;
       return db;
     } catch {
       const legacyPath = path.join(process.cwd(), "old", "db.json");
@@ -57,11 +64,11 @@ async function readRawFile(): Promise<Database> {
         const text = await fs.readFile(legacyPath, "utf8");
         const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
         const db = await normalise(parsed);
-        memoryDb = db;
+        globalThis.__cheatexeMemoryDb = db;
         return db;
       } catch {
         const fresh = emptyDb(await bcrypt.hash(DEFAULT_ADMIN_PASS, 10));
-        memoryDb = fresh;
+        globalThis.__cheatexeMemoryDb = fresh;
         return fresh;
       }
     }
@@ -69,8 +76,10 @@ async function readRawFile(): Promise<Database> {
 }
 
 async function writeRawFile(db: Database): Promise<void> {
-  memoryDb = db;
-  fileStoreUpdatedAt = new Date().toISOString();
+  globalThis.__cheatexeMemoryDb = db;
+  const stamp = new Date().toISOString();
+  globalThis.__cheatexeDbUpdatedAt = stamp;
+  fileStoreUpdatedAt = stamp;
 
   // 1. Write to TMP_DB_PATH (always writable on serverless /tmp)
   try {
@@ -383,8 +392,9 @@ export function verifyPassword(plain: string, hash: string): Promise<boolean> {
 
 /** Returns the latest updated_at timestamp of the database */
 export async function getDbUpdatedAt(): Promise<string> {
+  const localStamp = globalThis.__cheatexeDbUpdatedAt ?? fileStoreUpdatedAt;
   if (!process.env.DATABASE_URL) {
-    return fileStoreUpdatedAt;
+    return localStamp;
   }
   try {
     const db = sql();
@@ -397,5 +407,5 @@ export async function getDbUpdatedAt(): Promise<string> {
   } catch {
     /* fallback */
   }
-  return fileStoreUpdatedAt;
+  return localStamp;
 }

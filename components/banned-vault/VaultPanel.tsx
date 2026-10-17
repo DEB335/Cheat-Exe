@@ -67,12 +67,14 @@ export function VaultPanel() {
 
   const handleConfirmClearVault = async () => {
     setClearVaultOpen(false);
+    patchDb((db) => ({ ...db, cheatExeBannedUsers: [] }));
     try {
       await del("/api/banned");
       await refresh();
       toast("Vault cleared.", "success");
     } catch (err) {
       toast((err as Error).message, "error");
+      await refresh();
     }
   };
 

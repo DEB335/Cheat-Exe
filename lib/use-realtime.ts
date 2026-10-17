@@ -2,27 +2,16 @@
 
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useRef } from "react";
+import { subscribeBroadcast } from "./broadcast";
 
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-/** Whether realtime is wired up at all. Without it the poll still works. */
-export const REALTIME_ENABLED = Boolean(URL_ && KEY);
+/** Realtime is always wired up via SSE stream and cross-tab BroadcastChannel. */
+export const REALTIME_ENABLED = true;
 
-/**
- * Subscribes to the content-free ping table and runs `onPing` when the
- * server rings it.
- *
- * This is an accelerator, not a replacement: the five-second poll stays
- * exactly as it was, so a dropped socket, a sleeping laptop or a missing
- * anon key degrades to "arrives within five seconds" rather than "never
- * arrives". Nothing about correctness depends on the socket.
- *
- * The callback is held in a ref so a caller passing an inline function
- * does not tear the subscription down and rebuild it on every render.
- */
 /** How long to wait for a burst to settle before refetching once. */
-const COALESCE_MS = 400;
+const COALESCE_MS = 250;
 
 export function useRealtimePing(onPing: () => void): void {
   const handler = useRef(onPing);
@@ -31,55 +20,68 @@ export function useRealtimePing(onPing: () => void): void {
   }, [onPing]);
 
   useEffect(() => {
-    if (!URL_ || !KEY) return;
-    const url = URL_;
-    const key = KEY;
-
-    let supabase: SupabaseClient | null = null;
-    let channel: RealtimeChannel | null = null;
     let timer = 0;
     let disposed = false;
 
-    // Pings arrive in bursts -- reacting also marks a message read -- and
-    // every open dashboard answers each one with a full refetch. Measured
-    // with five connected tabs, a single reaction produced six /api/db
-    // reads against a three-connection pool. Coalescing makes a flurry
-    // cost one refetch per tab instead of one per ping per tab.
     const coalesced = () => {
       window.clearTimeout(timer);
       timer = window.setTimeout(() => handler.current(), COALESCE_MS);
     };
 
-    // The client library is loaded here rather than imported at the top:
-    // it is a large bundle that only this socket uses, and the poll is
-    // what the panel actually depends on, so it should not hold up the
-    // first paint. A dashboard that unmounts before it arrives never
-    // opens the socket at all.
-    void import("@supabase/supabase-js")
-      .then(({ createClient }) => {
-        if (disposed) return;
-        supabase = createClient(url, key, {
-          auth: { persistSession: false },
-          // A burst of announcements should not become a burst of refetches.
-          realtime: { params: { eventsPerSecond: 4 } },
+    // 1. Instant cross-tab BroadcastChannel (0ms latency within browser)
+    const unsubBroadcast = subscribeBroadcast(coalesced);
+
+    // 2. Server-Sent Events (SSE) stream for real-time notifications
+    let eventSource: EventSource | null = null;
+    if (typeof window !== "undefined") {
+      try {
+        eventSource = new EventSource("/api/realtime");
+        eventSource.addEventListener("ping", coalesced);
+        eventSource.onerror = () => {
+          // Automatic browser reconnect handled by EventSource
+        };
+      } catch {
+        /* fallback to poll */
+      }
+    }
+
+    // 3. Supabase Realtime if credentials are provided in env
+    let supabase: SupabaseClient | null = null;
+    let channel: RealtimeChannel | null = null;
+
+    if (URL_ && KEY) {
+      void import("@supabase/supabase-js")
+        .then(({ createClient }) => {
+          if (disposed) return;
+          supabase = createClient(URL_, KEY, {
+            auth: { persistSession: false },
+            realtime: { params: { eventsPerSecond: 4 } },
+          });
+          channel = supabase
+            .channel("cheatexe-pings")
+            .on(
+              "postgres_changes",
+              { event: "INSERT", schema: "public", table: "realtime_pings" },
+              coalesced,
+            )
+            .subscribe();
+        })
+        .catch(() => {
+          /* the poll covers it */
         });
-        channel = supabase
-          .channel("cheatexe-pings")
-          .on(
-            "postgres_changes",
-            { event: "INSERT", schema: "public", table: "realtime_pings" },
-            coalesced,
-          )
-          .subscribe();
-      })
-      .catch(() => {
-        /* the poll covers it */
-      });
+    }
 
     return () => {
       disposed = true;
       window.clearTimeout(timer);
-      if (supabase && channel) void supabase.removeChannel(channel);
+      unsubBroadcast();
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (supabase && channel) {
+        void supabase.removeChannel(channel);
+      }
     };
   }, []);
 }
+

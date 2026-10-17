@@ -295,6 +295,13 @@ function HwidCell({ item, toast }: { item: KeyRecord; toast: ReturnType<typeof u
     // drops keyboard focus to the page body, halfway down a long table.
     if (busy) return;
     setBusy(true);
+    // Optimistic toggle so UI updates immediately on click without waiting for round-trip
+    useDashboard.getState().patch((db) => ({
+      ...db,
+      cheatExeKeyHistory: db.cheatExeKeyHistory.map((k) =>
+        k.key === item.key ? { ...k, hwidLock: !locked } : k,
+      ),
+    }));
     try {
       const data = await postJson<{ hwidLock?: boolean; release?: Release }>("/api/keys/lock", {
         key: item.key,
@@ -314,6 +321,7 @@ function HwidCell({ item, toast }: { item: KeyRecord; toast: ReturnType<typeof u
       await useDashboard.getState().refresh();
     } catch (err) {
       toast((err as Error).message, "error");
+      await useDashboard.getState().refresh();
     } finally {
       setBusy(false);
     }

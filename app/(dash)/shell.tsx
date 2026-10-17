@@ -28,7 +28,7 @@ import type { SessionUser } from "@/lib/types";
  * suspension or a device lock take effect, so it doubles as the panel's
  * worst-case latency for all of them. Polled at 2.5s for fast real-time sync.
  */
-const SESSION_POLL_MS = 2_500;
+const SESSION_POLL_MS = 2_000;
 
 /** Reason codes /api/auth/session returns when it terminates a session. */
 type Terminated =

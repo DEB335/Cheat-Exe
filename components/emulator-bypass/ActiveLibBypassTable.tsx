@@ -82,6 +82,7 @@ export function ActiveLibBypassTable() {
   const user = useDashboard((s) => s.user);
   const isOwner = user?.role === "OWNER";
   const refresh = useDashboard((s) => s.refresh);
+  const patchDb = useDashboard((s) => s.patch);
   const keyHistory = useDashboard((s) => s.db.cheatExeKeyHistory);
 
   const [query, setQuery] = useState("");
@@ -148,6 +149,13 @@ export function ActiveLibBypassTable() {
   const handleToggleHwid = async (key: string, currentLocked: boolean) => {
     if (togglingKey === key) return;
     setTogglingKey(key);
+    // Instant optimistic toggle
+    patchDb((db) => ({
+      ...db,
+      cheatExeKeyHistory: db.cheatExeKeyHistory.map((k) =>
+        k.key === key ? { ...k, hwidLock: !currentLocked } : k,
+      ),
+    }));
     try {
       await postJson("/api/keys/lock", {
         key,
@@ -162,6 +170,7 @@ export function ActiveLibBypassTable() {
       void refresh();
     } catch (err) {
       toast((err as Error).message, "error");
+      void refresh();
     } finally {
       setTogglingKey(null);
     }
@@ -174,12 +183,19 @@ export function ActiveLibBypassTable() {
   // Reset HWID action
   const handleResetHwid = async (key: string) => {
     setActingKey(key);
+    patchDb((db) => ({
+      ...db,
+      cheatExeKeyHistory: db.cheatExeKeyHistory.map((k) =>
+        k.key === key ? { ...k, hwidLock: false } : k,
+      ),
+    }));
     try {
       await patchJson("/api/emulator-bypass/keys", { key });
       toast(`Reset HWID device binding for ${key}.`, "success");
       void refresh();
     } catch (err) {
       toast((err as Error).message, "error");
+      void refresh();
     } finally {
       setActingKey(null);
     }
@@ -191,13 +207,18 @@ export function ActiveLibBypassTable() {
     const key = deleteTargetKey;
     setDeleteTargetKey(null);
     setActingKey(key);
+    patchDb((db) => ({
+      ...db,
+      cheatExeKeyHistory: db.cheatExeKeyHistory.filter((k) => k.key !== key),
+    }));
+    setSelectedKeys((prev) => prev.filter((k) => k !== key));
     try {
       await del(`/api/emulator-bypass/keys?key=${encodeURIComponent(key)}`);
       toast(`Deleted Lib Bypass key ${key}.`, "success");
-      setSelectedKeys((prev) => prev.filter((k) => k !== key));
       void refresh();
     } catch (err) {
       toast((err as Error).message, "error");
+      void refresh();
     } finally {
       setActingKey(null);
     }
@@ -208,8 +229,15 @@ export function ActiveLibBypassTable() {
     setShowBulkConfirm(false);
     if (selectedKeys.length === 0) return;
 
+    const keysToDelete = [...selectedKeys];
+    setSelectedKeys([]);
+    patchDb((db) => ({
+      ...db,
+      cheatExeKeyHistory: db.cheatExeKeyHistory.filter((k) => !keysToDelete.includes(k.key)),
+    }));
+
     let deletedCount = 0;
-    for (const key of selectedKeys) {
+    for (const key of keysToDelete) {
       try {
         await del(`/api/emulator-bypass/keys?key=${encodeURIComponent(key)}`);
         deletedCount++;
@@ -217,8 +245,7 @@ export function ActiveLibBypassTable() {
         // continue
       }
     }
-    toast(`Deleted ${deletedCount} of ${selectedKeys.length} keys.`, "success");
-    setSelectedKeys([]);
+    toast(`Deleted ${deletedCount} of ${keysToDelete.length} keys.`, "success");
     void refresh();
   };
 

@@ -14,12 +14,18 @@ import { useDashboard } from "@/lib/store";
 export default function DevicesPage() {
   const toast = useToast();
   const refresh = useDashboard((s) => s.refresh);
+  const patchDb = useDashboard((s) => s.patch);
   const count = useDashboard((s) => s.db.cheatExeDevices.length);
   const [showConfirm, setShowConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
 
   const handleClear = async () => {
     setClearing(true);
+    const userSessionId = useDashboard.getState().user?.sessionId;
+    patchDb((db) => ({
+      ...db,
+      cheatExeDevices: db.cheatExeDevices.filter((d) => d.sessionId === userSessionId),
+    }));
     try {
       await del("/api/devices");
       await refresh();
@@ -27,6 +33,7 @@ export default function DevicesPage() {
       setShowConfirm(false);
     } catch (err) {
       toast((err as Error).message, "error");
+      await refresh();
     } finally {
       setClearing(false);
     }
