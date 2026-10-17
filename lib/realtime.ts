@@ -47,6 +47,7 @@ export type PingKind =
  * remove. Riding the existing transaction costs nothing.
  */
 export async function ping(kind: PingKind, tx?: Tx): Promise<void> {
+  if (!process.env.DATABASE_URL) return;
   try {
     const db = tx ?? sql();
     await db`insert into realtime_pings (kind) values (${kind})`;

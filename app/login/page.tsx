@@ -147,8 +147,7 @@ function LoginView() {
       }
       setSuccess(data.message ?? "Login successful");
       const next = params.get("next") ?? "/dashboard";
-      router.push(next);
-      router.refresh();
+      window.location.href = next;
     } catch (err) {
       const message = (err as Error).message;
       const kind = WIRE_TO_BLOCK[message];

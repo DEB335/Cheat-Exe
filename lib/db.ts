@@ -36,16 +36,17 @@ const TMP_DB_PATH = path.join(os.tmpdir(), "cheat-exe-db.json");
 let memoryDb: Database | null = null;
 
 async function readRawFile(): Promise<Database> {
+  if (memoryDb) return memoryDb;
+
   try {
-    const text = await fs.readFile(DB_PATH, "utf8");
+    const text = await fs.readFile(TMP_DB_PATH, "utf8");
     const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
     const db = await normalise(parsed);
     memoryDb = db;
     return db;
-  } catch (err) {
-    if (memoryDb) return memoryDb;
+  } catch {
     try {
-      const text = await fs.readFile(TMP_DB_PATH, "utf8");
+      const text = await fs.readFile(DB_PATH, "utf8");
       const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
       const db = await normalise(parsed);
       memoryDb = db;
@@ -70,20 +71,24 @@ async function readRawFile(): Promise<Database> {
 async function writeRawFile(db: Database): Promise<void> {
   memoryDb = db;
   fileStoreUpdatedAt = new Date().toISOString();
+
+  // 1. Write to TMP_DB_PATH (always writable on serverless /tmp)
+  try {
+    const tmp = `${TMP_DB_PATH}.${process.pid}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(db, null, 4), "utf8");
+    await fs.rename(tmp, TMP_DB_PATH);
+  } catch {
+    /* fallback to memoryDb */
+  }
+
+  // 2. Also write to DB_PATH if filesystem is writable
   try {
     await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
     const tmp = `${DB_PATH}.${process.pid}.tmp`;
     await fs.writeFile(tmp, JSON.stringify(db, null, 4), "utf8");
     await fs.rename(tmp, DB_PATH);
-  } catch (err) {
-    // If process.cwd() is read-only (e.g. on Vercel/Lambda), fallback to os.tmpdir()
-    try {
-      const tmp = `${TMP_DB_PATH}.${process.pid}.tmp`;
-      await fs.writeFile(tmp, JSON.stringify(db, null, 4), "utf8");
-      await fs.rename(tmp, TMP_DB_PATH);
-    } catch {
-      // Memory db will still hold the state for the lifetime of this process
-    }
+  } catch {
+    // Expected on read-only serverless hosts
   }
 }
 
