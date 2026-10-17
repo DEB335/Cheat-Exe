@@ -81,9 +81,10 @@ export function LoginCard({
   usernameRef,
 }: LoginCardProps) {
 
-  // The form only goes through once the server has confirmed the pair.
-  const ready = signIn.state === "ready" && !signIn.busy;
-  const visualState: SignInState = signIn.busy ? "checking" : signIn.state;
+  // The form can submit whenever username and password are provided and not already submitting
+  const canSubmit = username.trim().length > 0 && password.length > 0 && !signIn.busy;
+  const ready = (signIn.state === "ready" || canSubmit) && !signIn.busy;
+  const visualState: SignInState = signIn.busy ? "checking" : (signIn.state === "checking" && canSubmit ? "ready" : signIn.state);
 
   // Clicks (and Enter) on a locked button shake it instead of submitting.
   const [nudge, setNudge] = useState(0);
@@ -201,10 +202,10 @@ export function LoginCard({
             type="submit"
             data-state={visualState}
             data-nudge={pulse(nudge)}
-            aria-disabled={!ready}
-            aria-busy={visualState === "checking"}
+            aria-disabled={!canSubmit}
+            aria-busy={signIn.busy}
             onClick={(event) => {
-              if (ready) {
+              if (canSubmit) {
                 playClick();
                 return;
               }

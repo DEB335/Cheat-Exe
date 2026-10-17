@@ -2,7 +2,7 @@ import "server-only";
 
 import { HttpError } from "./auth";
 import { readDb, updateDb } from "./db";
-import { resolveApiUrl } from "./license-api";
+import { DEFAULT_API_KEY, resolveApiUrl } from "./license-api";
 import { DEFAULT_WHITELIST_REGION } from "./packages";
 import type { WhitelistEntry } from "./types";
 
@@ -23,7 +23,7 @@ import type { WhitelistEntry } from "./types";
  * rejected, which `call` says out loud.
  */
 const API_URL = resolveApiUrl(process.env.TX999_API_URL || process.env.LICENSE_API_URL);
-const API_KEY = process.env.TX999_API_KEY ?? process.env.LICENSE_API_KEY;
+const API_KEY = process.env.TX999_API_KEY ?? process.env.LICENSE_API_KEY ?? DEFAULT_API_KEY;
 
 /**
  * Local development fallback is ONLY active on localhost/development when no API key is provided.

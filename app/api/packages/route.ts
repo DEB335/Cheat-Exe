@@ -17,20 +17,23 @@ export const GET = route(async () => {
   try {
     const data = await getPackages();
     if (data.success && data.packages?.length) {
-      const packages: LicensePackage[] = data.packages.map((p) => ({
-        id: p.package_id,
-        name: p.package_name,
-        // The API has no blurb field, so keep the original wording for
-        // packages we already know and derive one only for new arrivals.
-        description:
-          PACKAGES.find((known) => known.id === p.package_id)?.description ??
-          `${p.package_name} Package`,
-      }));
+      const packages: LicensePackage[] = data.packages
+        .filter((p) => !["LIB BYPASS", "FPS BOOSTER"].includes(p.package_name))
+        .map((p) => ({
+          id: p.package_id,
+          name: p.package_name,
+          // The API has no blurb field, so keep the original wording for
+          // packages we already know and derive one only for new arrivals.
+          description:
+            PACKAGES.find((known) => known.id === p.package_id)?.description ??
+            `${p.package_name} Package`,
+        }));
       return NextResponse.json({ success: true, packages, source: "api" });
     }
   } catch {
     /* fall through to the bundled list */
   }
 
-  return NextResponse.json({ success: true, packages: PACKAGES, source: "fallback" });
+  const fallback = PACKAGES.filter((p) => !["LIB BYPASS", "FPS BOOSTER"].includes(p.name));
+  return NextResponse.json({ success: true, packages: fallback, source: "fallback" });
 });

@@ -11,6 +11,9 @@ import { PACKAGE_NAMES } from "./packages";
  * other value set in the environment wins.
  */
 export const DEFAULT_API_URL = "https://prtvshow.online/api_admin.php";
+export const DEFAULT_API_KEY = "TX999_65f7e1c2128683875c69c197a929c377a78a18c59fcc80351fba5e7d15743896";
+export const DEFAULT_APP_ID = "9f087d585fbd666572fc24b7";
+
 const RETIRED_API_HOST = "auth.terminalx999.online";
 
 export function resolveApiUrl(configured: string | undefined): string {
@@ -19,8 +22,8 @@ export function resolveApiUrl(configured: string | undefined): string {
 }
 
 const API_URL = resolveApiUrl(process.env.LICENSE_API_URL);
-const API_KEY = process.env.LICENSE_API_KEY;
-const APP_ID = process.env.LICENSE_APP_ID;
+const API_KEY = process.env.LICENSE_API_KEY || DEFAULT_API_KEY;
+const APP_ID = process.env.LICENSE_APP_ID || DEFAULT_APP_ID;
 
 /**
  * Every response from api_admin.php shares this envelope. `signature` is

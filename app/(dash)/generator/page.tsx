@@ -148,7 +148,7 @@ export default function GeneratorPage() {
     // Both panels stretch to the taller one on desktop, so the hologram
     // under the console fills whatever height the package grid gives.
     <div className="grid gap-[30px] xl:grid-cols-[3fr_2fr]">
-      <NeonPanel rim="aurora" className="flex flex-col">
+      <NeonPanel rim="danger" className="flex flex-col">
         <PanelHeader
           title="Generate License Keys"
           subtitle="Create keys through your connected API."
@@ -156,7 +156,7 @@ export default function GeneratorPage() {
 
         <p
           id="genPackages"
-          className="mb-3.5 text-[15px] font-semibold text-[#d5ddff] lt:text-slate-700"
+          className="mb-3.5 text-[15px] font-semibold text-[#ffd1dc] lt:text-slate-700"
         >
           {isOwner ? "Select License Package" : "Your License Packages"}
         </p>
@@ -207,7 +207,7 @@ export default function GeneratorPage() {
             id="genDays"
             label="Validity (days)"
             help="Use 0 for a lifetime key."
-            tone="blue"
+            tone="red"
             rightIcon={<CalendarIcon />}
             inputClassName={NO_SPINNER}
             type="number"
@@ -221,7 +221,7 @@ export default function GeneratorPage() {
               id="genCount"
               label="Count"
               help="Maximum 100 per request."
-              tone="blue"
+              tone="red"
               rightIcon={<UsersIcon />}
               inputClassName={NO_SPINNER}
               type="number"
@@ -278,7 +278,7 @@ export default function GeneratorPage() {
               asked for no drawn line under the button. */}
           <span
             aria-hidden
-            className="pointer-events-none absolute inset-x-[2%] -bottom-3 h-[46px] rounded-[50%] bg-[radial-gradient(46%_100%_at_50%_0%,rgba(168,85,247,0.19),rgba(59,130,246,0.06)_50%,transparent_80%)] lt:opacity-40"
+            className="pointer-events-none absolute inset-x-[2%] -bottom-3 h-[46px] rounded-[50%] bg-[radial-gradient(46%_100%_at_50%_0%,rgba(255,45,90,0.25),rgba(255,45,90,0.06)_50%,transparent_80%)] lt:opacity-40"
           />
           <NeonCta
             icon={<KeyIcon />}

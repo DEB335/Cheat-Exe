@@ -16,6 +16,8 @@ import type {
 } from "./types";
 import { isCreatorMatch } from "./utils";
 
+import os from "node:os";
+
 let fileStoreUpdatedAt = new Date().toISOString();
 
 export const DEFAULT_PROFILE: ProfileSettings = {
@@ -24,35 +26,62 @@ export const DEFAULT_PROFILE: ProfileSettings = {
   banner: "https://cdn.imageurlgenerator.com/uploads/696b036b-a046-46e7-a9c0-2616ffe2ddaf.gif",
 };
 
-const DEFAULT_ADMIN_USER = process.env.ADMIN_USER ?? "JACK";
+const DEFAULT_ADMIN_USER = process.env.ADMIN_USER ?? "CHEATEXE";
 const DEFAULT_ADMIN_PASS = process.env.ADMIN_PASSWORD ?? "22153310";
 
 const DB_PATH = path.join(process.cwd(), "data", "db.json");
+const TMP_DB_PATH = path.join(os.tmpdir(), "cheat-exe-db.json");
+
+// In-memory cache for serverless environments where disk writes are restricted
+let memoryDb: Database | null = null;
 
 async function readRawFile(): Promise<Database> {
+  if (memoryDb) return memoryDb;
   try {
     const text = await fs.readFile(DB_PATH, "utf8");
     const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
-    return normalise(parsed);
+    memoryDb = await normalise(parsed);
+    return memoryDb;
   } catch (err) {
-    const legacyPath = path.join(process.cwd(), "old", "db.json");
     try {
-      const text = await fs.readFile(legacyPath, "utf8");
+      const text = await fs.readFile(TMP_DB_PATH, "utf8");
       const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
-      return normalise(parsed);
+      memoryDb = await normalise(parsed);
+      return memoryDb;
     } catch {
-      const fresh = emptyDb(await bcrypt.hash(DEFAULT_ADMIN_PASS, 10));
-      return fresh;
+      const legacyPath = path.join(process.cwd(), "old", "db.json");
+      try {
+        const text = await fs.readFile(legacyPath, "utf8");
+        const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
+        memoryDb = await normalise(parsed);
+        return memoryDb;
+      } catch {
+        const fresh = emptyDb(await bcrypt.hash(DEFAULT_ADMIN_PASS, 10));
+        memoryDb = fresh;
+        return fresh;
+      }
     }
   }
 }
 
 async function writeRawFile(db: Database): Promise<void> {
-  await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
-  const tmp = `${DB_PATH}.${process.pid}.tmp`;
-  await fs.writeFile(tmp, JSON.stringify(db, null, 4), "utf8");
-  await fs.rename(tmp, DB_PATH);
+  memoryDb = db;
   fileStoreUpdatedAt = new Date().toISOString();
+  try {
+    await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
+    const tmp = `${DB_PATH}.${process.pid}.tmp`;
+    await fs.writeFile(tmp, JSON.stringify(db, null, 4), "utf8");
+    await fs.rename(tmp, DB_PATH);
+  } catch (err) {
+    // If process.cwd() is read-only (e.g. on Vercel/Lambda), fallback to os.tmpdir()
+    try {
+      const tmp = `${TMP_DB_PATH}.${process.pid}.tmp`;
+      await fs.writeFile(tmp, JSON.stringify(db, null, 4), "utf8");
+      await fs.rename(tmp, TMP_DB_PATH);
+    } catch {
+      // Memory db will still hold the state for the lifetime of this process
+    }
+  }
 }
 
 function emptyDb(adminPassHash: string): Database {

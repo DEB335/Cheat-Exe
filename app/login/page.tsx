@@ -129,9 +129,7 @@ function LoginView() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    // Belt and braces: the button is disabled until the check passes,
-    // but a stray Enter must not fire a request either.
-    if (check !== "valid" || busy) return;
+    if (!username.trim() || !password || busy) return;
     setBusy(true);
     setError("");
     setSuccess("");

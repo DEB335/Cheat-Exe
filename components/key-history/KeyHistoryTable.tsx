@@ -97,11 +97,11 @@ export const KeyHistoryTable = memo(function KeyHistoryTable({
   return (
     <NeonTable
       columns={columns}
-      tone="violet"
+      tone="red"
       // +130 over the old widths for the HWID column's pill.
       minWidth={showCreator ? 1090 : 1010}
       empty={
-        <NeonEmpty icon={<KeyIcon />} tone="violet">
+        <NeonEmpty icon={<KeyIcon />} tone="red">
           {/* Before the first load the store is empty too; saying there
               are no keys then would contradict the tiles' dashes above. */}
           {loading ? "Loading key history…" : emptyText}

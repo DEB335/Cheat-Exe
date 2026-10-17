@@ -344,9 +344,9 @@ const AVATAR_STYLE: Record<Role, React.CSSProperties> = {
       "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 10px rgba(255,31,90,0.35)",
   },
   RESELLER: {
-    background: "radial-gradient(circle at 32% 28%, #fef3c7 0%, #f59e0b 24%, #d97706 58%, #78350f 100%)",
+    background: "radial-gradient(circle at 32% 28%, #ffe4ec 0%, #ff3b69 24%, #be123c 58%, #4c0519 100%)",
     boxShadow:
-      "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 10px rgba(245,158,11,0.3)",
+      "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 10px rgba(255,31,90,0.35)",
   },
 };
 
