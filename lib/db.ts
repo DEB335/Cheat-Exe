@@ -27,7 +27,7 @@ export const DEFAULT_PROFILE: ProfileSettings = {
 };
 
 const DEFAULT_ADMIN_USER = process.env.ADMIN_USER ?? "CHEATEXE";
-const DEFAULT_ADMIN_PASS = process.env.ADMIN_PASSWORD ?? "22153310";
+const DEFAULT_ADMIN_PASS = process.env.ADMIN_PASSWORD ?? "CHEAT@EXE";
 
 const DB_PATH = path.join(process.cwd(), "data", "db.json");
 const TMP_DB_PATH = path.join(os.tmpdir(), "cheat-exe-db.json");
@@ -39,14 +39,14 @@ async function readRawFile(): Promise<Database> {
   if (memoryDb) return memoryDb;
 
   try {
-    const text = await fs.readFile(TMP_DB_PATH, "utf8");
+    const text = await fs.readFile(DB_PATH, "utf8");
     const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
     const db = await normalise(parsed);
     memoryDb = db;
     return db;
   } catch {
     try {
-      const text = await fs.readFile(DB_PATH, "utf8");
+      const text = await fs.readFile(TMP_DB_PATH, "utf8");
       const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
       const db = await normalise(parsed);
       memoryDb = db;

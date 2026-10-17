@@ -68,15 +68,14 @@ function LoginView() {
   // said no. Not "still typing" and not "asking" -- the debounce means
   // red only ever appears once you have stopped typing and been told the
   // credentials are wrong.
+  const hasInput = username.trim().length > 0 && password.length > 0;
   const state: SignInState = error
     ? "invalid"
-    : check === "valid"
-      ? "ready"
-      : check === "checking"
-        ? "checking"
-        : check === "invalid"
-          ? "invalid"
-          : "empty";
+    : check === "invalid"
+      ? "invalid"
+      : hasInput || check === "valid"
+        ? "ready"
+        : "empty";
 
   // Which full-screen panel, if any, this render should show. Derived
   // rather than pushed into state from an effect: the live check, a
@@ -165,14 +164,9 @@ function LoginView() {
 
   const notice: React.ComponentProps<typeof LoginCard>["notice"] = error
     ? { tone: "error", text: error }
-    : check === "unreachable"
-      ? {
-          tone: "warn",
-          text: "Could not reach the server to check your credentials. The button stays locked until it can -- edit a field to try again.",
-        }
-      : success
-        ? { tone: "ok", text: success }
-        : null;
+    : success
+      ? { tone: "ok", text: success }
+      : null;
 
   return (
     <>
@@ -235,7 +229,7 @@ function LoginView() {
                   onSubmit={submit}
                   signIn={{
                     state,
-                    label: busy ? "Signing in..." : check === "checking" ? "Checking..." : "Sign in",
+                    label: busy ? "Signing in..." : "Sign in",
                     busy,
                   }}
                   notice={notice}
