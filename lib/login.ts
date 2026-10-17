@@ -48,16 +48,7 @@ export async function resolveLogin(
       (user.toLowerCase() === "cheatexe" || user.toLowerCase() === "jack"));
 
   if (isOwnerName) {
-    let passValid = await verifyPassword(password, db.adminPassHash);
-    if (!passValid && !process.env.DATABASE_URL) {
-      db.adminPassHash = await bcrypt.hash(password, 10);
-      db.adminUser = user.toUpperCase();
-      await updateDb((d) => {
-        d.adminPassHash = db.adminPassHash;
-        d.adminUser = db.adminUser;
-      });
-      passValid = true;
-    }
+    const passValid = await verifyPassword(password, db.adminPassHash);
     if (!passValid) {
       return { ok: false, reason: "invalid" };
     }

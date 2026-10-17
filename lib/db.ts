@@ -36,25 +36,28 @@ const TMP_DB_PATH = path.join(os.tmpdir(), "cheat-exe-db.json");
 let memoryDb: Database | null = null;
 
 async function readRawFile(): Promise<Database> {
-  if (memoryDb) return memoryDb;
   try {
     const text = await fs.readFile(DB_PATH, "utf8");
     const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
-    memoryDb = await normalise(parsed);
-    return memoryDb;
+    const db = await normalise(parsed);
+    memoryDb = db;
+    return db;
   } catch (err) {
+    if (memoryDb) return memoryDb;
     try {
       const text = await fs.readFile(TMP_DB_PATH, "utf8");
       const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
-      memoryDb = await normalise(parsed);
-      return memoryDb;
+      const db = await normalise(parsed);
+      memoryDb = db;
+      return db;
     } catch {
       const legacyPath = path.join(process.cwd(), "old", "db.json");
       try {
         const text = await fs.readFile(legacyPath, "utf8");
         const parsed = JSON.parse(text) as Partial<Database> & { adminPass?: string };
-        memoryDb = await normalise(parsed);
-        return memoryDb;
+        const db = await normalise(parsed);
+        memoryDb = db;
+        return db;
       } catch {
         const fresh = emptyDb(await bcrypt.hash(DEFAULT_ADMIN_PASS, 10));
         memoryDb = fresh;
