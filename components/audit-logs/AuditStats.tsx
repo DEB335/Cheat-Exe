@@ -1,70 +1,46 @@
 "use client";
 
 import { ClockIcon, ShieldCheckIcon, UserIcon } from "@/components/icons";
-import { AlertTriangleIcon, NeonStat } from "@/components/neon";
+import { AlertTriangleIcon } from "@/components/neon";
+import { StatCard } from "@/components/ui/StatCard";
 import type { AuditLog } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-import { auditStats, shareOf } from "./derive";
+import { auditStats } from "./derive";
 import { useMinute } from "./useMinute";
 
 /**
- * The four tiles over the log. Every figure is counted from the log the
- * store holds (the server keeps the newest 100), with success and
- * failure decided by the same rule that colours each row's pill. The
- * mockup's trend chip on "Last 24 Hours" is left out: the log is capped,
- * so the day before is not reliably there to compare against.
+ * The four stats over the audit log, styled with StatCard matching Owner Key History.
  */
 export function AuditStats({ logs, className }: { logs: AuditLog[]; className?: string }) {
   const now = useMinute();
   const stats = auditStats(logs, now);
-  // Four to a row beside the hologram leaves each tile ~240px; tighter
-  // padding keeps "Successful" whole next to its chip.
-  const tile = "min-[104rem]:gap-3 min-[104rem]:px-4";
 
   return (
-    <div className={cn("grid gap-4 sm:grid-cols-2", className)}>
-      <NeonStat
-        tone="blue"
-        iconShape="ring"
-        icon={<UserIcon />}
-        label="Total Events"
+    <div className={cn("grid gap-4 sm:grid-cols-2 lg:grid-cols-4", className)}>
+      <StatCard
+        accent="red"
+        icon={<UserIcon className="size-6" />}
+        label="TOTAL EVENTS"
         value={stats.total}
-        tintValue
-        capsLabel={false}
-        className={tile}
       />
-      <NeonStat
-        tone="green"
-        iconShape="tile"
-        icon={<ShieldCheckIcon />}
-        label="Successful"
+      <StatCard
+        accent="red"
+        icon={<ShieldCheckIcon className="size-6" />}
+        label="SUCCESSFUL"
         value={stats.success}
-        chip={shareOf(stats.success, stats.total)}
-        tintValue
-        capsLabel={false}
-        className={tile}
       />
-      <NeonStat
-        tone="red"
-        iconShape="tile"
-        icon={<AlertTriangleIcon />}
-        label="Failed"
+      <StatCard
+        accent="red"
+        icon={<AlertTriangleIcon className="size-6" />}
+        label="FAILED"
         value={stats.failed}
-        chip={shareOf(stats.failed, stats.total)}
-        tintValue
-        capsLabel={false}
-        className={tile}
       />
-      <NeonStat
-        tone="blue"
-        iconShape="ring"
-        icon={<ClockIcon />}
-        label="Last 24 Hours"
-        value={stats.lastDay ?? "–"}
-        tintValue
-        capsLabel={false}
-        className={tile}
+      <StatCard
+        accent="red"
+        icon={<ClockIcon className="size-6" />}
+        label="LAST 24 HOURS"
+        value={stats.lastDay ?? 0}
       />
     </div>
   );

@@ -50,10 +50,10 @@ export function VaultTable({
     <NeonTable
       columns={COLUMNS}
       minWidth={1120}
-      tone="pink"
+      tone="red"
       className={className}
       empty={
-        <NeonEmpty icon={<BanIcon />} tone="pink">
+        <NeonEmpty icon={<BanIcon />} tone="red">
           {searching ? `Nothing in the vault matches "${query.trim()}".` : "No banned records found."}
         </NeonEmpty>
       }
@@ -129,7 +129,7 @@ export function VaultTable({
                 </NeonButton>
 
                 <NeonButton
-                  tone="cyan"
+                  tone="red"
                   variant="filled"
                   size="xs"
                   title="Copy username"

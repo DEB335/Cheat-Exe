@@ -22,18 +22,18 @@ export default function EmulatorBypassPage() {
     <div className="space-y-8 pb-10">
       {/* Dynamic Engine Status Overview Banner with glowing neon hover effect */}
       {(isV1Maintenance || isV2Maintenance || isMaintenance) && (
-        <div className="group/banner relative overflow-hidden rounded-2xl border border-amber-500/40 bg-[radial-gradient(ellipse_at_top_left,rgba(245,158,11,0.2),transparent_70%),linear-gradient(180deg,#140f05_0%,#0b0802_100%)] p-4 sm:p-5 shadow-[0_0_24px_rgba(245,158,11,0.18)] transition-all duration-300 hover:border-amber-400 hover:shadow-[0_0_42px_rgba(245,158,11,0.42),inset_0_1px_2px_rgba(255,255,255,0.2)] hover:scale-[1.004]">
+        <div className="relative overflow-hidden rounded-2xl border border-[rgba(255,45,90,0.35)] bg-[radial-gradient(ellipse_at_top_left,rgba(255,45,90,0.14),transparent_70%),linear-gradient(180deg,#18050c_0%,#0e0207_100%)] p-4 sm:p-5 shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-300 hover:border-[rgba(255,45,90,0.6)] hover:shadow-[0_0_30px_rgba(255,31,90,0.25)]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Left: Icon & Title/Subtitle */}
             <div className="flex items-start sm:items-center gap-3.5">
-              <span className="text-2xl shrink-0 mt-0.5 sm:mt-0 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]">
+              <span className="text-2xl shrink-0 mt-0.5 sm:mt-0 text-red-400 drop-shadow-[0_0_8px_rgba(255,45,90,0.5)]">
                 ⚠️
               </span>
               <div>
                 <h4 className="text-[13.5px] sm:text-sm font-bold tracking-wide flex flex-wrap items-center gap-2">
                   {isV1Maintenance && !isV2Maintenance && (
                     <>
-                      <span className="text-amber-400">Lib Bypass V1 is Under Maintenance</span>
+                      <span className="text-red-400">Lib Bypass V1 is Under Maintenance</span>
                       <span className="text-slate-600 font-normal">|</span>
                       <span className="text-emerald-400 flex items-center gap-1.5">
                         <span>🚀</span> Lib Bypass V2 is Online &amp; Working
@@ -42,7 +42,7 @@ export default function EmulatorBypassPage() {
                   )}
                   {isV2Maintenance && !isV1Maintenance && (
                     <>
-                      <span className="text-amber-400">Lib Bypass V2 is Under Maintenance</span>
+                      <span className="text-red-400">Lib Bypass V2 is Under Maintenance</span>
                       <span className="text-slate-600 font-normal">|</span>
                       <span className="text-emerald-400 flex items-center gap-1.5">
                         <span>⚡</span> Lib Bypass V1 is Online &amp; Working
@@ -50,10 +50,10 @@ export default function EmulatorBypassPage() {
                     </>
                   )}
                   {isV1Maintenance && isV2Maintenance && (
-                    <span className="text-amber-400">Lib Bypass Service is Under Maintenance</span>
+                    <span className="text-red-400">Lib Bypass Service is Under Maintenance</span>
                   )}
                 </h4>
-                <p className="text-xs text-slate-400 mt-1 font-medium">
+                <p className="text-xs text-[#ffd1dc]/80 mt-1 font-medium">
                   {maintenanceReason || "Lib Bypass service is currently under scheduled maintenance. Please try again later."}
                 </p>
               </div>
@@ -66,11 +66,11 @@ export default function EmulatorBypassPage() {
                 className={cn(
                   "flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold tracking-wider",
                   isV1Maintenance
-                    ? "border-amber-500/40 bg-amber-500/10 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                    ? "border-red-500/40 bg-red-500/15 text-red-300 shadow-[0_0_12px_rgba(255,31,90,0.2)]"
                     : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]",
                 )}
               >
-                <span className="text-amber-400">⚡ V1:</span>
+                <span className="text-red-400">⚡ V1:</span>
                 {isV1Maintenance ? (
                   <span className="flex items-center gap-1.5">
                     <span>🛠️</span>
@@ -89,7 +89,7 @@ export default function EmulatorBypassPage() {
                 className={cn(
                   "flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-[11px] font-bold tracking-wider",
                   isV2Maintenance
-                    ? "border-amber-500/40 bg-amber-500/10 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+                    ? "border-red-500/40 bg-red-500/15 text-red-300 shadow-[0_0_12px_rgba(255,31,90,0.2)]"
                     : "border-emerald-500/40 bg-emerald-500/10 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]",
                 )}
               >

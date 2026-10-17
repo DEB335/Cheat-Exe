@@ -21,7 +21,7 @@ export function NeonLabel({
   ...rest
 }: React.LabelHTMLAttributes<HTMLLabelElement> & { aside?: React.ReactNode }) {
   return (
-    <div className="mb-2.5 flex items-end justify-between gap-3">
+    <div className="mb-2.5 flex h-[24px] items-center justify-between gap-3">
       <label
         {...rest}
         className={cn(
@@ -77,13 +77,13 @@ export function NeonHelp({
  * mockups' active inputs.
  */
 const BOX = cn(
-  "relative flex min-w-0 items-stretch overflow-hidden rounded-[12px] border",
-  "border-[rgba(110,118,245,0.4)] bg-[linear-gradient(180deg,rgba(4,6,26,0.86),rgba(7,10,34,0.8))]",
-  "shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_10px_22px_-16px_rgba(0,0,0,0.9)]",
+  "relative flex min-w-0 items-stretch overflow-hidden rounded-[12px] border backdrop-blur-xl",
+  "border-[rgba(255,45,90,0.25)] bg-[linear-gradient(180deg,rgba(22,4,10,0.7),rgba(14,2,7,0.8))]",
+  "shadow-[inset_0_1px_0_rgba(255,255,255,0.06),inset_0_10px_22px_-16px_rgba(0,0,0,0.9)]",
   "transition-[border-color,box-shadow] duration-300 ease-smooth",
-  "hover:border-[rgba(var(--tone),0.7)]",
-  "focus-within:border-[rgb(var(--tone-hi))] hover:focus-within:border-[rgb(var(--tone-hi))]",
-  "focus-within:shadow-[0_0_0_3px_rgba(var(--tone),0.18),0_0_13px_-2px_rgba(var(--tone),0.32),inset_0_1px_0_rgba(255,255,255,0.05)]",
+  "hover:border-[rgba(255,60,110,0.6)]",
+  "focus-within:border-[rgba(255,45,90,0.8)] hover:focus-within:border-[rgba(255,45,90,0.9)]",
+  "focus-within:shadow-[0_0_0_3px_rgba(255,45,90,0.18),0_0_16px_rgba(255,31,90,0.35),inset_0_1px_0_rgba(255,255,255,0.08)]",
   "lt:border-slate-300 lt:bg-none lt:bg-white lt:shadow-[inset_0_1px_2px_rgba(15,23,42,0.05)]",
   "lt:hover:border-[rgba(var(--tone),0.6)] lt:focus-within:border-[rgb(var(--tone))] lt:focus-within:shadow-[0_0_0_3px_rgba(var(--tone),0.15)]",
 );
@@ -292,7 +292,7 @@ export function NeonInput({
         <div
           className={cn(
             "rounded-[14px] border border-[rgba(var(--tone),0.55)] px-3.5 pt-3 pb-3.5",
-            "[background:radial-gradient(80%_120%_at_0%_0%,rgba(var(--tone),0.16),transparent_70%),linear-gradient(160deg,rgba(10,14,44,0.7),rgba(6,8,30,0.75))]",
+            "[background:radial-gradient(80%_120%_at_0%_0%,rgba(var(--tone),0.16),transparent_70%),linear-gradient(160deg,rgba(22,4,10,0.75),rgba(14,2,7,0.85))]",
             "shadow-[0_0_12px_-4px_rgba(var(--tone),0.36),inset_0_1px_0_rgba(255,255,255,0.06)]",
             "transition-[border-color,box-shadow] duration-300 focus-within:border-[rgba(var(--tone-hi),0.9)]",
             "focus-within:shadow-[0_0_14px_-3px_rgba(var(--tone),0.48),inset_0_1px_0_rgba(255,255,255,0.08)]",
@@ -302,7 +302,7 @@ export function NeonInput({
           {label ? (
             <label
               htmlFor={controlId}
-              className="mb-2.5 flex items-center gap-3 pl-1 text-[14.5px] font-semibold text-[#dbe4ff] lt:text-slate-700"
+              className="mb-2.5 flex items-center gap-3 pl-1 text-[14.5px] font-semibold text-white lt:text-slate-700"
             >
               {leftIcon ? (
                 <span
@@ -343,7 +343,7 @@ export function NeonInput({
 
 interface NeonSelectProps
   extends Omit<FieldFrameProps, "rightIcon" | "rightSlot">,
-    Omit<React.ComponentPropsWithRef<"select">, "size" | "className"> {
+  Omit<React.ComponentPropsWithRef<"select">, "size" | "className"> {
   selectClassName?: string;
 }
 
@@ -413,7 +413,7 @@ export function NeonSelect({
 
 interface NeonTextareaProps
   extends Pick<FieldFrameProps, "label" | "labelAside" | "help" | "error" | "tone" | "className" | "boxClassName">,
-    Omit<React.ComponentPropsWithRef<"textarea">, "className"> {
+  Omit<React.ComponentPropsWithRef<"textarea">, "className"> {
   textareaClassName?: string;
 }
 
@@ -497,11 +497,11 @@ export function NeonToggle({
         "flex items-center gap-4",
         disabled ? "cursor-not-allowed opacity-55" : "cursor-pointer",
         boxed && [
-          "rounded-[14px] border border-[rgba(110,118,245,0.34)] px-4 py-3.5 sm:px-5",
-          "[background:linear-gradient(90deg,rgba(var(--tone),0.1),rgba(var(--tone),0)_45%),linear-gradient(180deg,rgba(6,9,32,0.75),rgba(4,6,24,0.7))]",
-          "shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-[border-color] duration-300",
-          !disabled && "hover:border-[rgba(var(--tone),0.6)]",
-          "lt:border-slate-200 lt:[background:rgba(var(--tone),0.04)]",
+          "rounded-[14px] border border-[rgba(255,45,90,0.28)] px-4 py-3.5 sm:px-5 backdrop-blur-xl",
+          "[background:linear-gradient(90deg,rgba(255,0,55,0.12),rgba(255,0,55,0)_45%),linear-gradient(180deg,rgba(24,4,11,0.75),rgba(14,2,7,0.85))]",
+          "shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_16px_-6px_rgba(255,0,55,0.2)] transition-[border-color] duration-300",
+          !disabled && "hover:border-[rgba(255,0,55,0.55)]",
+          "lt:border-slate-200 lt:[background:rgba(255,245,247,0.9)]",
         ],
         className,
       )}
@@ -519,13 +519,13 @@ export function NeonToggle({
         }}
         className={cn(
           "relative h-[30px] w-[56px] shrink-0 cursor-pointer rounded-full border transition-[background,border-color,box-shadow] duration-300",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--tone-hi))] disabled:cursor-not-allowed",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-not-allowed",
           checked
             ? [
-                "border-[rgba(var(--tone-hi),0.8)] [background:linear-gradient(90deg,var(--tone-b),var(--tone-a))]",
-                "shadow-[0_0_10px_-1px_rgba(var(--tone),0.38),inset_0_1px_0_rgba(255,255,255,0.3)]",
-              ]
-            : "border-[rgba(148,163,204,0.35)] bg-[rgba(148,163,204,0.14)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)] lt:bg-slate-200",
+              "border-[#ff0037] [background:linear-gradient(90deg,#ff0037,#cc002c)]",
+              "shadow-[0_0_14px_rgba(255,0,55,0.6),inset_0_1px_0_rgba(255,255,255,0.35)]",
+            ]
+            : "border-[rgba(255,45,90,0.25)] bg-[rgba(255,45,90,0.1)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.35)] lt:bg-slate-200",
         )}
       >
         <span
@@ -533,7 +533,7 @@ export function NeonToggle({
           className={cn(
             "absolute top-[3px] left-[3px] size-[22px] rounded-full bg-white transition-[translate,box-shadow] duration-300 ease-back",
             checked
-              ? "translate-x-[26px] shadow-[0_0_6px_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.3)]"
+              ? "translate-x-[26px] shadow-[0_0_8px_rgba(255,255,255,0.6),0_2px_4px_rgba(0,0,0,0.3)]"
               : "shadow-[0_2px_4px_rgba(0,0,0,0.35)]",
           )}
         />
@@ -645,24 +645,24 @@ export function NeonSegmented<V extends string | number>({
               "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--tone-hi))]",
               on
                 ? [
-                    "border-[rgb(var(--tone-hi))] text-white",
-                    "[background:linear-gradient(180deg,rgba(var(--tone),0.62),rgba(var(--tone),0.26))]",
-                    "shadow-[0_0_11px_-1px_rgba(var(--tone),0.38),inset_0_1px_0_rgba(255,255,255,0.3)]",
-                    "lt:border-[rgb(var(--tone))] lt:[background:rgba(var(--tone),0.14)] lt:text-[var(--tone-lt)] lt:shadow-none",
-                  ]
+                  "border-[rgb(var(--tone-hi))] text-white",
+                  "[background:linear-gradient(180deg,rgba(var(--tone),0.62),rgba(var(--tone),0.26))]",
+                  "shadow-[0_0_11px_-1px_rgba(var(--tone),0.38),inset_0_1px_0_rgba(255,255,255,0.3)]",
+                  "lt:border-[rgb(var(--tone))] lt:[background:rgba(var(--tone),0.14)] lt:text-[var(--tone-lt)] lt:shadow-none",
+                ]
                 : option.tone
                   ? [
-                      // An option with a colour of its own (Lifetime) wears
-                      // it faintly even when not chosen, as in the mockup.
-                      "border-[rgba(var(--tone),0.55)] bg-[rgba(var(--tone),0.1)] text-[rgb(var(--tone-hi))]",
-                      "hover:border-[rgba(var(--tone),0.85)] hover:bg-[rgba(var(--tone),0.18)] hover:text-white",
-                      "lt:border-[rgba(var(--tone),0.45)] lt:bg-[rgba(var(--tone),0.06)] lt:text-[var(--tone-lt)] lt:hover:bg-[rgba(var(--tone),0.12)] lt:hover:text-[var(--tone-lt)]",
-                    ]
+                    // An option with a colour of its own (Lifetime) wears
+                    // it faintly even when not chosen, as in the mockup.
+                    "border-[rgba(var(--tone),0.55)] bg-[rgba(var(--tone),0.1)] text-[rgb(var(--tone-hi))]",
+                    "hover:border-[rgba(var(--tone),0.85)] hover:bg-[rgba(var(--tone),0.18)] hover:text-white",
+                    "lt:border-[rgba(var(--tone),0.45)] lt:bg-[rgba(var(--tone),0.06)] lt:text-[var(--tone-lt)] lt:hover:bg-[rgba(var(--tone),0.12)] lt:hover:text-[var(--tone-lt)]",
+                  ]
                   : [
-                      "border-[rgba(129,140,248,0.3)] bg-[rgba(10,14,44,0.72)] text-[#cdd6f4]",
-                      "hover:border-[rgba(var(--tone),0.75)] hover:bg-[rgba(var(--tone),0.12)] hover:text-white",
-                      "lt:border-slate-300 lt:bg-white lt:text-slate-600 lt:hover:border-[rgba(var(--tone),0.6)] lt:hover:bg-[rgba(var(--tone),0.06)] lt:hover:text-slate-900",
-                    ],
+                    "border-[rgba(129,140,248,0.3)] bg-[rgba(10,14,44,0.72)] text-[#cdd6f4]",
+                    "hover:border-[rgba(var(--tone),0.75)] hover:bg-[rgba(var(--tone),0.12)] hover:text-white",
+                    "lt:border-slate-300 lt:bg-white lt:text-slate-600 lt:hover:border-[rgba(var(--tone),0.6)] lt:hover:bg-[rgba(var(--tone),0.06)] lt:hover:text-slate-900",
+                  ],
             )}
           >
             {option.icon}

@@ -24,8 +24,8 @@ import {
 } from "@/components/neon";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { TintButton } from "@/components/ui/buttons";
 import { del, patchJson, postJson } from "@/lib/client-api";
-import { KeyHistoryAmbient, KeyHistoryEmblem } from "@/components/scenes/KeyHistoryScene";
 import { useDashboard } from "@/lib/store";
 import { cn, formatStampForDisplay } from "@/lib/utils";
 
@@ -225,16 +225,9 @@ export function ActiveLibBypassTable() {
   return (
     <div className="w-full">
       <NeonPanel rim="danger" className="@container/khist relative">
-        {/* Ambient lighting at the top */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 hidden h-[260px] overflow-hidden rounded-t-[24px] [mask-image:linear-gradient(180deg,#000_55%,transparent)] sm:block"
-        >
-          <KeyHistoryAmbient className="size-full" />
-        </div>
 
-        <div className="relative z-[1] mb-6 flex flex-wrap items-center justify-between gap-x-5 gap-y-4 @[1050px]/khist:grid @[1050px]/khist:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-          {/* Title & subtitle without the gamepad icon */}
+        <div className="relative z-[1] mb-6 flex flex-wrap items-center justify-between gap-x-5 gap-y-4">
+          {/* Title & subtitle */}
           <div className="min-w-0">
             <h3 className="font-display text-[21px] leading-tight font-bold text-white sm:text-[25px] lt:text-slate-900">
               Emulator Bypass Key History
@@ -244,18 +237,13 @@ export function ActiveLibBypassTable() {
             </p>
           </div>
 
-          {/* 3D Hologram Key Emblem centered in the middle */}
-          <div aria-hidden className="pointer-events-none -my-6 hidden justify-self-center @[1050px]/khist:block">
-            <KeyHistoryEmblem className="h-[120px] w-[210px]" />
-          </div>
-
           {/* Actions on the right */}
-          <div className="flex flex-wrap items-center justify-end justify-self-end gap-2.5">
-            {/* Search Box Matching Whitelist Page */}
+          <div className="flex flex-wrap items-center justify-end gap-2.5">
+            {/* Search Box */}
             <div className="relative w-full sm:w-[220px]">
               <SearchIcon
                 aria-hidden
-                className="pointer-events-none absolute top-1/2 left-3.5 z-[1] size-4 -translate-y-1/2 text-[#9fb0dd] lt:text-slate-400"
+                className="pointer-events-none absolute top-1/2 left-3.5 z-[1] size-4 -translate-y-1/2 text-[#ffd1dc] lt:text-slate-400"
               />
               <NeonInput
                 tone="red"
@@ -263,71 +251,81 @@ export function ActiveLibBypassTable() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search License Key…"
                 aria-label="Search keys"
-                boxClassName="h-9 rounded-full"
-                inputClassName="pl-10 text-[13.5px]"
+                boxClassName="h-8 rounded-lg border-[rgba(255,45,90,0.25)]"
+                inputClassName="pl-9 text-[12.5px]"
               />
             </div>
 
-            {/* Engine Filter Pills: ALL, then V1, then V2 as requested */}
-            <NeonButton
-              tone="blue"
-              variant={engineFilter === "ALL" ? "filled" : "outline"}
-              size="sm"
-              onClick={() => setEngineFilter("ALL")}
-            >
-              ALL
-            </NeonButton>
-
-            <NeonButton
-              tone="amber"
-              variant={engineFilter === "V1" ? "filled" : "outline"}
-              size="sm"
-              onClick={() => setEngineFilter("V1")}
-            >
-              ⚡ V1
-            </NeonButton>
-
-            <NeonButton
-              tone="pink"
-              variant={engineFilter === "V2" ? "filled" : "outline"}
-              size="sm"
-              onClick={() => setEngineFilter("V2")}
-            >
-              🚀 V2
-            </NeonButton>
+            {/* Engine Filter Pills: ALL, V1, V2 */}
+            <div className="inline-flex items-center rounded-lg border border-[rgba(255,45,90,0.25)] bg-[rgba(20,4,10,0.6)] p-0.5">
+              <button
+                type="button"
+                onClick={() => setEngineFilter("ALL")}
+                className={cn(
+                  "cursor-pointer rounded-md px-2.5 py-1 text-[11.5px] font-bold transition-all duration-200",
+                  engineFilter === "ALL"
+                    ? "bg-[rgba(255,45,90,0.35)] text-white shadow-sm"
+                    : "text-[#ffd1dc]/70 hover:text-white",
+                )}
+              >
+                ALL
+              </button>
+              <button
+                type="button"
+                onClick={() => setEngineFilter("V1")}
+                className={cn(
+                  "cursor-pointer rounded-md px-2.5 py-1 text-[11.5px] font-bold transition-all duration-200",
+                  engineFilter === "V1"
+                    ? "bg-[rgba(255,45,90,0.35)] text-white shadow-sm"
+                    : "text-[#ffd1dc]/70 hover:text-white",
+                )}
+              >
+                ⚡ V1
+              </button>
+              <button
+                type="button"
+                onClick={() => setEngineFilter("V2")}
+                className={cn(
+                  "cursor-pointer rounded-md px-2.5 py-1 text-[11.5px] font-bold transition-all duration-200",
+                  engineFilter === "V2"
+                    ? "bg-[rgba(255,45,90,0.35)] text-white shadow-sm"
+                    : "text-[#ffd1dc]/70 hover:text-white",
+                )}
+              >
+                🚀 V2
+              </button>
+            </div>
 
             {/* Bulk Delete Button */}
             {selectedKeys.length > 0 && (
-              <NeonButton
+              <TintButton
                 tone="red"
-                size="sm"
-                icon={<TrashIcon />}
                 onClick={() => setShowBulkConfirm(true)}
               >
+                <TrashIcon className="size-3" strokeWidth={2} />
                 Delete ({selectedKeys.length})
-              </NeonButton>
+              </TintButton>
             )}
 
-            {/* Refresh Button with GREEN Neon tone */}
-            <NeonButton
+            {/* Refresh Button */}
+            <TintButton
               tone="green"
-              size="sm"
-              icon={<RefreshIcon />}
               onClick={() => {
                 void refresh();
                 toast("Refreshed Lib Bypass keys.", "success");
               }}
             >
+              <RefreshIcon className="size-3" />
               Refresh
-            </NeonButton>
+            </TintButton>
           </div>
         </div>
 
         {/* Table Container */}
-        <div className="overflow-x-auto rounded-xl border border-white/5 bg-[#090d1e]/80">
+        <div className="overflow-x-auto rounded-xl border border-[rgba(255,45,90,0.25)] bg-[linear-gradient(180deg,rgba(24,4,11,0.65),rgba(14,2,7,0.75))] backdrop-blur-xl">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-white/5 bg-[#0c1228] text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+              <tr className="border-b border-[rgba(255,45,90,0.22)] bg-[rgba(255,31,90,0.08)] text-[11.5px] font-bold tracking-wider text-[#ffd1dc] uppercase">
                 <th className="w-10 px-4 py-3.5 text-center">
                   <NeonTableCheckbox
                     checked={allSelected}
@@ -370,8 +368,8 @@ export function ActiveLibBypassTable() {
                     <tr
                       key={record.key}
                       className={cn(
-                        "transition-colors hover:bg-white/[0.03]",
-                        isSelected && "bg-red-500/[0.06]",
+                        "border-b border-[rgba(255,45,90,0.1)] transition-colors duration-200 hover:bg-[rgba(255,45,90,0.06)]",
+                        isSelected && "bg-[rgba(255,45,90,0.12)]",
                       )}
                     >
                       {/* Checkbox */}
@@ -384,7 +382,7 @@ export function ActiveLibBypassTable() {
                         />
                       </td>
 
-                      {/* License Key Cell matching Screenshot 1 */}
+                      {/* License Key Cell matching Owner Key History */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="flex items-center gap-2.5">
                           {/* Dot indicator */}
@@ -392,13 +390,13 @@ export function ActiveLibBypassTable() {
                             aria-hidden
                             className="size-2 shrink-0 rounded-full bg-[#3ee88a] shadow-[0_0_5px_rgba(62,232,138,0.4)]"
                           />
-                          {/* Key Icon */}
+                          {/* Key Icon - Crimson / Red */}
                           <KeyIcon
                             aria-hidden
-                            className="size-[17px] shrink-0 text-[#a78bfa] drop-shadow-[0_0_5px_rgba(167,139,250,0.22)] lt:text-violet-600"
+                            className="size-[18px] shrink-0 text-[#ff4d73] drop-shadow-[0_0_5px_rgba(255,45,90,0.35)] lt:text-rose-600 lt:drop-shadow-none"
                           />
-                          {/* Monospace bright green key text */}
-                          <span className="font-mono text-xs font-bold text-[#6ef3a5] select-all tracking-wider">
+                          {/* Monospace bright white key text */}
+                          <span className="font-mono text-xs font-bold text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.2)] select-all tracking-wider lt:text-slate-900">
                             {record.key}
                           </span>
                           {record.banned ? (
@@ -410,10 +408,10 @@ export function ActiveLibBypassTable() {
                         </div>
                       </td>
 
-                      {/* Engine Badge matching Package Chip in Screenshot 1 */}
+                      {/* Engine Badge matching Package Chip */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <NeonChip
-                          tone={isV2 ? "pink" : "amber"}
+                          tone={isV2 ? "red" : "amber"}
                           size="sm"
                           shape="tag"
                           icon={<span className="text-xs">{isV2 ? "🚀" : "⚡"}</span>}
@@ -422,7 +420,7 @@ export function ActiveLibBypassTable() {
                         </NeonChip>
                       </td>
 
-                      {/* Validity / Expiry Cell matching Screenshot 1 with Clock Icon */}
+                      {/* Validity / Expiry Cell matching Owner Key History with Clock Icon */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <span className="flex items-center gap-1.5 font-bold text-xs text-[#5ef59a]">
                           <ClockIcon aria-hidden className="size-4 shrink-0 text-[#3ee88a]" />
@@ -478,7 +476,7 @@ export function ActiveLibBypassTable() {
                         </button>
                       </td>
 
-                      {/* Created By Badge */}
+                      {/* Created By Badge - Red theme matching Owner Key History */}
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         {(() => {
                           const creatorStr = record.creator || "Owner (OWNER)";
@@ -486,15 +484,10 @@ export function ActiveLibBypassTable() {
                             creatorStr.toLowerCase().includes("owner") ||
                             creatorStr.toLowerCase() === "cheat exe" ||
                             creatorStr.toLowerCase() === "admin";
-                          return isOwnerCreator ? (
-                            <div className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-amber-300 text-xs font-semibold shadow-[0_0_10px_rgba(245,158,11,0.15)]">
+                          return (
+                            <div className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(255,45,90,0.35)] bg-[rgba(255,45,90,0.12)] px-2.5 py-1 text-[#ff7a98] text-xs font-semibold shadow-[0_0_10px_rgba(255,45,90,0.15)]">
                               <span>👑</span>
-                              <span>{creatorStr.includes("OWNER") ? creatorStr : "Owner (OWNER)"}</span>
-                            </div>
-                          ) : (
-                            <div className="inline-flex items-center gap-1.5 rounded-lg border border-purple-500/40 bg-purple-500/10 px-2.5 py-1 text-purple-300 text-xs font-semibold shadow-[0_0_10px_rgba(168,85,247,0.15)]">
-                              <span>👤</span>
-                              <span>{creatorStr}</span>
+                              <span>{isOwnerCreator ? (creatorStr.includes("OWNER") ? creatorStr : "Owner (OWNER)") : creatorStr}</span>
                             </div>
                           );
                         })()}
@@ -505,10 +498,10 @@ export function ActiveLibBypassTable() {
                         {record.note || "Lib Bypass Client [V2 Sensix]"}
                       </td>
 
-                      {/* Created On matching Screenshot 1 */}
-                      <td className="px-4 py-3.5 whitespace-nowrap text-xs text-slate-300">
+                      {/* Created On matching Owner Key History */}
+                      <td className="px-4 py-3.5 whitespace-nowrap text-xs text-[#cbd5e1]">
                         <span className="flex items-center gap-2 whitespace-nowrap">
-                          <CalendarIcon aria-hidden className="size-4 shrink-0 text-[#a78bfa] lt:text-violet-600" />
+                          <CalendarIcon aria-hidden className="size-[17px] shrink-0 text-[#ff7a98] lt:text-rose-500" />
                           <span>{formatStampForDisplay(record.date || "")}</span>
                         </span>
                       </td>
@@ -516,9 +509,9 @@ export function ActiveLibBypassTable() {
                       {/* Actions: Copy, Reset HWID, and Delete (All uniform NeonButton with matching animation and size) */}
                       <td className="px-4 py-3.5 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-2">
-                          {/* Copy Button (Blue) */}
+                          {/* Copy Button (Red) */}
                           <NeonButton
-                            tone="blue"
+                            tone="red"
                             size="sm"
                             icon={<CopyIcon className="size-3.5" />}
                             onClick={async () => {

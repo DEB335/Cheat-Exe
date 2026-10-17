@@ -12,14 +12,14 @@ export type NeonRim = "aurora" | "violet" | "blue" | "cyan" | "teal" | "pink" | 
  * the left, violet across, electric blue on the right.
  */
 const RIMS: Record<NeonRim, [string, string, string]> = {
-  aurora: ["255, 61, 242", "139, 92, 246", "59, 130, 246"],
-  violet: ["217, 70, 239", "139, 92, 246", "99, 102, 241"],
-  blue: ["34, 211, 238", "59, 130, 246", "99, 102, 241"],
-  cyan: ["103, 232, 249", "34, 211, 238", "59, 130, 246"],
-  teal: ["52, 211, 153", "16, 224, 160", "34, 211, 238"],
-  pink: ["255, 79, 216", "244, 114, 182", "168, 85, 247"],
-  amber: ["253, 186, 116", "245, 165, 36", "244, 63, 94"],
-  danger: ["255, 45, 85", "244, 63, 94", "168, 85, 247"],
+  aurora: ["255, 45, 90", "230, 20, 60", "180, 10, 40"],
+  violet: ["255, 45, 90", "220, 30, 80", "160, 20, 60"],
+  blue: ["255, 60, 100", "235, 30, 70", "180, 15, 45"],
+  cyan: ["255, 80, 120", "255, 45, 90", "200, 20, 50"],
+  teal: ["255, 70, 110", "240, 35, 75", "190, 15, 45"],
+  pink: ["255, 90, 140", "255, 45, 90", "210, 25, 65"],
+  amber: ["255, 110, 80", "255, 45, 90", "220, 20, 60"],
+  danger: ["255, 45, 85", "235, 20, 50", "180, 10, 30"],
 };
 
 // Module classes are joined by hand, never through cn(): tailwind-merge
@@ -199,7 +199,6 @@ export function NeonInset({
       style={{ "--rim-a": a, "--rim-b": b, "--rim-c": c, ...style } as React.CSSProperties}
       className={join(styles.inset, cn("relative rounded-[18px] p-4 sm:p-6", className))}
     >
-      <span aria-hidden className={styles.insetLine} />
       {children}
     </div>
   );

@@ -85,30 +85,8 @@ export function ActionGlyph({ kind, className }: { kind: ActionGlyphKind; classN
       className={`${styles.root} ${cn("pointer-events-none relative aspect-[72/88]", className)}`}
       style={paletteVars(p)}
     >
-      <div className={styles.stage}>
-        <svg className={styles.disc} viewBox="0 0 72 30">
-          <defs>
-            <radialGradient id={id("pool")}>
-              <stop offset="0" stopColor={rgb(p.b)} stopOpacity="0.27" />
-              <stop offset="0.6" stopColor={rgb(p.c)} stopOpacity="0.08" />
-              <stop offset="1" stopColor={rgb(p.c)} stopOpacity="0" />
-            </radialGradient>
-            <radialGradient id={id("face")}>
-              <stop offset="0" stopColor={rgb(p.hot)} stopOpacity="0.95" />
-              <stop offset="0.45" stopColor={rgb(p.a)} stopOpacity="0.7" />
-              <stop offset="1" stopColor={rgb(p.b)} stopOpacity="0.15" />
-            </radialGradient>
-          </defs>
-          <ellipse cx="36" cy="15" rx="36" ry="12" fill={url("pool")} />
-          <ellipse cx="36" cy="15" rx="33" ry="7.4" className={styles.ringOuter} />
-          <ellipse cx="36" cy="15" rx="26" ry="5.4" className={styles.ringMid} />
-          <ellipse cx="36" cy="15" rx="19" ry="3.9" fill={url("face")} />
-          <ellipse cx="36" cy="15" rx="19" ry="3.9" className={styles.rim} />
-          <ellipse cx="36" cy="14.6" rx="11" ry="1.5" className={styles.hotspot} />
-        </svg>
-        <span className={styles.beam} />
-
-        <div className={styles.lift}>
+      <div className="flex size-full items-center justify-center">
+        <div className="relative flex size-12 items-center justify-center">
           <svg className={styles.icon} viewBox="0 0 48 48">
             <defs>
               <linearGradient id={id("tube")} gradientUnits="userSpaceOnUse" x1="10" y1="6" x2="38" y2="42">

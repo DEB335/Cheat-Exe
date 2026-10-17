@@ -3,32 +3,23 @@
 import { useMemo, useState } from "react";
 
 import { CalendarIcon, CloseIcon, RefreshIcon, SearchIcon, ShieldCheckIcon, TrashIcon } from "@/components/icons";
-import { NeonButton, NeonChip, NeonInput, NeonPanel, NeonStat, PanelHeader, RunIcon, XCircleIcon } from "@/components/neon";
-import { VaultLockScene, VaultShieldScene } from "@/components/scenes/VaultScenes";
+import { NeonButton, NeonChip, NeonInput, NeonPanel, PanelHeader, RunIcon, XCircleIcon } from "@/components/neon";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { StatCard } from "@/components/ui/StatCard";
 import { useToast } from "@/components/ui/Toast";
+import { TintButton } from "@/components/ui/buttons";
 import { del } from "@/lib/client-api";
 import { applyRemoveVaultEntry } from "@/lib/optimistic";
 import { useDashboard } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 import { useKickCounts } from "./use-kick-counts";
 import { VaultTable } from "./VaultTable";
 
 const SEARCH_ID = "vault-search";
 
-// Four across leaves each tile about 215px: a little less padding keeps
-// "KICKED TODAY" whole instead of cut to "KICKED TO...".
-const TIGHT_STAT = "@[1740px]/hero:gap-3.5 @[1740px]/hero:px-4";
-
 /**
- * The kicked / banned accounts vault: the hero (shield, title, four
- * counts, the lock hologram, the actions) over the records table.
- *
- * The hero lays itself out by its own width, not the viewport's -- the
- * sidebar and the 75% desktop zoom make the viewport a poor guide to how
- * much room the panel really has. The holograms only appear once there
- * is room for them beside the text, so they never sit on a word or a
- * button.
+ * The kicked / banned accounts vault: the hero over the records table.
  */
 export function VaultPanel() {
   const toast = useToast();
@@ -93,103 +84,79 @@ export function VaultPanel() {
   };
 
   return (
-    <NeonPanel rim="pink">
+    <NeonPanel rim="danger">
       <div className="@container/hero relative">
-        {/* Holograms. Each sits in its own box, drawn behind the text
-            (content is z-10) and never taking the pointer. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute top-[calc(50%-122px)] -left-3 hidden h-[230px] w-[220px] @[760px]/hero:block"
-        >
-          <VaultShieldScene className="size-full" />
-        </div>
-        {/* Between the stat row and the actions it is drawn a size down:
-            its box then starts 26px inside the last stat tile, which is
-            glass in light mode, and the scene keeps that strip empty. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute right-0 bottom-0 hidden h-[240px] w-[320px] @[1100px]/hero:block @[1740px]/hero:top-[calc(50%-120px)] @[1740px]/hero:right-[326px] @[1740px]/hero:bottom-auto @[1740px]/hero:h-[225px] @[1740px]/hero:w-[300px]"
-        >
-          <VaultLockScene className="size-full" />
-        </div>
-
-        <div className="relative z-10 @[760px]/hero:pl-[236px]">
+        <div className="relative z-10">
           <PanelHeader
             className="items-start"
             titleAs="h2"
             title="Kicked / Banned Users Vault"
             badge={
-              <NeonChip tone="pink" size="sm" icon={<XCircleIcon />}>
+              <NeonChip tone="red" size="sm" icon={<XCircleIcon />}>
                 Banned users
               </NeonChip>
             }
             subtitle="Accounts kicked from a session are suspended and listed here. Unban restores full access."
             actions={
               <>
-                <NeonButton
-                  tone="slate"
-                  variant={searchOpen ? "filled" : "outline"}
-                  icon={<SearchIcon />}
+                <button
+                  type="button"
                   aria-expanded={searchOpen}
                   aria-controls={SEARCH_ID}
                   onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+                  className={cn(
+                    "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5",
+                    "text-[12px] font-semibold transition-all duration-300 ease-smooth hover:-translate-y-0.5",
+                    searchOpen
+                      ? "border-[rgba(255,45,90,0.5)] bg-[rgba(255,45,90,0.2)] text-white shadow-[0_0_12px_rgba(255,31,90,0.3)]"
+                      : "border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.05)] text-[#ffd1dc] hover:bg-[rgba(255,255,255,0.1)]",
+                  )}
                 >
+                  <SearchIcon className="size-3" />
                   Search user
-                </NeonButton>
-                <NeonButton
-                  tone="teal"
-                  icon={<RefreshIcon />}
+                </button>
+                <TintButton
+                  tone="green"
                   onClick={async () => {
                     await refresh();
                     toast("Vault refreshed.", "success");
                   }}
                 >
+                  <RefreshIcon className="size-3" />
                   Refresh Vault
-                </NeonButton>
-                <NeonButton tone="pink" icon={<TrashIcon />} onClick={() => setClearVaultOpen(true)}>
+                </TintButton>
+                <TintButton tone="red" onClick={() => setClearVaultOpen(true)}>
+                  <TrashIcon className="size-3" strokeWidth={2} />
                   Clear Vault
-                </NeonButton>
+                </TintButton>
               </>
             }
           />
 
-          {/* Two across while the lock shares the row, four once there is
-              room for them and the lock side by side. */}
-          <div className="grid gap-4 @[560px]/hero:grid-cols-2 @[1100px]/hero:mr-[340px] @[1740px]/hero:mr-[600px] @[1740px]/hero:grid-cols-4">
-            <NeonStat
-              tone="pink"
-              iconShape="tile"
-              tintValue
-              className={TIGHT_STAT}
-              icon={<XCircleIcon />}
-              label="Total Banned"
+          {/* Clean 4-column stats grid matching Owner Key History / StatCard format */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard
+              accent="red"
+              icon={<XCircleIcon className="size-6" />}
+              label="TOTAL BANNED"
               value={banned.length}
             />
-            <NeonStat
-              tone="blue"
-              iconShape="tile"
-              tintValue
-              className={TIGHT_STAT}
-              icon={<RunIcon />}
-              label="Kicked Today"
-              value={kicks ? kicks.today : "—"}
+            <StatCard
+              accent="red"
+              icon={<RunIcon className="size-6" />}
+              label="KICKED TODAY"
+              value={kicks ? kicks.today : 0}
             />
-            <NeonStat
-              tone="violet"
-              iconShape="tile"
-              tintValue
-              className={TIGHT_STAT}
-              icon={<CalendarIcon />}
-              label="Last 7 Days"
-              value={kicks ? kicks.week : "—"}
+            <StatCard
+              accent="red"
+              icon={<CalendarIcon className="size-6" />}
+              label="LAST 7 DAYS"
+              value={kicks ? kicks.week : 0}
             />
-            <NeonStat
-              tone="teal"
-              iconShape="tile"
-              tintValue
-              className={TIGHT_STAT}
-              icon={<ShieldCheckIcon />}
-              label="Block Rules"
+            <StatCard
+              accent="red"
+              icon={<ShieldCheckIcon className="size-6" />}
+              label="BLOCK RULES"
               value={blocks}
             />
           </div>

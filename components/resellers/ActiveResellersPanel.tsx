@@ -20,6 +20,7 @@ import {
   type NeonStatus,
 } from "@/components/neon";
 import { useToast } from "@/components/ui/Toast";
+import { TintButton } from "@/components/ui/buttons";
 import { daysLeft, effectiveStatus, emulatorCreditsRemaining, formatExpiry, keysRemaining } from "@/lib/reseller";
 import { useDashboard } from "@/lib/store";
 import type { PublicDatabase, ResellerStatus } from "@/lib/types";
@@ -85,23 +86,19 @@ export function ActiveResellersPanel({ actions }: { actions: ResellerActions }) 
   return (
     <NeonPanel rim="aurora">
       <PanelHeader
-        icon={<UsersIcon />}
-        iconTone="blue"
-        iconTone2="cyan"
         title="Active Resellers"
         subtitle="Manage sub-users dashboard access."
         actions={
-          <NeonButton
-            tone="violet"
-            size="md"
-            icon={<RefreshIcon />}
+          <TintButton
+            tone="green"
             onClick={async () => {
               await refresh();
               toast("Reseller list updated!", "success");
             }}
           >
+            <RefreshIcon className="size-3" />
             Refresh
-          </NeonButton>
+          </TintButton>
         }
       />
 
@@ -155,7 +152,7 @@ function ResellerRow({
     <NeonRow index={index}>
       <NeonCell>
         <div className="flex items-center gap-3">
-          <IconTile tone="violet" variant="ring" size="xs" className="[&>svg]:size-[15px]">
+          <IconTile tone="red" variant="ring" size="xs" className="[&>svg]:size-[15px]">
             <UserIcon />
           </IconTile>
           <span className="font-semibold whitespace-nowrap text-white lt:text-slate-900">{name}</span>
@@ -163,9 +160,28 @@ function ResellerRow({
       </NeonCell>
 
       <NeonCell>
-        <StatusPill status={STATUS_LOOK[status]} caps>
-          {status}
-        </StatusPill>
+        {status === "ACTIVE" ? (
+          <span
+            className={cn(
+              "inline-flex w-max items-center gap-2 rounded-full border px-3 py-1",
+              "text-[10.5px] font-extrabold tracking-[0.8px] whitespace-nowrap uppercase",
+              "border-[rgba(255,45,90,0.5)] text-[#ff4d79]",
+              "bg-[linear-gradient(180deg,rgba(255,45,90,0.25),rgba(255,45,90,0.08))]",
+              "shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.25),0_0_10px_rgba(255,45,90,0.25)]",
+              "lt:border-rose-300 lt:bg-none lt:bg-rose-50 lt:text-rose-700 lt:shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]",
+            )}
+          >
+            <span className="relative flex size-2 shrink-0">
+              <span aria-hidden className="absolute inset-0 rounded-full bg-[#ff4d79] opacity-25 [transform:scale(1.55)]" />
+              <span className="relative size-2 rounded-full bg-[#ff4d79] shadow-[0_0_6px_rgba(255,45,90,0.6)] lt:bg-rose-500 lt:shadow-none" />
+            </span>
+            Active
+          </span>
+        ) : (
+          <StatusPill status={STATUS_LOOK[status]} caps>
+            {status}
+          </StatusPill>
+        )}
       </NeonCell>
 
       <NeonCell>

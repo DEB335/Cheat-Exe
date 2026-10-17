@@ -2,11 +2,11 @@
 
 import { cn } from "@/lib/utils";
 
-const MESH = "linear-gradient(135deg, rgb(122, 105, 249), rgb(242, 99, 120), rgb(245, 131, 63))";
+const MESH = "linear-gradient(135deg, rgb(255, 31, 90), rgb(242, 60, 90), rgb(255, 100, 130))";
 // Half-strength stops: the star-shine pulse fades this layer between
 // 0.35 and 0.7, so halving the paint halves the pulse without touching it.
 const SHINE =
-  "linear-gradient(135deg, rgba(59, 196, 242, 0.5), rgba(122, 105, 249, 0.5), rgba(242, 99, 120, 0.5), rgba(245, 131, 63, 0.5))";
+  "linear-gradient(135deg, rgba(255, 45, 90, 0.5), rgba(255, 31, 90, 0.5), rgba(242, 60, 100, 0.5), rgba(255, 120, 150, 0.5))";
 
 interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /**
@@ -37,14 +37,14 @@ export function GlowButton({
       {...rest}
       className={cn(
         "group relative z-10 inline-flex cursor-pointer items-center justify-center overflow-hidden",
-        "rounded-full border-none bg-[#1a1a24] p-[1.2px] transition-all duration-300",
+        "rounded-full border-none bg-[#1a0a10] p-[1.2px] transition-all duration-300",
         // The rim is the button's own background showing through the
         // padding, so the vivid gradient costs no extra layer. Its glow is
         // a plain shadow that only changes on hover, never while idle.
         vivid && [
-          "bg-[linear-gradient(90deg,#ff3d8b_0%,#c13ee0_48%,#6a4df5_100%)] p-[1.5px]",
-          "shadow-[0_0_8px_rgba(255,45,122,0.14),0_0_16px_rgba(106,77,245,0.13)]",
-          "hover:shadow-[0_0_8px_rgba(255,45,122,0.19),0_0_18px_rgba(106,77,245,0.18)]",
+          "bg-[linear-gradient(90deg,#ff1f5a_0%,#e11d48_48%,#9f1239_100%)] p-[1.5px]",
+          "shadow-[0_0_12px_rgba(255,31,90,0.25),0_0_24px_rgba(225,29,72,0.2)]",
+          "hover:shadow-[0_0_16px_rgba(255,31,90,0.35),0_0_28px_rgba(225,29,72,0.3)]",
         ],
         className,
       )}
@@ -70,15 +70,15 @@ export function GlowButton({
       <span
         className={cn(
           "relative z-[1] flex h-full w-full items-center justify-center gap-1.5",
-          "rounded-full bg-[rgba(10,10,15,0.95)] py-2 pr-4 pl-3.5 transition-all duration-300",
+          "rounded-full bg-[rgba(18,4,8,0.92)] py-2 pr-4 pl-3.5 transition-all duration-300",
           "lt:bg-[rgba(255,255,255,0.95)]",
           // Stays dark in light mode as well: the label is solid white, and
           // the pale default fill would swallow it.
           vivid && [
             "gap-2.5 py-3 pr-[18px] pl-[21px]",
-            "bg-[linear-gradient(90deg,#2f1145_0%,#1b0e58_52%,#18187a_100%)]",
-            "shadow-[inset_0_0_18px_rgba(124,92,255,0.14),inset_0_1px_0_rgba(255,255,255,0.08)]",
-            "lt:bg-[linear-gradient(90deg,#2f1145_0%,#1b0e58_52%,#18187a_100%)]",
+            "bg-[linear-gradient(90deg,rgba(48,8,20,0.95)_0%,rgba(32,5,14,0.95)_52%,rgba(20,3,9,0.95)_100%)]",
+            "shadow-[inset_0_0_18px_rgba(255,31,90,0.2),inset_0_1px_0_rgba(255,255,255,0.12)]",
+            "lt:bg-[linear-gradient(90deg,rgba(48,8,20,0.95)_0%,rgba(32,5,14,0.95)_52%,rgba(20,3,9,0.95)_100%)]",
           ],
         )}
       >

@@ -20,6 +20,7 @@ import { useToast } from "@/components/ui/Toast";
 import { api, del, patchJson } from "@/lib/client-api";
 import { REACTIONS } from "@/lib/messages";
 import { applyClearMine, applyReadAll, applyReaction } from "@/lib/optimistic";
+import { InteractiveTitle } from "@/components/layout/InteractiveTitle";
 import {
   PAGE_TITLES,
   SEARCH_ITEMS,
@@ -59,7 +60,7 @@ export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMob
         type="button"
         onClick={onOpenMobile}
         aria-label="Open navigation"
-        className="shrink-0 rounded-xl border border-[#142346] bg-[#050f24] p-2 text-fg lg:hidden lt:border-line lt:bg-surface"
+        className="shrink-0 rounded-xl border border-[rgba(255,45,90,0.22)] bg-[rgba(22,4,10,0.7)] p-2 text-fg backdrop-blur-xl lg:hidden lt:border-line lt:bg-surface"
       >
         <MenuIcon className="size-5" />
       </button>
@@ -79,7 +80,7 @@ export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMob
         // Under the title on a phone and a tablet; across the title and
         // search columns once the menu button is gone, since the search
         // box never reaches down this far.
-        <p className="col-[2/-1] text-[13px] leading-[1.3] font-medium text-[#8ab3e0] lg:col-[1/-2] lg:text-[14.5px] lt:text-muted">
+        <p className="col-[2/-1] text-[13px] leading-[1.3] font-medium text-[#ff8ba7] lg:col-[1/-2] lg:text-[14.5px] lt:text-muted">
           {page.subtitle}
         </p>
       )}
@@ -97,40 +98,30 @@ export function Header({ pathname, onOpenMobile }: { pathname: string; onOpenMob
    --------------------------------------------------------------- */
 
 const EYEBROW_TYPE =
-  "text-[11px] leading-none font-extrabold tracking-[2px] text-[#9dbcf0] uppercase lg:text-[13px] lg:tracking-[2.7px] lt:text-[#3b5b9a]";
-const EYEBROW = `mb-1 truncate lg:mb-px ${EYEBROW_TYPE}`;
+  "text-[11px] leading-none font-extrabold tracking-[2px] text-[#ff1f5a] uppercase drop-shadow-[0_0_8px_rgba(255,31,90,0.5)] lg:text-[13px] lg:tracking-[2.7px] lt:text-[#e11d48]";
+const EYEBROW = `mb-1.5 truncate lg:mb-1 ${EYEBROW_TYPE}`;
 
-const TITLE_TYPE =
-  "font-display text-[24px] leading-[1.1] font-extrabold text-fg [text-shadow:0_2px_14px_rgba(0,0,0,0.45)] sm:text-[30px] lg:text-[34px] lg:leading-[1.05] xl:text-[42px] lt:[text-shadow:none]";
+// Pure silver-white text that transitions to glowing crimson-coral gradient on hover
+const TITLE_TYPE = cn(
+  "font-display text-[28px] leading-[1.1] font-black tracking-tight sm:text-[34px] lg:text-[40px] lg:leading-[1.05] xl:text-[46px]",
+  "text-white [text-shadow:0_2px_16px_rgba(0,0,0,0.6)] cursor-default select-none transition-all duration-300",
+  "hover:bg-[linear-gradient(180deg,#ffffff_0%,#ffa3b5_35%,#ff4d73_70%,#e60032_100%)] hover:bg-clip-text hover:text-transparent hover:[filter:drop-shadow(0_0_18px_rgba(255,0,55,0.6))]",
+  "lt:[text-shadow:none]",
+);
 const TITLE = `truncate ${TITLE_TYPE}`;
 
 /*
- * Room for a glow. Both lines truncate, and `truncate` clips whatever
- * is painted past the box -- a neon halo round the letters stopped dead
- * in a hard-edged rectangle. A lit line swaps overflow:hidden for
- * overflow:clip, which still ends the text in an ellipsis but lets the
- * paint run on past the edge by overflow-clip-margin.
- *
- * Safari has no overflow-clip-margin yet, so the line also gets real
- * padding to paint into, handed straight back as negative margin so
- * every letter stays exactly where it was. The stack holding the lines
- * is a flex column, where margins add up instead of collapsing, so the
- * sums hold: under the eyebrow, 4px of padding and a -3px margin leave
- * the 1px gap it always had on a desktop (4px and 0 leave the 4px below
- * lg), and the title's 8px in and 8px out cancel.
+ * Room for a glow. Both lines truncate.
  */
 const GLOW_CLIP = "overflow-clip text-ellipsis whitespace-nowrap [overflow-clip-margin:14px]";
 const EYEBROW_LIT = `${GLOW_CLIP} -mx-2.5 -mt-1 mb-0 px-2.5 py-1 lg:-mx-4 lg:-mb-[3px] lg:px-4 ${EYEBROW_TYPE}`;
 const TITLE_LIT = `${GLOW_CLIP} -mx-2.5 -my-2 px-2.5 py-2 lg:-mx-3 lg:px-3 ${TITLE_TYPE}`;
 
 const EYEBROW_TONES: Record<EyebrowTone, string> = {
-  violet:
-    "text-[#b99dff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5)] lt:text-[#6d28d9] lt:[text-shadow:none]",
-  cyan: "text-[#62e4ff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5)] lt:text-[#0e7490] lt:[text-shadow:none]",
-  blue: "text-[#7fb2ff] [text-shadow:0_1px_6px_rgba(0,0,0,0.5)] lt:text-[#1d4ed8] lt:[text-shadow:none]",
-  // Violet running into blue, as "LICENSE GENERATOR" is drawn.
-  indigo:
-    "bg-linear-to-r from-[#c7a4ff] to-[#7f9dff] bg-clip-text text-transparent lt:from-[#6d28d9] lt:to-[#1d4ed8]",
+  violet: "text-[#ff8ba7] lt:text-[#e11d48]",
+  cyan: "text-[#ff8ba7] lt:text-[#e11d48]",
+  blue: "text-[#ff8ba7] lt:text-[#e11d48]",
+  indigo: "text-[#ff8ba7] lt:text-[#e11d48]",
 };
 
 /**
@@ -180,7 +171,7 @@ function PageHeading({ page, title }: { page: PageTitle; title: string }) {
     return (
       <div className="min-w-0 lg:self-start lg:pt-[7px]">
         <div className={EYEBROW}>{page.section}</div>
-        <h1 className={TITLE}>{title}</h1>
+        <InteractiveTitle title={title} />
       </div>
     );
   }
@@ -194,8 +185,8 @@ function PageHeading({ page, title }: { page: PageTitle; title: string }) {
           aria-hidden
           className={cn(
             "mr-2.5 inline-block h-[0.8em] w-[3px] rounded-full align-[-0.05em] lg:-ml-[13px]",
-            "bg-linear-to-b from-[#6fb1ff] to-[#8b5cf6] shadow-[0_0_5px_rgba(96,165,250,0.38)]",
-            "lt:from-[#2563eb] lt:to-[#6d28d9] lt:shadow-none",
+            "bg-linear-to-b from-[#ff1f5a] to-[#cc002c] shadow-[0_0_8px_rgba(255,31,90,0.6)]",
+            "lt:from-[#e11d48] lt:to-[#9f1239] lt:shadow-none",
           )}
         />
       )}
@@ -207,64 +198,17 @@ function PageHeading({ page, title }: { page: PageTitle; title: string }) {
     </div>
   );
 
-  const heading = (
-    <h1 className={lit ? TITLE_LIT : TITLE}>
-      {parts
-        ? parts.map((part, i) =>
-            part.gradient ? (
-              <span key={i} className={`${LIT_TEXT} ${RAMPS[part.gradient]}`}>
-                {part.text}
-              </span>
-            ) : (
-              <Fragment key={i}>{part.text}</Fragment>
-            ),
-          )
-        : title}
-    </h1>
-  );
-
-  // The cog sits in the title line itself, with the eyebrow running on
-  // above it, the way the Profile mockup sets it.
-  if (page.icon === "gear") {
-    return (
-      <div className="group/title flex min-w-0 flex-col lg:self-start lg:pt-[7px]">
-        {eyebrow}
-        <div className="flex min-w-0 items-center gap-2.5 lg:gap-3">
-          <TitleEmblem kind="gear" className="size-[30px] lg:size-[32px] xl:size-[38px]" />
-          <div className="flex min-w-0 flex-col">{heading}</div>
-        </div>
-      </div>
-    );
-  }
+  const heading = <InteractiveTitle title={title} />;
 
   const stack = (
     <>
       {eyebrow}
-      {page.underline ? (
-        <div className="relative flex min-w-0 flex-col">
-          {heading}
-          <TitleUnderline />
-        </div>
-      ) : (
-        heading
-      )}
+      {heading}
     </>
   );
 
-  if (!page.icon) {
-    return <div className="group/title flex min-w-0 flex-col lg:self-start lg:pt-[7px]">{stack}</div>;
-  }
-
-  // An emblem spanning eyebrow and title together. It is drawn a touch
-  // taller than the pair and hands the difference back in negative
-  // margin, so the row -- and the search and account controls centred
-  // on it -- stays the height it is on every other page.
-  return (
-    <div className="group/title flex min-w-0 items-center gap-3 lg:gap-4 lg:self-start lg:pt-[7px]">
-      <TitleEmblem kind={page.icon} className="size-10 lg:-my-px lg:size-[52px] xl:-my-[3px] xl:size-16" />
-      <div className="flex min-w-0 flex-col">{stack}</div>
-    </div>
-  );
+  // Emblems removed as requested: clean title stack for all pages
+  return <div className="group/title flex min-w-0 flex-col lg:self-start lg:pt-[7px]">{stack}</div>;
 }
 
 /**
@@ -282,12 +226,12 @@ function TitleUnderline() {
       <span
         className={cn(
           "absolute inset-0 rounded-full",
-          "bg-[linear-gradient(90deg,transparent,rgba(139,92,246,0.9)_16%,#eadcff_32%,rgba(96,165,250,0.85)_62%,transparent)]",
-          "[filter:drop-shadow(0_0_3px_rgba(167,139,250,0.45))]",
-          "lt:bg-[linear-gradient(90deg,transparent,#7c3aed_16%,#6d28d9_32%,#2563eb_62%,transparent)] lt:[filter:none]",
+          "bg-[linear-gradient(90deg,transparent,rgba(255,0,55,0.9)_16%,#ffd1dc_32%,rgba(255,45,90,0.85)_62%,transparent)]",
+          "[filter:drop-shadow(0_0_4px_rgba(255,0,55,0.6))]",
+          "lt:bg-[linear-gradient(90deg,transparent,#e11d48_16%,#be123c_32%,#9f1239_62%,transparent)] lt:[filter:none]",
         )}
       />
-      <span className="absolute top-1/2 left-[24%] h-[7px] w-[38px] -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.8),rgba(167,139,250,0.4)_45%,transparent)] lt:hidden" />
+      <span className="absolute top-1/2 left-[24%] h-[7px] w-[38px] -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(255,255,255,0.8),rgba(255,0,55,0.4)_45%,transparent)] lt:hidden" />
     </span>
   );
 }
@@ -580,7 +524,7 @@ function QuickSearch() {
         "transition-all duration-300 ease-smooth",
       )}
     >
-      <SearchIcon className="pointer-events-none absolute top-1/2 left-4 z-[2] size-[15px] -translate-y-1/2 text-[#b4cbf0] lg:left-[23px] lg:size-[18px] lt:text-muted" />
+      <SearchIcon className="pointer-events-none absolute top-1/2 left-4 z-[2] size-[15px] -translate-y-1/2 text-[#ff8ba7] lg:left-[23px] lg:size-[18px] lt:text-muted" />
       <input
         ref={inputRef}
         type="text"
@@ -602,9 +546,9 @@ function QuickSearch() {
           }
         }}
         className={cn(
-          "h-10 w-full rounded-full border border-[#1a2b4f] bg-[#041129] pr-[72px] pl-10",
+          "h-10 w-full rounded-full border border-[rgba(255,45,90,0.22)] bg-[rgba(20,4,10,0.65)] pr-[72px] pl-10 backdrop-blur-xl",
           "text-[13px] text-fg outline-none transition-all duration-300 ease-smooth",
-          "placeholder:text-[#a9c0e2] focus:border-[#2c4478] focus:bg-[#061532]",
+          "placeholder:text-[#ff94ae] focus:border-[rgba(255,45,90,0.5)] focus:bg-[rgba(28,5,14,0.85)]",
           "lg:h-[46px] lg:pr-[84px] lg:pl-[52px] lg:text-[15px]",
           "lt:border-input-line lt:bg-input-bg lt:placeholder:text-muted lt:focus:bg-white",
         )}
@@ -613,7 +557,7 @@ function QuickSearch() {
         aria-hidden
         className={cn(
           "pointer-events-none absolute top-1/2 right-2.5 z-[2] -translate-y-1/2 rounded-[9px]",
-          "bg-[#111c38] px-2 py-[5px] font-sans text-[11px] leading-none font-medium whitespace-nowrap text-[#dce8ff] [word-spacing:2px]",
+          "border border-[rgba(255,45,90,0.2)] bg-[rgba(35,6,15,0.7)] px-2 py-[5px] font-sans text-[11px] leading-none font-medium whitespace-nowrap text-[#ffd1dc] [word-spacing:2px]",
           "lg:right-[17px] lg:px-[9px] lg:py-[6px] lg:text-[12px]",
           "lt:bg-black/5 lt:text-muted",
           // Blank until the platform is known, so a Mac never flashes "Ctrl".
@@ -624,7 +568,7 @@ function QuickSearch() {
       </kbd>
 
       {open && (
-        <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-[1000] flex max-h-[250px] flex-col gap-1 overflow-y-auto rounded-2xl border border-line bg-[rgba(10,15,30,0.98)] p-1.5 shadow-[var(--card-shadow)] backdrop-blur-[20px] lt:bg-white">
+        <div className="absolute top-[calc(100%+8px)] right-0 left-0 z-[1000] flex max-h-[250px] flex-col gap-1 overflow-y-auto rounded-2xl border border-[rgba(255,45,90,0.25)] bg-[linear-gradient(180deg,rgba(24,5,12,0.94),rgba(14,2,7,0.98))] p-1.5 shadow-[0_15px_35px_rgba(0,0,0,0.6),0_0_20px_rgba(255,31,90,0.12)] backdrop-blur-[24px] lt:bg-white">
           {results.length === 0 ? (
             <div className="px-3 py-2 text-[12px] text-muted">No matches.</div>
           ) : (
@@ -633,7 +577,7 @@ function QuickSearch() {
                 key={item.href + item.name}
                 type="button"
                 onClick={() => go(item.href)}
-                className="rounded-lg px-3 py-2 text-left text-[12.5px] font-semibold text-muted transition-colors hover:bg-white/5 hover:text-fg"
+                className="rounded-lg px-3 py-2 text-left text-[12.5px] font-semibold text-muted transition-colors hover:bg-[rgba(255,31,90,0.15)] hover:text-white"
               >
                 {item.name}
               </button>
@@ -719,10 +663,10 @@ function Notifications() {
         aria-expanded={open}
         className={cn(
           "glow-ring hover:glow-ring-fast relative flex size-10 cursor-pointer items-center justify-center rounded-xl border",
-          "bg-[linear-gradient(160deg,#071431,#040d20)]",
-          "transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:border-[#24396c] hover:text-fg",
+          "border-[rgba(255,45,90,0.22)] bg-[linear-gradient(160deg,rgba(35,6,15,0.7),rgba(18,3,8,0.85))] backdrop-blur-xl",
+          "transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:border-[rgba(255,45,90,0.45)] hover:text-fg",
           "lg:size-[52px] lg:rounded-[14px]",
-          open ? "border-[#24396c] text-fg" : "border-[#132142] text-[#a9bde2]",
+          open ? "border-[rgba(255,45,90,0.5)] text-fg shadow-[0_0_12px_rgba(255,31,90,0.25)]" : "border-[rgba(255,45,90,0.2)] text-[#ffb0c2]",
           // bg-none first: the dark gradient is a background-image, which a
           // background-color alone would leave painted on top.
           "lt:border-line lt:bg-none lt:bg-white lt:text-muted lt:hover:border-[#c7d2e6] lt:hover:text-fg",
@@ -750,13 +694,13 @@ function Notifications() {
         <div
           className={cn(
             "animate-dropdown-fade absolute top-[calc(100%+10px)] right-0 z-[100] w-[min(340px,calc(100*var(--app-vw)-32px))]",
-            "overflow-hidden rounded-[18px] border border-white/8 bg-[rgba(10,15,30,0.9)]",
-            "shadow-[0_10px_35px_rgba(0,0,0,0.5)] backdrop-blur-[40px]",
+            "overflow-hidden rounded-[18px] border border-[rgba(255,45,90,0.25)] bg-[linear-gradient(180deg,rgba(26,5,13,0.92),rgba(14,2,7,0.96))]",
+            "shadow-[0_15px_40px_rgba(0,0,0,0.7),0_0_20px_rgba(255,31,90,0.12)] backdrop-blur-[30px]",
             "lt:border-black/6 lt:bg-white/90",
           )}
         >
-          <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <span className="text-[10px] font-extrabold tracking-[1.2px] text-muted uppercase">
+          <div className="flex items-center justify-between border-b border-[rgba(255,45,90,0.15)] px-4 py-3">
+            <span className="text-[10px] font-extrabold tracking-[1.2px] text-[#ff94ae] uppercase">
               Announcements
             </span>
             <div className="flex items-center gap-3">
@@ -776,7 +720,7 @@ function Notifications() {
                   router.push("/messages");
                   setOpen(false);
                 }}
-                className="cursor-pointer text-[11px] font-bold text-[#22d3ee] hover:underline"
+                className="cursor-pointer text-[11px] font-bold text-[#ff3366] hover:underline"
               >
                 View all
               </button>
@@ -788,7 +732,7 @@ function Notifications() {
               <p className="px-4 py-6 text-center text-[12.5px] text-muted">Nothing yet.</p>
             ) : (
               messages.slice(0, 8).map((m) => (
-                <div key={m.id} className="border-b border-line/60 px-4 py-3 last:border-b-0">
+                <div key={m.id} className="border-b border-[rgba(255,45,90,0.12)] px-4 py-3 last:border-b-0">
                   <div className="mb-1 flex items-center gap-2 text-[10.5px] text-muted">
                     <span className="font-bold text-fg">{m.by}</span>
                     <span>{formatStampForDisplay(m.at)}</span>
@@ -809,8 +753,8 @@ function Notifications() {
                             "flex cursor-pointer items-center gap-1 rounded-full border px-1.5 py-0.5",
                             "text-[11px] transition-colors",
                             mine
-                              ? "border-[rgba(34,211,238,0.5)] bg-[rgba(34,211,238,0.15)] text-[#67e8f9]"
-                              : "border-line bg-white/2 text-muted hover:bg-white/6",
+                              ? "border-[rgba(255,45,90,0.5)] bg-[rgba(255,31,90,0.15)] text-[#ff6b8b]"
+                              : "border-[rgba(255,45,90,0.15)] bg-white/2 text-muted hover:bg-white/6",
                           )}
                         >
                           <span>{r}</span>
@@ -872,8 +816,8 @@ function ProfileMenu() {
         onKeyDown={(e) => e.key === "Enter" && setOpen((v) => !v)}
         className={cn(
           "glow-ring hover:glow-ring-slow flex h-10 cursor-pointer items-center gap-2 rounded-xl border py-1 pr-2 pl-1",
-          "border-[#142548] bg-[linear-gradient(160deg,#071533,#040c1f)]",
-          "transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:border-[#24396c]",
+          "border-[rgba(255,45,90,0.22)] bg-[linear-gradient(160deg,rgba(35,6,15,0.7),rgba(18,3,8,0.85))] backdrop-blur-xl",
+          "transition-all duration-300 ease-smooth hover:-translate-y-0.5 hover:border-[rgba(255,45,90,0.45)]",
           "sm:gap-4 sm:pl-3.5 lg:h-16 lg:rounded-2xl lg:pr-[10px] lg:pl-[18px]",
           "lt:border-line lt:bg-none lt:bg-white lt:hover:border-[#c7d2e6]",
         )}
@@ -882,18 +826,18 @@ function ProfileMenu() {
           <span className="max-w-[160px] truncate text-[13px] leading-[1.25] font-extrabold text-fg lg:text-[14.5px]">
             {name}
           </span>
-          <span className="mt-0.5 text-[11px] leading-[1.25] font-semibold text-[#aec3e6] lt:text-muted">
+          <span className="mt-0.5 text-[11px] leading-[1.25] font-semibold text-[#ffb0c2] lt:text-muted">
             {roleLabel}
           </span>
         </div>
         <div className="flex items-center gap-1.5 lg:gap-[9px]">
-          <div className="size-8 shrink-0 overflow-hidden rounded-full border-2 border-[#cf2130] bg-black shadow-[0_0_6px_rgba(235,30,48,0.22),0_0_13px_rgba(235,30,48,0.08)] lg:size-[46px]">
+          <div className="size-8 shrink-0 overflow-hidden rounded-full border-2 border-[#ff2a55] bg-black shadow-[0_0_8px_rgba(255,42,85,0.35),0_0_16px_rgba(255,42,85,0.15)] lg:size-[46px]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={profile.avatar} alt="" className="size-full object-cover" />
           </div>
           <ChevronDownIcon
             className={cn(
-              "size-4 shrink-0 text-[#b5c8ea] transition-transform duration-300 ease-smooth lt:text-muted",
+              "size-4 shrink-0 text-[#ffb0c2] transition-transform duration-300 ease-smooth lt:text-muted",
               open && "rotate-180",
             )}
           />
@@ -905,8 +849,8 @@ function ProfileMenu() {
         <div
           className={cn(
             "animate-dropdown-fade absolute top-[calc(100%+10px)] right-0 z-[100] flex w-[220px] flex-col gap-1.5",
-            "rounded-[20px] border border-white/8 bg-[rgba(10,15,30,0.75)] p-2.5",
-            "shadow-[0_10px_35px_rgba(0,0,0,0.5)] backdrop-blur-[40px]",
+            "rounded-[20px] border border-[rgba(255,45,90,0.25)] bg-[linear-gradient(180deg,rgba(26,5,13,0.92),rgba(14,2,7,0.96))] p-2.5",
+            "shadow-[0_15px_40px_rgba(0,0,0,0.7),0_0_20px_rgba(255,31,90,0.12)] backdrop-blur-[30px]",
             "lt:border-black/6 lt:bg-white/80 lt:shadow-[0_10px_35px_rgba(0,0,0,0.1)]",
           )}
         >

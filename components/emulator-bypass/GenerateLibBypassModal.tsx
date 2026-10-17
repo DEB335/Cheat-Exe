@@ -448,8 +448,9 @@ export function GenerateLibBypassModal({
               <input
                 type="number"
                 readOnly
+                disabled
                 value={keyCount}
-                className="w-full rounded-xl border border-[#222b46] bg-[#090d1c] px-4 py-2.5 text-sm font-bold text-white outline-none cursor-default"
+                className="w-full rounded-xl border border-[#222b46] bg-[#090d1c] px-4 py-2.5 text-sm font-bold text-white outline-none cursor-not-allowed disabled:opacity-85"
               />
               <p className="text-[10.5px] text-amber-400/90 leading-tight flex items-start gap-1">
                 <span>🔒</span>
@@ -464,8 +465,9 @@ export function GenerateLibBypassModal({
               <input
                 type="text"
                 readOnly
+                disabled
                 value={lockedNote}
-                className="w-full rounded-xl border border-[#222b46] bg-[#090d1c]/80 px-4 py-2.5 text-sm font-medium text-slate-400 cursor-not-allowed outline-none select-none"
+                className="w-full rounded-xl border border-[#222b46] bg-[#090d1c]/80 px-4 py-2.5 text-sm font-medium text-slate-400 cursor-not-allowed outline-none select-none disabled:opacity-85"
               />
             </div>
           </div>

@@ -6,6 +6,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import { emitClickWave } from "@/components/effects/ClickWave";
 import { AppsIcon, ChevronLeftIcon, ChevronRightIcon, LinkIcon } from "@/components/icons";
+import { InteractiveTitle } from "@/components/layout/InteractiveTitle";
 import { NAV_GROUPS, PROFILE_ITEM, canSeeItem, type NavItem } from "@/lib/nav";
 import { useDashboard, useEffectiveUser, useMyPackages } from "@/lib/store";
 import { useMediaQuery, useStoredFlag } from "@/lib/use-external";
@@ -44,9 +45,9 @@ const ACTIVE_ICON_GRADIENT = "sidebar-active-icon";
  * draws -- for a panel the design paints as solid navy anyway.
  */
 const PANEL_SURFACE = [
-  "border border-[#12203f] bg-[linear-gradient(90deg,#030b1d_0%,#050f24_100%)]",
-  "shadow-[inset_0_1px_0_rgba(255,255,255,0.03),0_12px_32px_rgba(0,0,0,0.35)]",
-  "lt:border-black/8 lt:bg-none lt:bg-white/85 lt:shadow-[0_8px_30px_rgba(0,0,0,0.04)]",
+  "border border-[rgba(255,45,90,0.14)] bg-transparent",
+  "shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
+  "lt:border-black/8 lt:bg-transparent lt:shadow-none",
 ];
 
 type BadgeCounts = Record<NonNullable<NavItem["badge"]>, number>;
@@ -258,9 +259,9 @@ export const Sidebar = memo(function Sidebar({
               x2="20"
               y2="21"
             >
-              <stop offset="0" stopColor="#f4b8ff" />
-              <stop offset="0.45" stopColor="#ff7fc9" />
-              <stop offset="1" stopColor="#ff3d97" />
+              <stop offset="0" stopColor="#ff7a95" />
+              <stop offset="0.5" stopColor="#ff1a47" />
+              <stop offset="1" stopColor="#cc002c" />
             </linearGradient>
           </defs>
         </svg>
@@ -386,7 +387,7 @@ export const Sidebar = memo(function Sidebar({
 
 /** Hairline between nav groups, inset to the label column. */
 function Divider() {
-  return <div aria-hidden className="mx-5 mt-1.5 mb-3 h-px bg-[#0e1a38] lt:bg-black/8" />;
+  return <div aria-hidden className="mx-5 mt-1.5 mb-3 h-px bg-[rgba(255,45,90,0.12)] lt:bg-black/8" />;
 }
 
 type TooltipSetter = (value: { label: string; x: number; y: number } | null) => void;
@@ -491,9 +492,9 @@ const NavLink = memo(function NavLink({
               active
                 ? [
                     "border border-transparent text-white",
-                    "[background:linear-gradient(90deg,#4a1553_0%,#33124f_5%,#28114f_11%,#1c1268_45%,#211a80_70%,#2b26a8_86%,#3530c6_95%,#4034df_100%)_padding-box,linear-gradient(90deg,#ff4d9a_0%,#e0439f_12%,#8a2fb8_32%,#4a2a9e_55%,#4f3ccc_78%,#6a5cff_100%)_border-box]",
-                    "shadow-[-5px_3px_11px_-6px_rgba(255,45,122,0.32),6px_0_12px_-6px_rgba(91,85,255,0.34)]",
-                    "hover:shadow-[-5px_3px_13px_-6px_rgba(255,45,122,0.44),6px_0_14px_-6px_rgba(91,85,255,0.46)]",
+                    "[background:linear-gradient(90deg,#420716_0%,#2c040e_8%,#52091d_45%,#690b24_80%,#7a0c2a_100%)_padding-box,linear-gradient(90deg,#ff4d79_0%,#ff1f5a_50%,#e11d48_100%)_border-box]",
+                    "shadow-[0_0_16px_rgba(255,31,90,0.35)]",
+                    "hover:shadow-[0_0_20px_rgba(255,31,90,0.5)]",
                   ]
                 : [
                     "border-0",
@@ -588,20 +589,11 @@ function LogoArea({ collapsed }: { collapsed: boolean }) {
         <span aria-hidden className="glow-ring-track" />
       </div>
       {!collapsed && (
-        <div
-          data-probe="logo"
-          className="text-rgb-flow font-display text-[30px] leading-none font-extrabold tracking-[0.2px] select-none"
-          // Same four-stop loop the utility runs on hover, starting from
-          // the design's softer pink rather than the accent red. Inline
-          // so it lands over the utility's own image whatever order the
-          // stylesheet puts them in; the size and clip still come from it.
-          style={{
-            backgroundImage:
-              "linear-gradient(90deg, #ff5470 0%, #ff4e9c 10%, #f040d0 17%, #a54bff 24%, #7048f0 33.3%, #00ddeb 66.6%, #ff5470 100%)",
-          }}
-        >
-          CHEAT EXE
-        </div>
+        <InteractiveTitle
+          as="div"
+          title="CHEAT EXE"
+          className="text-[26px] font-extrabold tracking-[0.5px]"
+        />
       )}
     </div>
   );
@@ -691,10 +683,10 @@ function CollapseToggle({
         // A little below the middle, level with the History group, where
         // the reference has it.
         "absolute top-[56%] z-[1001] hidden size-6 -translate-y-1/2 items-center justify-center",
-        "rounded-full border border-[#1a2a52] bg-[#030a1e] text-[#8ea6d8]",
-        "shadow-[0_4px_12px_rgba(0,0,0,0.45)]",
-        "transition-[color,border-color] duration-300 ease-smooth",
-        "hover:border-[rgba(255,31,90,0.45)] hover:text-accent",
+        "rounded-full border border-[rgba(255,45,90,0.3)] bg-[rgba(20,4,10,0.9)] text-[#ff8ba7]",
+        "shadow-[0_4px_12px_rgba(0,0,0,0.5),0_0_8px_rgba(255,45,90,0.2)]",
+        "transition-[color,border-color,background-color] duration-300 ease-smooth",
+        "hover:border-[rgba(255,31,90,0.8)] hover:bg-[rgba(40,8,18,0.95)] hover:text-white",
         "lt:border-black/10 lt:bg-white lt:text-muted",
         "lg:flex",
         "-right-3",

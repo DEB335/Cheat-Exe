@@ -13,14 +13,12 @@ import {
   NeonRow,
   NeonSegmented,
   NeonTable,
-  NetworkIcon,
   PanelHeader,
   ShieldXIcon,
   XCircleIcon,
   type NeonColumn,
   type NeonTone,
 } from "@/components/neon";
-import { NetworkGlobeScene } from "@/components/scenes/VaultScenes";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { del, postJson } from "@/lib/client-api";
@@ -46,19 +44,19 @@ const SCOPE_META: Record<
     label: "IP",
     icon: WifiOffIcon,
     hint: "Blocks the address. Home connections change theirs, so this ages out.",
-    tone: "blue",
+    tone: "red",
   },
   hwid: {
     label: "HWID",
     icon: CpuChipIcon,
     hint: "Blocks the browser device id. Survives a new account, not cleared site data.",
-    tone: "violet",
+    tone: "red",
   },
   fingerprint: {
     label: "SIGNATURE",
     icon: CpuChipIcon,
     hint: "Blocks the device signature. Survives cleared cookies, but is coarser.",
-    tone: "magenta",
+    tone: "red",
   },
 };
 
@@ -129,39 +127,22 @@ export function BlockedDevices() {
   };
 
   return (
-    <NeonPanel rim="blue" className="mt-6 sm:mt-8">
-      {/* Laid out by the panel's own width, like the vault above: the
-          globe only shows once the form beside it keeps a usable width. */}
+    <NeonPanel rim="danger" className="mt-6 sm:mt-8">
       <div className="@container/blocks relative">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-6 right-0 hidden h-[170px] w-[380px] @[1150px]/blocks:block"
-        >
-          <NetworkGlobeScene className="size-full" />
-        </div>
-
-        {/* The deeper gap under the header, where the globe shows, drops
-            the Block button below the ring's near arc. */}
         <PanelHeader
-          className="relative z-10 @[1150px]/blocks:mb-12 @[1150px]/blocks:pr-[400px]"
           titleAs="h2"
-          icon={<NetworkIcon />}
-          iconTone="blue"
           title="Blocked Devices & Networks"
           subtitle="Checked before any password. A blocked device reaches no account at all."
         />
 
-        {/* Where the globe is shown its lower half hangs over this row, so
-            the last column, as wide as the globe, is kept clear for the
-            Block button alone. */}
-        <div className="relative z-10 mb-6 flex flex-wrap items-start gap-3 sm:gap-4 @[1150px]/blocks:grid @[1150px]/blocks:grid-cols-[auto_minmax(0,1.75fr)_minmax(0,1fr)_380px]">
+        <div className="relative z-10 mb-6 flex flex-wrap items-start gap-3 sm:gap-4 @[1150px]/blocks:grid @[1150px]/blocks:grid-cols-[auto_minmax(0,1.75fr)_minmax(0,1fr)_auto]">
           <div className="flex h-[54px] items-center">
             <NeonSegmented
               aria-label="What to block"
               options={SCOPE_OPTIONS}
               value={scope}
               onChange={setScope}
-              tone="violet"
+              tone="red"
               size="md"
               caps
               className="flex-nowrap"
@@ -186,8 +167,8 @@ export function BlockedDevices() {
             className="min-w-[min(100%,200px)] flex-1"
           />
 
-          <div className="flex h-[54px] items-center @[1150px]/blocks:justify-self-end">
-            <NeonButton tone="magenta" variant="filled" size="md" icon={<XCircleIcon />} loading={busy} onClick={add}>
+          <div className="flex h-[54px] items-center">
+            <NeonButton tone="red" variant="filled" size="md" icon={<XCircleIcon />} loading={busy} onClick={add}>
               Block
             </NeonButton>
           </div>
@@ -196,11 +177,10 @@ export function BlockedDevices() {
         <NeonTable
           columns={BLOCK_COLUMNS}
           minWidth={900}
-          tone="violet"
+          tone="red"
           className="relative z-10"
           empty={
-            // Wide enough for the sentence on one line on desktop, as drawn.
-            <NeonEmpty icon={<ShieldXIcon />} tone="violet" className="[&>p]:max-w-[680px]">
+            <NeonEmpty icon={<ShieldXIcon />} tone="red" className="[&>p]:max-w-[680px]">
               Nothing is blocked. Use Ban IP or Ban HWID on the Active Devices page, or add one above.
             </NeonEmpty>
           }
@@ -211,7 +191,7 @@ export function BlockedDevices() {
             return (
               <NeonRow key={`${rule.scope}:${rule.value}`} index={index}>
                 <NeonCell>
-                  <NeonChip tone={meta.tone} size="xs" icon={<Icon />} title={meta.hint}>
+                  <NeonChip tone="red" size="xs" icon={<Icon />} title={meta.hint}>
                     {meta.label}
                   </NeonChip>
                 </NeonCell>

@@ -106,7 +106,7 @@ export default function MessagesPage() {
             title="Send an Announcement"
             subtitle="Goes to every account. They see it on their next check-in, and immediately when they sign in."
             actions={
-              <div className="flex size-8 items-center justify-center rounded-xl text-[#22d3ee]">
+              <div className="flex size-8 items-center justify-center rounded-xl text-[#ff3366]">
                 <MegaphoneIcon className="size-4" />
               </div>
             }
@@ -121,9 +121,9 @@ export default function MessagesPage() {
             onChange={(event) => setBody(event.target.value)}
             placeholder="e.g. Prices are changing on Monday. Read the pinned notes before generating keys."
             className={cn(
-              "mt-2 w-full resize-y rounded-xl border border-input-line bg-input-bg px-4 py-3",
+              "mt-2 w-full resize-y rounded-xl border border-[rgba(255,45,90,0.22)] bg-[rgba(20,4,10,0.6)] px-4 py-3 backdrop-blur-xl",
               "text-[13.5px] leading-[1.5] text-fg outline-none transition-colors",
-              "placeholder:text-[#475569] focus:border-[rgba(34,211,238,0.5)]",
+              "placeholder:text-[#6b3543] focus:border-[rgba(255,45,90,0.6)] focus:bg-[rgba(26,5,13,0.8)]",
             )}
           />
           <div className="mt-1.5 flex items-center justify-between">
@@ -234,15 +234,15 @@ function MessageCard({
   return (
     <div
       className={cn(
-        "rounded-2xl border p-4 transition-colors sm:p-5",
+        "rounded-2xl border p-4 transition-colors sm:p-5 backdrop-blur-xl",
         message.read
-          ? "border-line bg-white/2"
-          : "border-[rgba(34,211,238,0.35)] bg-[rgba(34,211,238,0.06)] shadow-[0_0_11px_rgba(34,211,238,0.05)]",
+          ? "border-[rgba(255,45,90,0.12)] bg-[rgba(22,4,10,0.45)]"
+          : "border-[rgba(255,45,90,0.35)] bg-[rgba(255,31,90,0.08)] shadow-[0_0_16px_rgba(255,31,90,0.1)]",
       )}
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
         {!message.read && (
-          <span className="rounded-full bg-[#22d3ee] px-2 py-[2px] text-[9px] font-extrabold tracking-[0.8px] text-[#04121a] uppercase shadow-[0_0_5px_rgba(34,211,238,0.36)]">
+          <span className="rounded-full bg-[#ff2a55] px-2 py-[2px] text-[9px] font-extrabold tracking-[0.8px] text-white uppercase shadow-[0_0_8px_rgba(255,42,85,0.4)]">
             New
           </span>
         )}

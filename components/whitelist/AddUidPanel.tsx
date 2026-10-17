@@ -13,6 +13,7 @@ import type { WhitelistEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 import { DurationField, RegionOptions } from "./WhitelistFields";
+import { RegionSelect } from "./RegionSelect";
 import { addedMessage, wantedDays, type AddResult } from "./whitelist-shared";
 
 type LookupResult = AddResult & {
@@ -184,25 +185,9 @@ export function AddUidPanel({
   };
 
   return (
-    <NeonPanel rim="violet" className="relative mb-[30px] overflow-hidden">
-      {/* Ambient perspective floor and particle glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 hidden h-[320px] overflow-hidden rounded-t-[24px] [mask-image:linear-gradient(180deg,#000_55%,transparent)] sm:block"
-      >
-        <KeyHistoryAmbient className="size-full" />
-      </div>
-
-      {/* The hologram takes the panel's right-hand side from lg up, and
-          the content keeps out of its way with matching right padding.
-          Below lg there is no room beside the fields, so it goes. */}
-      <WhitelistScene className="pointer-events-none absolute inset-y-0 right-0 my-auto hidden size-[300px] lg:block 2xl:size-[340px] min-[93.75rem]:size-[430px]" />
-
-      <div className="relative z-10 lg:pr-[290px] 2xl:pr-[330px] min-[93.75rem]:pr-[400px]">
+    <NeonPanel rim="danger" className="relative z-30 mb-[30px]">
+      <div className="relative">
         <PanelHeader
-          icon={<UserPlusIcon />}
-          iconTone="violet"
-          iconTone2="magenta"
           title="Add New UID"
           subtitle="Whitelisted UIDs sync straight to the bypass service."
         />
@@ -221,8 +206,7 @@ export function AddUidPanel({
           <NeonInput
             id="wl-uid"
             label="UID *"
-            leftIcon={<UserIcon />}
-            leftIconStyle="tile"
+            tone="red"
             value={uid}
             onChange={(e) => changeUid(e.target.value)}
             placeholder="Enter UID"
@@ -253,8 +237,7 @@ export function AddUidPanel({
           <NeonInput
             id="wl-player"
             label="Player Name"
-            leftIcon={<UserIcon />}
-            leftIconStyle="tile"
+            tone="red"
             value={looking ? "Searching…" : player}
             readOnly
             disabled
@@ -277,19 +260,15 @@ export function AddUidPanel({
             className="md:col-start-2 md:row-start-1"
           />
 
-          <NeonSelect
+          <RegionSelect
             id="wl-region"
             label="Server Region *"
-            leftIcon={<GlobeIcon />}
-            leftIconStyle="tile"
             value={region}
-            onChange={(e) => setRegion(e.target.value)}
+            onChange={setRegion}
             required
             help="The server the account plays on. A wrong one still spends a credit."
             className="md:col-start-1 md:row-start-2"
-          >
-            <RegionOptions />
-          </NeonSelect>
+          />
 
           <DurationField
             id="wl-days"

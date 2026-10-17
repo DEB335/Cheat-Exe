@@ -15,7 +15,6 @@ import {
   SaveIcon,
   type NeonTone,
 } from "@/components/neon";
-import { CloudScene } from "@/components/scenes/ProfileScenes";
 import { useToast } from "@/components/ui/Toast";
 import { patchJson } from "@/lib/client-api";
 import { useDashboard } from "@/lib/store";
@@ -41,23 +40,6 @@ const STANDING: Record<ResellerStatus, { tone: NeonTone; label: string }> = {
   SUSPENDED: { tone: "amber", label: "Account Suspended" },
   "PENDING APPROVAL": { tone: "blue", label: "Pending Approval" },
 };
-
-/**
- * Where the cloud sits: in the header's empty middle, never over the
- * title or the fields. Measured against the panel's content box (it is
- * the @container), since both desktop widths clear every viewport
- * breakpoint. A wide panel gets the full 440x140 scene; a 1280px
- * screen's narrower panel a 300px copy tucked in the corner; the
- * single-column layout none. A reseller's status pill holds the
- * header's right end, so their cloud waits for a wider panel and keeps
- * to the pill's left.
- */
-const CLOUD_BOX = {
-  owner: "hidden @min-[780px]:block @min-[780px]:top-3 @min-[780px]:right-10 @min-[780px]:h-[96px] @min-[780px]:w-[300px]",
-  reseller:
-    "hidden @min-[940px]:block @min-[940px]:top-3 @min-[940px]:right-[210px] @min-[940px]:h-[96px] @min-[940px]:w-[300px]",
-};
-const CLOUD_WIDE = "@min-[1180px]:top-1 @min-[1180px]:right-[230px] @min-[1180px]:h-[140px] @min-[1180px]:w-[440px]";
 
 export function AccountDetails({
   isOwner,
@@ -112,18 +94,8 @@ export function AccountDetails({
   const standing = status ? STANDING[status] : null;
 
   return (
-    <NeonPanel rim="blue" className="@container">
-      <CloudScene
-        className={cn("pointer-events-none absolute", standing ? CLOUD_BOX.reseller : CLOUD_BOX.owner, CLOUD_WIDE)}
-      />
-
-      {/* The full-size scene's platform reaches ~144px down the panel;
-          the wider gap under the header lets it rest on the fields'
-          top edge rather than sink behind them. */}
+    <NeonPanel rim="danger" className="@container">
       <PanelHeader
-        icon={<UserIcon />}
-        iconTone="teal"
-        iconTone2="cyan"
         title="Account Details"
         subtitle={
           isOwner ? "Update your avatar and account information." : "View only. The owner manages these details."
@@ -142,40 +114,40 @@ export function AccountDetails({
             </NeonChip>
           ) : undefined
         }
-        className="relative z-[1] @min-[1180px]:mb-12"
+        className="relative z-[1]"
       />
 
-      <NeonInset rim="blue" className="relative z-[1] grid gap-5 @min-[640px]:grid-cols-2">
+      <NeonInset rim="danger" className="relative z-[1] grid gap-5 @min-[640px]:grid-cols-2">
         <NeonInput
           variant="card"
           id="profAvatar"
           ref={avatarRef}
           label="Avatar Image URL"
-          tone="blue"
+          tone="red"
           leftIcon={<LinkIcon />}
           value={avatar}
           disabled={!isOwner}
           onChange={(event) => setAvatar(event.target.value)}
-          rightSlot={<CopyButton tone="blue" what="Avatar URL" disabled={!avatar} onCopy={() => copy(avatar, "Avatar URL")} />}
+          rightSlot={<CopyButton tone="red" what="Avatar URL" disabled={!avatar} onCopy={() => copy(avatar, "Avatar URL")} />}
           {...locked}
         />
         <NeonInput
           variant="card"
           id="profBanner"
           label="Banner Image URL"
-          tone="violet"
+          tone="red"
           leftIcon={<ImageIcon />}
           value={banner}
           disabled={!isOwner}
           onChange={(event) => setBanner(event.target.value)}
-          rightSlot={<CopyButton tone="violet" what="Banner URL" disabled={!banner} onCopy={() => copy(banner, "Banner URL")} />}
+          rightSlot={<CopyButton tone="red" what="Banner URL" disabled={!banner} onCopy={() => copy(banner, "Banner URL")} />}
           {...locked}
         />
         <NeonInput
           variant="card"
           id="profDisplayName"
           label="Display Name"
-          tone="violet"
+          tone="red"
           leftIcon={<UserIcon />}
           value={displayName}
           disabled={!isOwner}
@@ -187,7 +159,7 @@ export function AccountDetails({
           variant="card"
           id="profUser"
           label="Username"
-          tone="teal"
+          tone="red"
           leftIcon={<UserIcon />}
           value={isOwner ? username : resellerName}
           disabled={!isOwner}
@@ -200,7 +172,7 @@ export function AccountDetails({
           variant="card"
           id="profPass"
           label="Password"
-          tone="amber"
+          tone="red"
           leftIcon={<LockIcon />}
           type={showPassword ? "text" : "password"}
           value={password}
@@ -209,7 +181,7 @@ export function AccountDetails({
           onChange={(event) => setPassword(event.target.value)}
           rightSlot={
             <NeonButton
-              tone="amber"
+              tone="red"
               variant="ghost"
               size="xs"
               // One signal for the state: the pressed flag. A label that

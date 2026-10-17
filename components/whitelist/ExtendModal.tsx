@@ -9,6 +9,7 @@ import { DEFAULT_WHITELIST_DAYS, isWhitelistDays, isWhitelistRegion } from "@/li
 import type { WhitelistEntry } from "@/lib/types";
 
 import { DurationField, RegionOptions } from "./WhitelistFields";
+import { RegionSelect } from "./RegionSelect";
 import { addedMessage, startingRegion, wantedDays, type AddResult } from "./whitelist-shared";
 
 /** Re-issues one UID with a new region, note and validity. */
@@ -80,23 +81,18 @@ export function ExtendModal({
           </span>
         </p>
 
-        <NeonSelect
+        <RegionSelect
           id="ext-region"
           label="Server Region"
-          leftIcon={<GlobeIcon />}
-          leftIconStyle="tile"
-          size="sm"
           value={region}
-          onChange={(e) => setRegion(e.target.value)}
+          onChange={setRegion}
           help={
             isWhitelistRegion(entry.region)
               ? undefined
               : `This entry predates per-region routing (${entry.region}). Re-issuing pins it to a real server.`
           }
           className="mb-4"
-        >
-          <RegionOptions />
-        </NeonSelect>
+        />
 
         <NeonInput
           id="ext-note"

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CopyIcon, GamepadIcon, LockIcon } from "@/components/icons";
+import { CalendarIcon, CopyIcon, GamepadIcon, KeyIcon, LockIcon } from "@/components/icons";
 import {
-  IconTile,
+  NeonButton,
   NeonCta,
+  NeonInput,
   NeonPanel,
   NeonToggle,
   PanelHeader,
@@ -12,7 +13,6 @@ import {
   toneVars,
 } from "@/components/neon";
 import { PRESET_VALIDITY_OPTIONS } from "@/components/resellers/ResellerModals";
-import { KeyHistoryAmbient } from "@/components/scenes/KeyHistoryScene";
 import { useToast } from "@/components/ui/Toast";
 import { postJson } from "@/lib/client-api";
 import { patchDb, useDashboard } from "@/lib/store";
@@ -301,20 +301,8 @@ export function LibBypassGeneratorPanel() {
   return (
     <div className="w-full">
       <NeonPanel rim="danger" className="relative overflow-hidden">
-        {/* Ambient perspective floor and particle glow */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 hidden h-[260px] overflow-hidden rounded-t-[24px] [mask-image:linear-gradient(180deg,#000_55%,transparent)] sm:block"
-        >
-          <KeyHistoryAmbient className="size-full" />
-        </div>
-
         <div className="relative z-[1]">
           <PanelHeader
-            icon={<GamepadIcon className="transition-transform duration-300 ease-back group-hover/tile:scale-120 group-hover/tile:rotate-6 drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" />}
-            iconTone="red"
-            iconTone2="pink"
-            iconClassName="transition-all duration-300 ease-back hover:scale-110 hover:-rotate-3 hover:shadow-[0_0_24px_rgba(255,45,122,0.75)] cursor-pointer"
             title="Generate Lib Bypass License Keys"
             subtitle={`Mint emulator bypass license keys with ${engine === "V2" ? "Sensix V2 Direct Server Engine" : "Discord Bot Engine"}.`}
           />
@@ -450,26 +438,26 @@ export function LibBypassGeneratorPanel() {
               </div>
             </div>
 
-            {/* 2. Credits & Uses Stat Cards (High Contrast Balanced Glass) */}
+            {/* 2. Credits & Uses Stat Cards (Crimson Dark Glass) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
               {/* Total Credits Card */}
-              <div className="relative overflow-hidden rounded-2xl border border-emerald-500/40 bg-[radial-gradient(ellipse_at_top_left,rgba(16,185,129,0.22),transparent_70%),linear-gradient(180deg,#0a1428_0%,#060a16_100%)] p-4 shadow-[0_0_22px_rgba(16,185,129,0.18)] transition-all hover:border-emerald-500/65 hover:shadow-[0_0_30px_rgba(16,185,129,0.25)]">
+              <div className="relative overflow-hidden rounded-2xl border border-[rgba(255,45,90,0.35)] bg-[linear-gradient(180deg,rgba(26,6,13,0.7)_0%,rgba(13,3,7,0.85)_100%)] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-all hover:border-[rgba(255,45,90,0.6)] hover:shadow-[0_0_30px_rgba(255,31,90,0.25)]">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-emerald-500/50 bg-emerald-500/20 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.35)]">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[rgba(255,45,90,0.4)] bg-[rgba(255,45,90,0.18)] text-[#ff4b78] shadow-[0_0_12px_rgba(255,31,90,0.3)]">
                       <span className="text-lg">⚡</span>
                     </div>
                     <div>
                       <span className="block text-[11px] font-bold tracking-wider text-slate-300 uppercase">
                         Total Credits
                       </span>
-                      <span className="text-[11px] font-medium text-emerald-400/90">
+                      <span className="text-[11px] font-medium text-[#ffd1dc]/80">
                         Available Balance
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="font-display text-xl sm:text-2xl font-extrabold tracking-tight text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.45)]">
+                    <span className="font-display text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_0_10px_rgba(255,45,90,0.4)]">
                       {totalCreditsDisplay}
                     </span>
                   </div>
@@ -477,23 +465,23 @@ export function LibBypassGeneratorPanel() {
               </div>
 
               {/* Uses Card */}
-              <div className="relative overflow-hidden rounded-2xl border border-sky-500/40 bg-[radial-gradient(ellipse_at_top_left,rgba(14,165,233,0.22),transparent_70%),linear-gradient(180deg,#0a1428_0%,#060a16_100%)] p-4 shadow-[0_0_22px_rgba(14,165,233,0.18)] transition-all hover:border-sky-500/65 hover:shadow-[0_0_30px_rgba(14,165,233,0.25)]">
+              <div className="relative overflow-hidden rounded-2xl border border-[rgba(255,45,90,0.35)] bg-[linear-gradient(180deg,rgba(26,6,13,0.7)_0%,rgba(13,3,7,0.85)_100%)] p-4 shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-xl transition-all hover:border-[rgba(255,45,90,0.6)] hover:shadow-[0_0_30px_rgba(255,31,90,0.25)]">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-sky-500/50 bg-sky-500/20 text-sky-300 shadow-[0_0_12px_rgba(14,165,233,0.35)]">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[rgba(255,45,90,0.4)] bg-[rgba(255,45,90,0.18)] text-[#ff4b78] shadow-[0_0_12px_rgba(255,31,90,0.3)]">
                       <span className="text-lg">📊</span>
                     </div>
                     <div>
                       <span className="block text-[11px] font-bold tracking-wider text-slate-300 uppercase">
                         Uses
                       </span>
-                      <span className="text-[11px] font-medium text-sky-400/90">
+                      <span className="text-[11px] font-medium text-[#ffd1dc]/80">
                         Keys Generated
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="font-display text-xl sm:text-2xl font-extrabold tracking-tight text-sky-400 drop-shadow-[0_0_10px_rgba(56,189,248,0.45)]">
+                    <span className="font-display text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-[0_0_10px_rgba(255,45,90,0.4)]">
                       {usesDisplay}
                     </span>
                   </div>
@@ -501,47 +489,37 @@ export function LibBypassGeneratorPanel() {
               </div>
             </div>
 
-            {/* 3. Key Name & Custom Days (Pixel-Perfect Alignment) */}
+            {/* 3. Key Name & Custom Days */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
               {/* Key Name / Username */}
-              <div className="space-y-1.5">
-                <div className="flex h-7 items-center justify-between">
-                  <label className="text-[11px] font-bold tracking-wider text-slate-300 uppercase flex items-center gap-1.5">
-                    <span>🔑</span>
-                    <span>KEY NAME / USERNAME</span>
-                    <span className="text-red-500">*</span>
-                  </label>
-                </div>
-                <input
-                  type="text"
-                  required
-                  value={keyName}
-                  onChange={(e) => setKeyName(e.target.value)}
-                  placeholder="Enter Key Name / Username"
-                  className="h-11 w-full rounded-xl border border-[#202947] bg-[#070b1a] px-4 text-sm text-white placeholder-slate-500 focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition"
-                />
-              </div>
+              <NeonInput
+                id="eb-key-name"
+                label="KEY NAME / USERNAME *"
+                tone="red"
+                value={keyName}
+                onChange={(e) => setKeyName(e.target.value)}
+                placeholder="Enter Key Name / Username"
+                required
+              />
 
               {/* Custom Days Input */}
-              <div className="space-y-1.5">
-                <div className="flex h-7 items-center justify-between">
-                  <label className="text-[11px] font-bold tracking-wider text-slate-300 uppercase flex items-center gap-1.5">
-                    <span>⏱️</span>
-                    <span>DURATION (CUSTOM DAYS)</span>
-                  </label>
+              <NeonInput
+                id="eb-duration-days"
+                label="DURATION (CUSTOM DAYS)"
+                labelAside={
                   <span className="text-[11.5px] font-bold text-red-400 flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 px-2.5 py-0.5 rounded-full leading-none">
                     <span>📅</span> {days} Days ({PRESET_DURATIONS_INFO[days] ?? `${days} Days`})
                   </span>
-                </div>
-                <input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={customDaysInput}
-                  onChange={(e) => handleCustomDaysChange(e.target.value)}
-                  className="h-11 w-full rounded-xl border border-[#202947] bg-[#070b1a] px-4 text-sm font-bold text-white focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition"
-                />
-              </div>
+                }
+                tone="red"
+                type="number"
+                min={1}
+                max={365}
+                stepper
+                value={customDaysInput}
+                onChange={(e) => handleCustomDaysChange(e.target.value)}
+                placeholder="Days (1-365)"
+              />
             </div>
 
             {/* 4. The 8 Preset Duration Cards */}
@@ -569,22 +547,20 @@ export function LibBypassGeneratorPanel() {
                       disabled={!isPermitted}
                       onClick={() => handleSelectPreset(opt.days)}
                       title={isPermitted ? `Select ${opt.label} (${info})` : "Locked for your account"}
-                      style={toneVars(opt.tone)}
                       className={cn(
-                        "relative flex flex-col items-center justify-center gap-0.5 rounded-[14px] border p-2.5 py-3 select-none",
-                        "transition-all duration-200 ease-out",
-                        isPermitted ? "cursor-pointer hover:-translate-y-1 active:translate-y-0" : "cursor-not-allowed opacity-35 grayscale",
+                        "relative flex flex-col items-center justify-center gap-0.5 rounded-[12px] border p-2.5 py-3 select-none",
+                        "transition-[translate,scale,background-color,border-color,box-shadow,color] duration-200 ease-smooth",
+                        isPermitted ? "cursor-pointer hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]" : "cursor-not-allowed opacity-35 grayscale",
                         isSelected && isPermitted
                           ? [
-                            "border-[rgba(var(--tone-hi),0.95)] text-white",
-                            "[background:radial-gradient(120%_80%_at_50%_0%,rgba(var(--tone-hi),0.35),rgba(var(--tone),0.18)_60%),linear-gradient(180deg,#121838,#0a0d24)]",
-                            "shadow-[0_0_20px_-2px_rgba(var(--tone),0.6),inset_0_1px_0_rgba(255,255,255,0.35)]",
-                            "ring-2 ring-[rgba(var(--tone-hi),0.8)]",
+                            "border-[#ff0037] text-white",
+                            "[background:linear-gradient(180deg,rgba(255,255,255,0.15),rgba(255,255,255,0)_50%),radial-gradient(130%_90%_at_0%_0%,rgba(255,0,55,0.35),rgba(255,0,55,0)_55%),linear-gradient(150deg,rgba(70,6,20,0.95)_0%,rgba(40,4,12,0.95)_52%,rgba(20,2,6,0.98)_100%)]",
+                            "shadow-[0_0_16px_rgba(255,0,55,0.45),inset_0_1px_0_rgba(255,255,255,0.3)] ring-1 ring-[#ff0037]",
                           ]
                           : isPermitted
                             ? [
-                              "border-white/10 bg-[#0a0e24]/90 text-slate-300",
-                              "hover:border-[rgba(var(--tone),0.7)] hover:bg-[#111738] hover:text-white hover:shadow-[0_0_15px_rgba(var(--tone),0.3)]",
+                              "border-[rgba(255,45,90,0.25)] bg-[rgba(18,2,8,0.7)] text-white/85",
+                              "hover:border-[#ff2a55] hover:bg-[rgba(255,45,90,0.12)] hover:text-white hover:shadow-[0_0_12px_rgba(255,0,55,0.2)]",
                             ]
                             : "border-white/5 bg-[#080b20]/60 text-[#4c597e] shadow-none",
                       )}
@@ -594,13 +570,13 @@ export function LibBypassGeneratorPanel() {
                           🔒
                         </span>
                       )}
-                      <span className="text-[13px] font-black tracking-wider uppercase font-display flex items-center justify-center">
+                      <span className="text-[12.5px] font-bold tracking-[0.8px] whitespace-nowrap uppercase select-none">
                         {opt.label}
                       </span>
                       <span
                         className={cn(
                           "text-[10.5px] font-semibold tracking-wide",
-                          isSelected && isPermitted ? "text-slate-200 font-bold" : "text-slate-400",
+                          isSelected && isPermitted ? "text-slate-200 font-bold" : "text-white/60",
                         )}
                       >
                         {info}
@@ -613,82 +589,66 @@ export function LibBypassGeneratorPanel() {
 
             {/* 5. Number of Keys & Note / Reference */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
-              <div className="space-y-1.5 cursor-not-allowed">
-                <label className="text-[11px] font-bold tracking-wider text-slate-300 uppercase cursor-not-allowed">
-                  NUMBER OF KEYS
-                </label>
-                <input
-                  type="number"
-                  readOnly
-                  value={keyCount}
-                  className="w-full rounded-xl border border-[#202947] bg-[#070b1a]/70 px-4 py-2.5 text-sm font-bold text-slate-400 outline-none cursor-not-allowed select-none"
-                />
-                <p className="text-[10.5px] text-amber-400/90 leading-tight flex items-start gap-1 cursor-not-allowed">
-                  <span>🔒</span>
-                  <span>Anti-Flood Rule: 1 key per generation (30-sec cooldown between keys).</span>
-                </p>
-              </div>
+              <NeonInput
+                id="eb-key-count"
+                label="NUMBER OF KEYS"
+                tone="red"
+                type="number"
+                readOnly
+                disabled
+                value={keyCount}
+                help="Anti-Flood Rule: 1 key per generation (30-sec cooldown between keys)."
+                inputClassName="font-bold text-white disabled:opacity-90"
+              />
 
-              <div className="space-y-1.5 cursor-not-allowed">
-                <label className="text-[11px] font-bold tracking-wider text-slate-300 uppercase cursor-not-allowed">
-                  NOTE / REFERENCE
-                </label>
-                <input
-                  type="text"
-                  readOnly
-                  value={lockedNote}
-                  className="w-full rounded-xl border border-[#202947] bg-[#070b1a]/70 px-4 py-2.5 text-sm font-medium text-slate-400 cursor-not-allowed outline-none select-none"
-                />
-              </div>
+              <NeonInput
+                id="eb-note"
+                label="NOTE / REFERENCE"
+                tone="red"
+                type="text"
+                readOnly
+                disabled
+                value={lockedNote}
+                help="Locked reference note for Lib Bypass client generation."
+                inputClassName="disabled:opacity-85"
+              />
             </div>
 
-            {/* 6. HWID Device Lock */}
-            <div className="flex items-center justify-between rounded-xl border border-[#202945] bg-[#0c1226]/60 p-3.5 lt:border-slate-200 lt:bg-slate-50">
-              <div className="flex items-center gap-3">
-                <IconTile tone="violet" variant="ring" size="xs">
-                  <LockIcon />
-                </IconTile>
-                <div>
-                  <h5 className="text-[13.5px] font-bold text-white lt:text-slate-900">
-                    HWID Device Lock
-                  </h5>
-                  <p className="text-[12px] text-[#9bb0db] lt:text-slate-500">
-                    Binds generated key to the first computer hardware.
-                  </p>
-                </div>
-              </div>
+            {/* 6. HWID Device Lock (Matching Reseller Style, Boxed NeonToggle Tone="red") */}
+            <div className="pt-1">
               <NeonToggle
                 id="hwid-toggle"
-                title=""
-                tone="violet"
-                boxed={false}
+                tone="red"
+                boxed={true}
                 checked={hwidLock}
                 onChange={setHwidLock}
+                title="Lock to one device"
+                description="Binds generated key to the first computer hardware. Reset the HWID from the table to bind to a new device."
               />
             </div>
 
             {/* 7. Key Created Result Box */}
             {createdKey && (
-              <div className="rounded-2xl border border-emerald-500/50 bg-emerald-950/25 p-4 flex items-center justify-between gap-3 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+              <div className="rounded-2xl border border-[rgba(255,45,90,0.4)] bg-[linear-gradient(180deg,rgba(55,8,20,0.5),rgba(20,4,10,0.7))] p-4 flex items-center justify-between gap-3 shadow-[0_0_20px_rgba(255,45,90,0.2)]">
                 <div>
-                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-emerald-400">
+                  <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#ff4d79]">
                     Key Created Successfully
                   </span>
                   <div className="font-mono text-base font-black text-white select-all">
                     {createdKey}
                   </div>
                 </div>
-                <button
-                  type="button"
+                <NeonButton
+                  tone="red"
+                  size="sm"
+                  icon={<CopyIcon className="size-3.5" />}
                   onClick={() => {
                     navigator.clipboard.writeText(createdKey);
                     toast("Key copied to clipboard!", "success");
                   }}
-                  className="rounded-xl bg-emerald-500/25 px-4 py-2 text-xs font-bold text-emerald-300 hover:bg-emerald-500/35 transition flex items-center gap-1.5 cursor-pointer"
                 >
-                  <CopyIcon className="size-3.5" />
                   Copy
-                </button>
+                </NeonButton>
               </div>
             )}
 

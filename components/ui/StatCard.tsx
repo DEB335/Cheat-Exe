@@ -8,39 +8,13 @@ import { Sparkline } from "./Sparkline";
 
 export type StatAccent = "purple" | "red" | "cyan" | "green" | "orange";
 
-/**
- * The original used :nth-child() to tint each tile; here the accent is
- * explicit, which keeps the colours stable if the order ever changes.
- *
- * `rgb` is the tile's border and glow. It is tuned to the overview
- * design rather than reusing the --accent-* tokens: those are pitched
- * for text on a card, and at 1.5px of border the purple read grey and
- * the cyan read green. `ink` is the icon's two-stop gradient and
- * `spark`, where set, a brighter line than the border would give.
- */
 const ACCENTS: Record<StatAccent, { rgb: string; ink: [string, string]; spark?: string }> = {
-  purple: { rgb: "139, 84, 255", ink: ["#ff9fe8", "#9d6cff"], spark: "150, 112, 255" },
-  red: { rgb: "255, 45, 122", ink: ["#ff7aa8", "#ff2d6a"] },
-  cyan: { rgb: "53, 132, 236", ink: ["#8ccbff", "#3d8bff"], spark: "66, 150, 255" },
-  green: { rgb: "16, 196, 138", ink: ["#6ff7c6", "#10c98c"], spark: "34, 222, 158" },
-  orange: { rgb: "236, 172, 64", ink: ["#ffdc8f", "#f5a524"], spark: "245, 184, 72" },
+  purple: { rgb: "255, 45, 90", ink: ["#ff7aa8", "#ff2d6a"], spark: "255, 60, 110" },
+  red: { rgb: "255, 31, 90", ink: ["#ff6688", "#ff1f5a"], spark: "255, 40, 90" },
+  cyan: { rgb: "255, 75, 120", ink: ["#ffa0b8", "#ff4b78"], spark: "255, 80, 130" },
+  green: { rgb: "255, 45, 90", ink: ["#ff7aa8", "#ff2d6a"], spark: "255, 40, 90" },
+  orange: { rgb: "255, 60, 100", ink: ["#ff8ba7", "#ff3366"], spark: "255, 40, 90" },
 };
-
-/*
- * Layered on one element so the tile stays a single box: the fills are
- * clipped to the padding box, and the last two layers show only through
- * the transparent border -- a border that is brightest bottom-left and
- * fades toward the top-right, the way light falls on it in the design.
- * The hover rule paints a solid accent border over the lot.
- */
-const SURFACE = [
-  "radial-gradient(95% 85% at 0% 100%, rgba(var(--stat), 0.17), transparent 70%) padding-box",
-  "radial-gradient(70% 70% at 100% 115%, rgba(var(--stat), 0.1), transparent 70%) padding-box",
-  "linear-gradient(180deg, rgba(var(--stat), 0.05), transparent 45%) padding-box",
-  "linear-gradient(180deg, #070a26 0%, #04061a 100%) padding-box",
-  "linear-gradient(to top, rgba(var(--stat), 0.65), transparent 55%) border-box",
-  "linear-gradient(to right, rgba(var(--stat), 0.95), rgba(var(--stat), 0.28) 55%, rgba(var(--stat), 0.4)) border-box",
-].join(", ");
 
 export function StatCard({
   accent,
@@ -59,33 +33,31 @@ export function StatCard({
   /** 7-day change and sparkline; omitted where a tile has none. */
   trend?: Trend;
 }) {
-  const { rgb, ink, spark } = ACCENTS[accent];
+  const { rgb, ink, spark } = ACCENTS[accent] ?? ACCENTS.red;
   const inkId = useId();
 
   return (
     <div
       style={
-        { "--stat": rgb, "--spark": spark ?? rgb, "--tile-bg": SURFACE } as React.CSSProperties
+        { "--stat": rgb, "--spark": spark ?? rgb } as React.CSSProperties
       }
       className={cn(
-        "group glow-ring relative flex min-w-0 flex-col overflow-hidden",
-        "rounded-[18px] border-[1.5px] border-transparent px-[22px] pt-[22px] pb-[18px]",
-        "[background:var(--tile-bg)] lt:[background:var(--card-bg)] lt:border-[rgba(var(--stat),0.45)]",
-        "shadow-[0_0_12px_-2px_rgba(var(--stat),0.19),inset_0_1px_0_rgba(255,255,255,0.05),inset_0_-26px_36px_-26px_rgba(var(--stat),0.2)]",
-        "lt:shadow-[0_6px_14px_-7px_rgba(var(--stat),0.22)]",
-        "transition-[transform,box-shadow,border-color] duration-[400ms] ease-smooth",
-        "hover:glow-ring-on hover:-translate-y-1.5 hover:scale-[1.02]",
-        "hover:border-[rgb(var(--stat))] lt:hover:border-[rgb(var(--stat))]",
-        "hover:shadow-[0_12px_24px_rgba(var(--stat),0.07),0_0_16px_-2px_rgba(var(--stat),0.26),inset_0_1px_0_rgba(255,255,255,0.07),inset_0_-26px_36px_-22px_rgba(var(--stat),0.25)]",
-        "lt:hover:shadow-[0_10px_20px_-8px_rgba(var(--stat),0.3)]",
+        "group relative flex min-w-0 flex-col overflow-hidden",
+        "rounded-[20px] border border-[rgba(255,45,90,0.18)] px-[22px] pt-[22px] pb-[18px]",
+        "bg-[linear-gradient(180deg,rgba(26,6,13,0.52)_0%,rgba(13,3,7,0.72)_100%)] backdrop-blur-xl",
+        "shadow-[0_14px_34px_-10px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)]",
+        "transition-all duration-300 ease-smooth",
+        "hover:-translate-y-1.5 hover:border-[rgba(255,45,90,0.45)] hover:shadow-[0_20px_42px_-10px_rgba(255,0,50,0.22)]",
+        "lt:bg-white/80 lt:border-slate-200 lt:shadow-sm",
       )}
     >
-      {/* 4px accent bar that fades in on hover */}
-      <span className="absolute inset-y-0 left-0 w-1 bg-[rgb(var(--stat))] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      {/* Soft crimson ambient glow inside top of card */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(ellipse_180px_70px_at_50%_0%,rgba(255,45,90,0.12),transparent_70%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+      />
 
-      {/* Paint server for the icon's gradient stroke. userSpaceOnUse on the
-          icons' 24-unit grid, because a bounding-box gradient paints
-          nothing on a perfectly straight line -- half the CPU glyph. */}
+      {/* Paint server for the icon's gradient stroke */}
       <svg aria-hidden className="pointer-events-none absolute size-0">
         <defs>
           <linearGradient id={inkId} gradientUnits="userSpaceOnUse" x1="3" y1="3" x2="21" y2="21">
@@ -99,23 +71,23 @@ export function StatCard({
         <div
           style={{ "--ink": `url("#${inkId}") ${ink[1]}` } as React.CSSProperties}
           className={cn(
-            "flex size-14 shrink-0 items-center justify-center rounded-2xl border",
-            "border-[rgba(var(--stat),0.55)] text-[rgb(var(--stat))]",
-            "bg-[linear-gradient(145deg,rgba(var(--stat),0.42)_0%,rgba(var(--stat),0.14)_55%,rgba(var(--stat),0.26)_100%)]",
-            "shadow-[0_0_11px_-2px_rgba(var(--stat),0.25),inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_14px_rgba(var(--stat),0.11)]",
-            "lt:shadow-none",
-            "[&>svg]:size-7 [&>svg]:[stroke:var(--ink)] [&>svg]:[stroke-width:2.2] [&>svg]:drop-shadow-[0_0_4px_rgba(var(--stat),0.24)]",
-            "transition-transform duration-[400ms] ease-back group-hover:scale-110 group-hover:rotate-6",
+            "flex size-13 shrink-0 items-center justify-center rounded-2xl border",
+            "border-[rgba(255,45,90,0.28)] text-[rgb(var(--stat))]",
+            "bg-[linear-gradient(145deg,rgba(255,45,90,0.18)_0%,rgba(24,5,12,0.6)_100%)]",
+            "shadow-[0_0_14px_rgba(255,30,60,0.15),inset_0_1px_0_rgba(255,255,255,0.1)]",
+            "lt:shadow-none lt:bg-slate-50",
+            "[&>svg]:size-6 [&>svg]:[stroke:var(--ink)] [&>svg]:[stroke-width:2.2] [&>svg]:drop-shadow-[0_0_6px_rgba(255,45,90,0.35)]",
+            "transition-transform duration-[400ms] ease-back group-hover:scale-110 group-hover:rotate-3",
           )}
         >
           {icon}
         </div>
 
         <div className="min-w-0">
-          <div className="font-display text-[30px] leading-none font-extrabold text-fg [text-shadow:0_0_8px_rgba(var(--stat),0.14)] lt:[text-shadow:none]">
+          <div className="font-display text-[32px] sm:text-[34px] leading-none font-extrabold text-white tracking-tight [text-shadow:0_0_12px_rgba(255,45,90,0.2)] lt:[text-shadow:none] lt:text-slate-900">
             {value}
           </div>
-          <div className="mt-3.5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[13px] leading-none font-semibold text-[#d5def2] uppercase lt:text-muted">
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px] leading-none font-semibold text-[#c9b0b8] uppercase tracking-wide lt:text-muted">
             {label}
             {live && <LivePip />}
           </div>
@@ -123,10 +95,6 @@ export function StatCard({
       </div>
 
       {trend && <TrendRow trend={trend} label={typeof label === "string" ? label : undefined} />}
-
-      {/* The hover ring, turned by the compositor (see glow-ring in
-          globals.css). */}
-      <span aria-hidden className="glow-ring-track" />
     </div>
   );
 }
@@ -139,14 +107,6 @@ function formatChange(change: number): { text: string; direction: -1 | 0 | 1 } {
   return change > 0 ? { text: `+${rounded}%`, direction: 1 } : { text: `−${rounded}%`, direction: -1 };
 }
 
-/**
- * The change, its caption and the sparkline along the bottom of a tile.
- *
- * With no change to report it still takes the same room -- a flat arrow,
- * a dash and a dashed baseline -- so a tile without history lines up
- * with its neighbours instead of collapsing, and never shows a number
- * nobody measured.
- */
 function TrendRow({ trend, label }: { trend: Trend; label?: string }) {
   const { text, direction } =
     trend.change !== null
@@ -159,12 +119,12 @@ function TrendRow({ trend, label }: { trend: Trend; label?: string }) {
   const subject = trend.metric ?? label?.replace(/^total\s+/i, "");
 
   return (
-    <div className="mt-auto flex items-end justify-between gap-2 pt-4 pl-1.5">
+    <div className="mt-auto flex items-end justify-between gap-2 pt-4 pl-1">
       <div className="shrink-0">
         <div
           className={cn(
-            "flex items-center gap-1.5 text-[14px] leading-none font-semibold whitespace-nowrap",
-            direction > 0 && "text-[#22dd98] lt:text-emerald-600",
+            "flex items-center gap-1.5 text-[13.5px] leading-none font-semibold whitespace-nowrap",
+            direction > 0 && "text-[#ff4d79] lt:text-rose-600",
             direction < 0 && "text-[#ff5a7e] lt:text-rose-600",
             direction === 0 && "text-[#c9d4ee] lt:text-slate-600",
           )}
@@ -172,10 +132,10 @@ function TrendRow({ trend, label }: { trend: Trend; label?: string }) {
           <Arrow className="size-3.5 shrink-0" strokeWidth={2.75} />
           <span>{text}</span>
           {trend.metric && (
-            <span className="text-[12px] font-medium text-[#8091bc] lt:text-muted">{trend.metric}</span>
+            <span className="text-[12px] font-medium text-[#a89098] lt:text-muted">{trend.metric}</span>
           )}
         </div>
-        <div className="mt-2 text-[12.5px] leading-none whitespace-nowrap text-[#8091bc] lt:text-muted">
+        <div className="mt-2 text-[12px] leading-none whitespace-nowrap text-[#a89098] lt:text-muted">
           {trend.caption}
         </div>
       </div>
@@ -188,23 +148,21 @@ function TrendRow({ trend, label }: { trend: Trend; label?: string }) {
   );
 }
 
-/** The "LIVE" pill beside the Devices label. The dot pings only on hover. */
+/** The "LIVE" pill beside the Devices label */
 export function LivePip() {
   return (
     <span
       className={cn(
-        // Taller than the label it sits beside; the negative margin keeps
-        // it from pushing the Devices tile taller than its neighbours.
-        "-my-1 inline-flex h-[21px] items-center gap-[5px] rounded-full border px-[7px]",
-        "border-[rgba(16,185,129,0.5)] bg-[rgba(5,90,68,0.42)]",
-        "text-[10.5px] leading-none font-bold tracking-[0.4px] text-[#2ff0b0]",
-        "shadow-[0_0_7px_-2px_rgba(16,185,129,0.27),inset_0_0_8px_rgba(16,185,129,0.08)]",
-        "lt:border-emerald-300 lt:bg-emerald-50 lt:text-emerald-600 lt:shadow-none",
+        "-my-1 inline-flex h-[20px] items-center gap-[5px] rounded-full border px-[7px]",
+        "border-[rgba(255,45,90,0.5)] bg-[rgba(55,8,20,0.65)]",
+        "text-[10px] leading-none font-bold tracking-[0.4px] text-[#ff4d79]",
+        "shadow-[0_0_8px_rgba(255,45,90,0.3)]",
+        "lt:border-rose-300 lt:bg-rose-50 lt:text-rose-600 lt:shadow-none",
       )}
     >
       <span className="relative inline-flex size-1.5">
         <span className="absolute inset-0 rotate-45 rounded-[1px] bg-current opacity-0 group-hover:animate-ping group-hover:opacity-75" />
-        <span className="relative size-1.5 rotate-45 rounded-[1px] bg-current shadow-[0_0_4px_rgba(16,185,129,0.45)]" />
+        <span className="relative size-1.5 rotate-45 rounded-[1px] bg-current shadow-[0_0_4px_rgba(255,45,90,0.6)]" />
       </span>
       LIVE
     </span>

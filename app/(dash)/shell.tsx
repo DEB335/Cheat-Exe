@@ -7,6 +7,7 @@ import { BackgroundMusic } from "@/components/effects/BackgroundMusic";
 import { CursorSparks } from "@/components/effects/CursorSparks";
 import { Wind404 } from "@/components/effects/Wind404";
 import { GridBackdrop } from "@/components/effects/GridBackdrop";
+import { RedRaysBackground } from "@/components/effects/RedRaysBackground";
 import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -344,9 +345,8 @@ export function Shell({
   return (
     <>
       <BackgroundMusic />
-      {/* Solid dark base behind the dashboard. Hidden in light mode, which
-          paints its own page colour. */}
-      <div aria-hidden className="pointer-events-none fixed inset-0 -z-2 bg-[#040718] lt:hidden" />
+      {/* Animated red WebGL rays background behind the dashboard content */}
+      <RedRaysBackground />
       <GridBackdrop />
       <CursorSparks />
 

@@ -75,6 +75,7 @@ export function DurationField({
     <div className={className}>
       <NeonInput
         id={id}
+        tone="red"
         // Phones drop the "(Custom Days)" tail: beside the read-out it
         // wraps the label onto two cramped lines, and the box's own
         // placeholder already asks for days.
@@ -104,8 +105,6 @@ export function DurationField({
             )}
           </span>
         }
-        leftIcon={<CalendarIcon />}
-        leftIconStyle="tile"
         value={value}
         onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
         placeholder={`Days (1-${MAX_WHITELIST_DAYS}, 0 = Lifetime)`}
@@ -116,14 +115,42 @@ export function DurationField({
       />
 
       {/* A value no preset holds (a custom 12) lights none of them. */}
-      <NeonSegmented
-        options={PRESETS}
-        value={valid ? wanted : null}
-        onChange={(preset) => onChange(String(preset))}
-        size="xs"
-        aria-label="Duration presets"
-        className="mt-3 gap-1.5"
-      />
+      <div className="mt-3 flex flex-wrap gap-2">
+        {WHITELIST_DAY_PRESETS.map((preset) => {
+          const on = valid && wanted === preset;
+          const isLifetime = preset === LIFETIME_WHITELIST_DAYS;
+          const label = isLifetime
+            ? "Lifetime (0)"
+            : `${preset} ${preset === 1 ? "Day" : "Days"}`;
+          return (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => onChange(String(preset))}
+              className={cn(
+                "inline-flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-[12px] border px-3 text-[12px] font-bold tracking-[0.8px] whitespace-nowrap uppercase select-none",
+                "transition-[translate,scale,background-color,border-color,box-shadow,color] duration-200 ease-smooth",
+                "hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96]",
+                on
+                  ? [
+                      "border-[#ff0037] text-white",
+                      "[background:linear-gradient(180deg,rgba(255,255,255,0.15),rgba(255,255,255,0)_50%),radial-gradient(130%_90%_at_0%_0%,rgba(255,0,55,0.35),rgba(255,0,55,0)_55%),linear-gradient(150deg,rgba(70,6,20,0.95)_0%,rgba(40,4,12,0.95)_52%,rgba(20,2,6,0.98)_100%)]",
+                      "shadow-[0_0_16px_rgba(255,0,55,0.45),inset_0_1px_0_rgba(255,255,255,0.3)]",
+                      "lt:border-red-600 lt:[background:rgba(225,29,72,0.15)] lt:text-red-700",
+                    ]
+                  : [
+                      "border-[rgba(255,45,90,0.25)] bg-[rgba(18,2,8,0.7)] text-white/80",
+                      "hover:border-[#ff2a55] hover:bg-[rgba(255,45,90,0.12)] hover:text-white",
+                      "lt:border-slate-300 lt:bg-white lt:text-slate-600",
+                    ],
+              )}
+            >
+              {isLifetime && <CrownIcon className="mr-1.5 size-3.5 text-[#fdd680]" />}
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </div>
 
       <NeonHelp id={noteId} error={!valid} className={cn(!valid && "font-semibold")}>
         {valid ? (

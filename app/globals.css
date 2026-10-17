@@ -10,33 +10,33 @@
    Tailwind so bg-accent, text-muted, border-line etc. follow along.
    --------------------------------------------------------------- */
 :root {
-  --bg-secondary: rgba(10, 11, 20, 0.6);
-  --bg-sidebar: rgba(6, 6, 10, 0.95);
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 31, 90, 0.2);
+  --bg-secondary: rgba(22, 5, 11, 0.52);
+  --bg-sidebar: rgba(14, 3, 7, 0.95);
+  --border-color: rgba(255, 45, 90, 0.16);
+  --border-hover: rgba(255, 45, 90, 0.45);
 
   --text-main: #f8fafc;
-  --text-muted: #a1b0cb;
+  --text-muted: #c9b0b8;
 
   --accent-red: #ff1f5a;
-  --accent-red-glow: rgba(255, 31, 90, 0.18);
-  --accent-purple: #a855f7;
-  --accent-purple-glow: rgba(168, 85, 247, 0.18);
+  --accent-red-glow: rgba(255, 31, 90, 0.28);
+  --accent-purple: #e11d48;
+  --accent-purple-glow: rgba(225, 29, 72, 0.22);
   --accent-green: #10b981;
-  --accent-green-glow: rgba(16, 185, 129, 0.12);
+  --accent-green-glow: rgba(16, 185, 129, 0.16);
   --accent-orange: #f59e0b;
-  --accent-orange-glow: rgba(245, 158, 11, 0.12);
-  --accent-cyan: #06b6d4;
-  --accent-cyan-glow: rgba(6, 182, 212, 0.12);
+  --accent-orange-glow: rgba(245, 158, 11, 0.16);
+  --accent-cyan: #ff3366;
+  --accent-cyan-glow: rgba(255, 51, 102, 0.22);
 
-  --card-bg: linear-gradient(145deg, rgba(12, 13, 26, 0.68) 0%, rgba(6, 7, 15, 0.88) 100%);
-  --card-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
-  --sidebar-border: rgba(255, 255, 255, 0.04);
-  --input-bg: rgba(2, 2, 5, 0.6);
-  --input-border: rgba(255, 255, 255, 0.07);
+  --card-bg: linear-gradient(180deg, rgba(26, 6, 13, 0.52) 0%, rgba(13, 3, 7, 0.72) 100%);
+  --card-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.75), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+  --sidebar-border: rgba(255, 45, 90, 0.12);
+  --input-bg: rgba(16, 4, 8, 0.65);
+  --input-border: rgba(255, 45, 90, 0.18);
 
-  --grid-line: rgba(255, 255, 255, 0.01);
-  --page-bg: #040718;
+  --grid-line: rgba(255, 45, 90, 0.025);
+  --page-bg: #0b0204;
 }
 
 body.light-mode {
@@ -904,4 +904,17 @@ html {
   position: absolute;
   inset: 0;
 }
+
+/* Chrome / Chromium autofill fix: prevent browser from applying bright white background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  transition: background-color 5000000s ease-in-out 0s !important;
+  box-shadow: inset 0 0 20px 20px rgba(18, 3, 8, 0.95) !important;
+}
+
 

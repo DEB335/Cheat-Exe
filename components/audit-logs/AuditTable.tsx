@@ -21,12 +21,12 @@ import { STATUS_LOOK, auditDetails, auditStatus, splitGenerated, splitUser } fro
 // The action is the one column whose length varies, so it takes what the
 // others leave; the rest are sized to what they hold.
 const COLUMNS: NeonColumn[] = [
-  { label: "Timestamp", className: "w-[250px]" },
-  { label: "User", className: "w-[270px]" },
-  "Action",
-  { label: "Details", className: "w-[190px]" },
-  { label: "IP Address", className: "w-[210px]" },
-  { label: "Status", align: "right", className: "w-[120px]" },
+  { label: "TIMESTAMP", className: "w-[250px]" },
+  { label: "USER", className: "w-[270px]" },
+  "ACTION",
+  { label: "DETAILS", className: "w-[190px]" },
+  { label: "IP ADDRESS", className: "w-[210px]" },
+  { label: "STATUS", align: "right", className: "w-[120px]" },
 ];
 
 // A 100-row log reads better denser than the kit's 56px rows.
@@ -58,7 +58,7 @@ function AuditRow({ log, index }: { log: AuditLog; index: number }) {
         <span className="flex items-center gap-3">
           <span
             aria-hidden
-            className="grid size-7 shrink-0 place-items-center rounded-full border border-[rgba(147,197,253,0.8)] bg-[radial-gradient(circle_at_50%_35%,#60a5fa,#2563eb)] text-white shadow-[0_0_7px_-2px_rgba(59,130,246,0.4)] lt:border-blue-300 lt:bg-blue-50 lt:bg-none lt:text-blue-600 lt:shadow-none"
+            className="grid size-7 shrink-0 place-items-center rounded-full border border-[rgba(255,45,90,0.5)] bg-[radial-gradient(circle_at_50%_35%,#ff4b78,#be123c)] text-white shadow-[0_0_8px_rgba(255,31,90,0.4)] lt:border-rose-300 lt:bg-rose-50 lt:bg-none lt:text-rose-600 lt:shadow-none"
           >
             <UserIcon className="size-3.5" />
           </span>
@@ -71,14 +71,14 @@ function AuditRow({ log, index }: { log: AuditLog; index: number }) {
           <UserIcon
             aria-hidden
             className={
-              role === "RESELLER"
-                ? "size-4 shrink-0 text-[#93c5fd] lt:text-blue-600"
-                : "size-4 shrink-0 text-[#c4b5fd] lt:text-violet-600"
+              role === "OWNER"
+                ? "size-4 shrink-0 text-[#ff4b78] lt:text-rose-600"
+                : "size-4 shrink-0 text-[#93c5fd] lt:text-blue-600"
             }
           />
           <span className="font-semibold text-fg">{name}</span>
           {role ? (
-            <NeonChip tone={role === "OWNER" ? "violet" : "blue"} size="xs">
+            <NeonChip tone={role === "OWNER" ? "red" : "blue"} size="xs">
               {role}
             </NeonChip>
           ) : null}
@@ -152,15 +152,12 @@ function rowKeys(logs: AuditLog[]): string[] {
 export function AuditTable({ logs }: { logs: AuditLog[] }) {
   const keys = rowKeys(logs);
   return (
-    // A row tipping in is a few px wider than the table for half a
-    // second; clipping the table's sizing box sideways (it is exactly
-    // as wide as the scroller, so nothing visible is cut) stops that
-    // flashing a scrollbar under the log on every arrival.
     <NeonTable
       columns={COLUMNS}
       minWidth={960}
+      tone="red"
       className="[&>.overflow-x-auto>div]:overflow-x-clip"
-      empty={<NeonEmpty icon={<FileTextIcon />}>No logs available.</NeonEmpty>}
+      empty={<NeonEmpty icon={<FileTextIcon />} tone="red">No logs available.</NeonEmpty>}
     >
       {logs.map((log, index) => (
         <AuditRow key={keys[index]} log={log} index={index} />

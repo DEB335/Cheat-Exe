@@ -46,11 +46,11 @@ export default function OverviewPage() {
   const emulatorOnly = (tile: Tile): Tile[] => (hasEmulatorAccess ? [tile] : []);
 
   const tiles: Tile[] = [
-    { key: "apps", label: "Total Apps", value: metrics.apps, accent: "purple", icon: <AppsIcon className="size-6" /> },
+    { key: "apps", label: "Total Apps", value: metrics.apps, accent: "red", icon: <AppsIcon className="size-6" /> },
     { key: "licenses", label: "Total Licenses", value: metrics.licenses, accent: "red", icon: <LinkIcon className="size-6" /> },
-    ...emulatorOnly({ key: "emulatorBypass", label: "Emulator Bypass", value: metrics.emulatorBypass, accent: "cyan", icon: <GamepadIcon className="size-6" /> }),
-    { key: "devices", label: "Devices", value: metrics.devices, accent: "green", icon: <CpuIcon className="size-6" />, live: true },
-    ...ownerOnly({ key: "resellers", label: "Total Resellers", value: metrics.resellers, accent: "orange", icon: <BriefcaseIcon className="size-6" /> }),
+    ...emulatorOnly({ key: "emulatorBypass", label: "Emulator Bypass", value: metrics.emulatorBypass, accent: "red", icon: <GamepadIcon className="size-6" /> }),
+    { key: "devices", label: "Devices", value: metrics.devices, accent: "red", icon: <CpuIcon className="size-6" />, live: true },
+    ...ownerOnly({ key: "resellers", label: "Total Resellers", value: metrics.resellers, accent: "red", icon: <BriefcaseIcon className="size-6" /> }),
   ];
 
   // Kept by value: the chart replays its one-second draw-in whenever it is

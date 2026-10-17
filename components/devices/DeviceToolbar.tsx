@@ -13,13 +13,13 @@ const OPTIONS: Array<{ value: RoleFilter; label: string }> = [
   { value: "RESELLER", label: "Reseller" },
 ];
 
-/** Neon-blue glass shared by the search field and the filter button. */
+/** Crimson glass shared by the search field and the filter button. */
 const GLASS = cn(
-  "border border-[rgba(59,130,246,0.55)]",
-  "bg-[linear-gradient(180deg,rgba(12,24,64,0.78),rgba(5,11,36,0.88))]",
-  "shadow-[0_0_8px_-2px_rgba(59,130,246,0.29),inset_0_1px_0_rgba(255,255,255,0.07)]",
-  "transition-[border-color,box-shadow,background-color] duration-300 ease-smooth",
-  "lt:border-blue-300 lt:bg-none lt:bg-white lt:shadow-[0_4px_10px_-6px_rgba(59,130,246,0.25)]",
+  "border border-[rgba(255,45,90,0.22)]",
+  "bg-[linear-gradient(180deg,rgba(26,6,13,0.65),rgba(13,3,7,0.85))] backdrop-blur-md",
+  "shadow-[0_4px_16px_-4px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]",
+  "transition-all duration-300 ease-smooth",
+  "lt:border-slate-200 lt:bg-white lt:shadow-sm",
 );
 
 /** Search and role filter above the live devices table. Both are controlled. */
@@ -71,7 +71,7 @@ export function DeviceToolbar({
       <div className="relative min-w-0 flex-1">
         <SearchIcon
           aria-hidden
-          className="pointer-events-none absolute top-1/2 left-3.5 z-[1] size-4 -translate-y-1/2 text-[#8ec5ff] drop-shadow-[0_0_3px_rgba(59,130,246,0.28)] lt:text-blue-500 lt:drop-shadow-none"
+          className="pointer-events-none absolute top-1/2 left-3.5 z-[1] size-4 -translate-y-1/2 text-[#ff6b8b] drop-shadow-[0_0_4px_rgba(255,45,90,0.3)] lt:text-rose-500 lt:drop-shadow-none"
         />
         <input
           type="text"
@@ -85,10 +85,10 @@ export function DeviceToolbar({
           className={cn(
             GLASS,
             "h-11 w-full rounded-xl pr-9 pl-10 text-[13.5px] text-fg outline-none",
-            "placeholder:text-[#8fa6d6] lt:placeholder:text-muted",
-            "focus:border-[rgba(96,165,250,0.95)]",
-            "focus:shadow-[0_0_0_3px_rgba(59,130,246,0.2),0_0_13px_-1px_rgba(59,130,246,0.36),inset_0_1px_0_rgba(255,255,255,0.09)]",
-            "lt:focus:border-blue-500 lt:focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)]",
+            "placeholder:text-[#c9b0b8] lt:placeholder:text-muted",
+            "focus:border-[rgba(255,45,90,0.7)]",
+            "focus:shadow-[0_0_0_3px_rgba(255,45,90,0.18),inset_0_1px_0_rgba(255,255,255,0.09)]",
+            "lt:focus:border-rose-500 lt:focus:shadow-[0_0_0_3px_rgba(255,45,90,0.15)]",
           )}
         />
         {query && (
@@ -96,7 +96,7 @@ export function DeviceToolbar({
             type="button"
             aria-label="Clear search"
             onClick={() => onQuery("")}
-            className="absolute top-1/2 right-2.5 z-[1] flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-[#8fa6d6] transition-colors hover:bg-white/8 hover:text-white lt:text-muted lt:hover:bg-black/5 lt:hover:text-fg"
+            className="absolute top-1/2 right-2.5 z-[1] flex size-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-[#c9b0b8] transition-colors hover:bg-white/8 hover:text-white lt:text-muted lt:hover:bg-black/5 lt:hover:text-fg"
           >
             <CloseIcon className="size-3.5" />
           </button>
@@ -113,18 +113,18 @@ export function DeviceToolbar({
           onClick={() => setOpen((v) => !v)}
           className={cn(
             GLASS,
-            "relative flex size-11 cursor-pointer items-center justify-center rounded-xl text-[#8ec5ff]",
-            "hover:border-[rgba(96,165,250,0.95)] hover:text-white",
-            "hover:shadow-[0_0_12px_-1px_rgba(59,130,246,0.36),inset_0_1px_0_rgba(255,255,255,0.1)]",
-            "active:translate-y-px lt:text-blue-600 lt:hover:border-blue-500 lt:hover:text-blue-700",
-            (open || filtered) && "border-[rgba(96,165,250,0.95)] text-white lt:border-blue-500 lt:text-blue-700",
+            "relative flex size-11 cursor-pointer items-center justify-center rounded-xl text-[#ff6b8b]",
+            "hover:border-[rgba(255,45,90,0.7)] hover:text-white",
+            "hover:shadow-[0_0_12px_rgba(255,45,90,0.3),inset_0_1px_0_rgba(255,255,255,0.1)]",
+            "active:translate-y-px lt:text-rose-600 lt:hover:border-rose-500 lt:hover:text-rose-700",
+            (open || filtered) && "border-[rgba(255,45,90,0.8)] text-white lt:border-rose-500 lt:text-rose-700",
           )}
         >
-          <FilterIcon className="size-[17px] drop-shadow-[0_0_3px_rgba(59,130,246,0.28)] lt:drop-shadow-none" />
+          <FilterIcon className="size-[17px] drop-shadow-[0_0_4px_rgba(255,45,90,0.3)] lt:drop-shadow-none" />
           {filtered && (
             <span
               aria-hidden
-              className="absolute top-2 right-2 size-2 rounded-full bg-[#60a5fa] shadow-[0_0_5px_rgba(96,165,250,0.43)] lt:bg-blue-500 lt:shadow-none"
+              className="absolute top-2 right-2 size-2 rounded-full bg-[#ff1f5a] shadow-[0_0_6px_rgba(255,45,90,0.6)] lt:bg-rose-500 lt:shadow-none"
             />
           )}
         </button>

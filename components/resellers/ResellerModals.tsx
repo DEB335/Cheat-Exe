@@ -112,7 +112,7 @@ export function RenewModal({
         <NeonInput
           id="renewDays"
           label="Validity (days from now)"
-          tone="cyan"
+          tone="red"
           leftIcon={<CalendarIcon />}
           type="number"
           min={0}
@@ -124,7 +124,7 @@ export function RenewModal({
         <NeonInput
           id="renewLimit"
           label="Key limit"
-          tone="violet"
+          tone="red"
           leftIcon={<KeyIcon />}
           type="number"
           min={0}
@@ -137,7 +137,7 @@ export function RenewModal({
           <NeonInput
             id="renewEmulatorCredits"
             label="Emulator Bypass Credits"
-            tone="pink"
+            tone="red"
             leftIcon={<GamepadIcon />}
             type="number"
             min={0}
@@ -149,16 +149,16 @@ export function RenewModal({
         )}
 
         {emulatorAllowedDays && onToggleAllowedDay && (
-          <div className="flex flex-col gap-2 rounded-xl border border-[#2b1b42] bg-[rgba(18,12,32,0.65)] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.3)] lt:border-slate-200 lt:bg-slate-50">
+          <div className="flex flex-col gap-2 rounded-xl border border-[rgba(255,45,90,0.25)] bg-[linear-gradient(150deg,rgba(28,4,12,0.85)_0%,rgba(18,2,8,0.9)_52%,rgba(12,2,5,0.95)_100%)] p-4 shadow-[0_4px_16px_rgba(0,0,0,0.3)] backdrop-blur-xl lt:border-slate-200 lt:bg-slate-50">
             <div className="flex items-center justify-between">
               <span className="text-[13px] font-bold tracking-wide text-white uppercase lt:text-slate-800">
                 Emulator Bypass Validity
               </span>
-              <span className="text-[11.5px] text-[#9cb1dc]">
+              <span className="text-[11.5px] font-medium text-white/70">
                 {emulatorAllowedDays.length} of {PRESET_VALIDITY_OPTIONS.length} enabled
               </span>
             </div>
-            <p className="text-[12px] text-[#8fa7d9] lt:text-slate-500">
+            <p className="text-[12px] text-white/70 lt:text-slate-500">
               Select which validity options this reseller can choose. Unselected options will be locked.
             </p>
 
@@ -170,23 +170,21 @@ export function RenewModal({
                     key={opt.days}
                     type="button"
                     onClick={() => onToggleAllowedDay(opt.days)}
-                    style={toneVars(opt.tone)}
                     className={cn(
                       "inline-flex h-11 shrink-0 cursor-pointer items-center justify-center rounded-[12px] border px-3 text-[12.5px] font-bold tracking-[0.8px] whitespace-nowrap uppercase select-none",
                       "transition-[translate,scale,background-color,border-color,box-shadow,color] duration-200 ease-smooth",
                       "hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96]",
                       on
                         ? [
-                            "border-[rgba(var(--tone-hi),0.85)] text-white",
-                            "[background:linear-gradient(180deg,rgba(var(--tone),0.44),rgba(var(--tone),0.14))]",
-                            "shadow-[0_0_12px_-2px_rgba(var(--tone),0.45),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_0_14px_rgba(var(--tone),0.12)]",
-                            "hover:shadow-[0_0_15px_-2px_rgba(var(--tone),0.6),inset_0_1px_0_rgba(255,255,255,0.28)]",
-                            "lt:border-[rgb(var(--tone))] lt:[background:rgba(var(--tone),0.14)] lt:text-[var(--tone-lt)]",
+                            "border-[#ff0037] text-white",
+                            "[background:linear-gradient(180deg,rgba(255,255,255,0.15),rgba(255,255,255,0)_50%),radial-gradient(130%_90%_at_0%_0%,rgba(255,0,55,0.35),rgba(255,0,55,0)_55%),linear-gradient(150deg,rgba(70,6,20,0.95)_0%,rgba(40,4,12,0.95)_52%,rgba(20,2,6,0.98)_100%)]",
+                            "shadow-[0_0_16px_rgba(255,0,55,0.45),inset_0_1px_0_rgba(255,255,255,0.3)]",
+                            "lt:border-red-600 lt:[background:rgba(225,29,72,0.15)] lt:text-red-700",
                           ]
                         : [
-                            "border-[rgba(var(--tone),0.3)] bg-[rgba(8,11,36,0.6)] text-[#8f9bc4]/80",
-                            "hover:border-[rgba(var(--tone),0.7)] hover:bg-[rgba(var(--tone),0.08)] hover:text-white",
-                            "lt:border-slate-300 lt:bg-white lt:text-slate-500",
+                            "border-[rgba(255,45,90,0.25)] bg-[rgba(18,2,8,0.7)] text-white/80",
+                            "hover:border-[#ff2a55] hover:bg-[rgba(255,45,90,0.12)] hover:text-white",
+                            "lt:border-slate-300 lt:bg-white lt:text-slate-600",
                           ],
                     )}
                   >
@@ -246,17 +244,17 @@ export function ManageModal({
           className={cn(
             "flex cursor-pointer select-none items-center justify-between rounded-xl border p-4 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all",
             uidBypassAccess
-              ? "border-[rgba(56,189,248,0.55)] bg-[rgba(10,24,52,0.8)] shadow-[0_0_20px_rgba(56,189,248,0.15)] lt:border-sky-300 lt:bg-sky-50"
-              : "border-[#1e294b] bg-[rgba(10,16,36,0.65)] hover:border-[#2a3a68] lt:border-slate-200 lt:bg-slate-50",
+              ? "border-[rgba(255,45,90,0.65)] bg-[rgba(32,4,12,0.85)] shadow-[0_0_20px_rgba(255,45,90,0.25)] lt:border-rose-300 lt:bg-rose-50"
+              : "border-[rgba(255,45,90,0.2)] bg-[rgba(16,3,8,0.7)] hover:border-[rgba(255,45,90,0.4)] lt:border-slate-200 lt:bg-slate-50",
           )}
         >
           <div className="flex items-center gap-3.5 pr-3">
-            <IconTile tone="cyan" variant="ring" size="sm">
+            <IconTile tone="red" variant="ring" size="sm">
               <CpuChipIcon />
             </IconTile>
             <div>
               <h4 className="text-[14.5px] font-bold text-white lt:text-slate-900">UID Bypass Access</h4>
-              <p className="mt-0.5 text-[12.5px] text-[#9bb0db] lt:text-slate-500">
+              <p className="mt-0.5 text-[12.5px] text-[#ff8ba7] lt:text-slate-500">
                 Grant access to UID Bypass overview and Whitelist UID section.
               </p>
             </div>
@@ -265,7 +263,7 @@ export function ManageModal({
             <NeonToggle
               id="manage-uid-bypass"
               title=""
-              tone="cyan"
+              tone="red"
               boxed={false}
               checked={uidBypassAccess}
               onChange={onUidBypassAccess}
@@ -287,19 +285,19 @@ export function ManageModal({
           className={cn(
             "flex cursor-pointer select-none items-center justify-between rounded-xl border p-4 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all",
             emulatorBypassAccess
-              ? "border-[rgba(244,114,182,0.55)] bg-[rgba(32,14,38,0.8)] shadow-[0_0_20px_rgba(244,114,182,0.15)] lt:border-pink-300 lt:bg-pink-50"
-              : "border-[#2b1b42] bg-[rgba(18,12,32,0.65)] hover:border-[#3d275d] lt:border-slate-200 lt:bg-slate-50",
+              ? "border-[rgba(255,45,90,0.65)] bg-[rgba(32,4,12,0.85)] shadow-[0_0_20px_rgba(255,45,90,0.25)] lt:border-rose-300 lt:bg-rose-50"
+              : "border-[rgba(255,45,90,0.2)] bg-[rgba(16,3,8,0.7)] hover:border-[rgba(255,45,90,0.4)] lt:border-slate-200 lt:bg-slate-50",
           )}
         >
           <div className="flex items-center gap-3.5 pr-3">
-            <IconTile tone="pink" variant="ring" size="sm">
+            <IconTile tone="red" variant="ring" size="sm">
               <GamepadIcon />
             </IconTile>
             <div>
               <h4 className="text-[14.5px] font-bold text-white lt:text-slate-900">
                 Emulator Bypass Access
               </h4>
-              <p className="mt-0.5 text-[12.5px] text-[#c4a5dc] lt:text-slate-500">
+              <p className="mt-0.5 text-[12.5px] text-[#ff8ba7] lt:text-slate-500">
                 Enable emulator bypass key generator and privileges.
               </p>
             </div>
@@ -308,7 +306,7 @@ export function ManageModal({
             <NeonToggle
               id="manage-emulator-bypass"
               title=""
-              tone="pink"
+              tone="red"
               boxed={false}
               checked={emulatorBypassAccess}
               onChange={onEmulatorBypassAccess}
@@ -390,7 +388,7 @@ export function PassModal({
       <NeonInput
         id="newPass"
         label="New Password"
-        tone="blue"
+        tone="red"
         leftIcon={<LockIcon />}
         type={shown ? "text" : "password"}
         value={value}

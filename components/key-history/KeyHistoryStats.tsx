@@ -3,7 +3,8 @@
 import { useMemo, useSyncExternalStore } from "react";
 
 import { CalendarIcon, KeyIcon } from "@/components/icons";
-import { AlertTriangleIcon, InfinityIcon, NeonStat } from "@/components/neon";
+import { AlertTriangleIcon, InfinityIcon } from "@/components/neon";
+import { StatCard } from "@/components/ui/StatCard";
 import { keyValidity } from "@/lib/packages";
 import { useDashboard } from "@/lib/store";
 import { parseStamp } from "@/lib/trends";
@@ -142,34 +143,56 @@ export function KeyHistoryStats({ records }: { records: KeyRecord[] }) {
 
   return (
     <div className="grid gap-4 @[620px]/khist:grid-cols-2 @[1180px]/khist:grid-cols-4 sm:gap-5">
-      <NeonStat
-        tone="violet"
-        icon={<KeyIcon />}
-        label="Total keys"
+      <StatCard
+        accent="red"
+        icon={<KeyIcon className="size-6" />}
+        label="TOTAL KEYS"
         value={show(stats.total)}
-        spark={spark(stats.series?.running)}
-        sparkLabel="Running total of keys over the last 14 days"
+        trend={
+          stats.series?.running
+            ? {
+                series: stats.series.running,
+                change: null,
+                caption: "running total",
+              }
+            : undefined
+        }
       />
-      <NeonStat
-        tone="blue"
-        icon={<CalendarIcon />}
-        label="Last 7 days"
+      <StatCard
+        accent="red"
+        icon={<CalendarIcon className="size-6" />}
+        label="LAST 7 DAYS"
         value={show(stats.week)}
-        spark={spark(stats.series?.created)}
-        sparkLabel="Keys generated per day over the last 14 days"
+        trend={
+          stats.series?.created
+            ? {
+                series: stats.series.created,
+                change: null,
+                added: stats.week,
+                caption: "added in the last 7 days",
+              }
+            : undefined
+        }
       />
-      <NeonStat
-        tone="green"
-        icon={<InfinityIcon />}
-        label="Lifetime keys"
+      <StatCard
+        accent="red"
+        icon={<InfinityIcon className="size-6" />}
+        label="LIFETIME KEYS"
         value={show(stats.lifetime)}
-        spark={spark(stats.series?.lifetime)}
-        sparkLabel="Confirmed lifetime keys generated per day over the last 14 days"
+        trend={
+          stats.series?.lifetime
+            ? {
+                series: stats.series.lifetime,
+                change: null,
+                caption: "confirmed lifetime",
+              }
+            : undefined
+        }
       />
-      <NeonStat
-        tone="amber"
-        icon={<AlertTriangleIcon />}
-        label="Unconfirmed validity"
+      <StatCard
+        accent="orange"
+        icon={<AlertTriangleIcon className="size-6" />}
+        label="UNCONFIRMED VALIDITY"
         value={show(stats.unconfirmed)}
       />
     </div>

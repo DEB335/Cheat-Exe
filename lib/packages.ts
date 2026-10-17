@@ -96,16 +96,20 @@ export function whitelistDaysLabel(days: number): string {
  * the form has to offer these, and that module is server-only.
  */
 export const WHITELIST_REGIONS = [
-  { code: "IND", label: "India" },
-  { code: "BD", label: "Bangladesh" },
-  { code: "BR", label: "Brazil" },
-  { code: "SG", label: "Singapore" },
-  { code: "RU", label: "Russia" },
-  { code: "ID", label: "Indonesia" },
-  { code: "TW", label: "Taiwan" },
-  { code: "US", label: "United States" },
-  { code: "VN", label: "Vietnam" },
-  { code: "PK", label: "Pakistan" },
+  { code: "IND", label: "India", countryCode: "IN" },
+  { code: "BD", label: "Bangladesh", countryCode: "BD" },
+  { code: "BR", label: "Brazil", countryCode: "BR" },
+  { code: "SG", label: "Singapore / Global", countryCode: "SG" },
+  { code: "RU", label: "Russia", countryCode: "RU" },
+  { code: "ID", label: "Indonesia", countryCode: "ID" },
+  { code: "TW", label: "Taiwan", countryCode: "TW" },
+  { code: "US", label: "USA / North America", countryCode: "US" },
+  { code: "VN", label: "Vietnam", countryCode: "VN" },
+  { code: "TH", label: "Thailand", countryCode: "TH" },
+  { code: "ME", label: "Middle East", countryCode: "SA" },
+  { code: "PK", label: "Pakistan", countryCode: "PK" },
+  { code: "CIS", label: "CIS Region", countryCode: "CIS" },
+  { code: "OTHER", label: "Other Region", countryCode: "GLOBAL" },
 ] as const;
 
 export type WhitelistRegion = (typeof WHITELIST_REGIONS)[number]["code"];

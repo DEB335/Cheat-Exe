@@ -88,9 +88,9 @@ export function LiveDevicesTable({
                 <th
                   key={column}
                   className={cn(
-                    "h-11 border-b border-[rgba(96,165,250,0.28)] px-2.5 whitespace-nowrap 2xl:px-4",
-                    "text-[11.5px] font-extrabold tracking-[1.3px] text-[#dbeafe]/85 uppercase",
-                    "lt:border-[rgba(59,130,246,0.25)] lt:text-slate-600",
+                    "h-11 border-b border-[rgba(255,45,90,0.2)] px-2.5 whitespace-nowrap 2xl:px-4",
+                    "text-[11.5px] font-extrabold tracking-[1.3px] text-[#ffd6e0] uppercase",
+                    "lt:border-slate-200 lt:text-slate-600",
                   )}
                 >
                   {column}
@@ -187,11 +187,11 @@ function DeviceRow({
         "group/row animate-device-row-in relative [animation-fill-mode:backwards]",
         "transition-[transform,box-shadow] duration-300 ease-smooth",
         "hover:z-[1] hover:-translate-y-0.5",
-        "hover:shadow-[0_12px_18px_-10px_rgba(59,130,246,0.32)] lt:hover:shadow-[0_12px_18px_-11px_rgba(59,130,246,0.2)]",
-        // Faint blue rule under every row, and a brighter glass fill on hover.
-        "[&>td]:border-b [&>td]:border-[rgba(96,165,250,0.12)] [&>td]:transition-colors [&>td]:duration-300",
-        "hover:[&>td]:bg-[rgba(59,130,246,0.09)] [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl",
-        "lt:[&>td]:border-[rgba(59,130,246,0.14)] lt:hover:[&>td]:bg-[rgba(59,130,246,0.06)]",
+        "hover:shadow-[0_12px_22px_-10px_rgba(255,45,90,0.22)] lt:hover:shadow-[0_12px_18px_-11px_rgba(255,45,90,0.15)]",
+        // Faint crimson rule under every row, and a brighter glass fill on hover.
+        "[&>td]:border-b [&>td]:border-[rgba(255,45,90,0.1)] [&>td]:transition-colors [&>td]:duration-300",
+        "hover:[&>td]:bg-[rgba(255,45,90,0.06)] [&>td:first-child]:rounded-l-xl [&>td:last-child]:rounded-r-xl",
+        "lt:[&>td]:border-slate-200 lt:hover:[&>td]:bg-slate-50",
       )}
     >
       {/* Status. The neon accent bar rides this cell's left edge on hover. */}
@@ -199,14 +199,14 @@ function DeviceRow({
         className={cn(
           "relative px-2.5 py-3 2xl:px-4",
           "before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:content-['']",
-          "before:bg-[#3b82f6] before:opacity-0 before:shadow-[0_0_6px_rgba(59,130,246,0.45)] before:transition-opacity",
+          "before:bg-[#ff1f5a] before:opacity-0 before:shadow-[0_0_8px_rgba(255,31,90,0.6)] before:transition-opacity",
           "group-hover/row:before:opacity-100",
         )}
       >
         <div className="flex flex-col items-start gap-1">
           <OnlinePill />
           {isCurrent && (
-            <span className="pl-1 text-[9.5px] font-bold tracking-[0.8px] text-[#60a5fa] uppercase lt:text-blue-600">
+            <span className="pl-1 text-[9.5px] font-bold tracking-[0.8px] text-[#ff6b8b] uppercase lt:text-rose-600">
               This device
             </span>
           )}
@@ -237,7 +237,7 @@ function DeviceRow({
 
       <td className="px-2.5 py-3 2xl:px-4">
         <div className="flex items-center gap-2">
-          <MapPinIcon className="size-4 shrink-0 text-[#93c5fd] lt:text-blue-500" />
+          <MapPinIcon className="size-4 shrink-0 text-[#ff7a98] lt:text-rose-500" />
           <span
             title={device.ip}
             className="max-w-[116px] truncate font-mono text-[12.5px] whitespace-nowrap text-[#cbd5e1] 2xl:max-w-none lt:text-slate-700"
@@ -250,9 +250,9 @@ function DeviceRow({
             title="Copy IP"
             aria-label={`Copy IP ${device.ip}`}
             className={cn(
-              "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#93c5fd]/70",
-              "transition-all duration-200 hover:bg-[rgba(59,130,246,0.18)] hover:text-white active:scale-90",
-              "lt:text-blue-500/70 lt:hover:bg-blue-50 lt:hover:text-blue-700",
+              "flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-[#ff7a98]/80",
+              "transition-all duration-200 hover:bg-[rgba(255,45,90,0.18)] hover:text-white active:scale-90",
+              "lt:text-rose-500 lt:hover:bg-rose-50 lt:hover:text-rose-700",
             )}
           >
             {copied ? <CheckIcon className="size-3.5 text-emerald-400" /> : <CopyIcon className="size-3.5" />}
@@ -262,7 +262,7 @@ function DeviceRow({
 
       <td className="px-2.5 py-3 2xl:px-4">
         <div className="flex items-center gap-2.5 whitespace-nowrap">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-[rgba(96,165,250,0.3)] max-xl:hidden bg-[rgba(59,130,246,0.12)] text-[#93c5fd] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] lt:border-blue-200 lt:bg-blue-50 lt:text-blue-600 lt:shadow-none">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-[rgba(255,45,90,0.25)] max-xl:hidden bg-[rgba(255,45,90,0.12)] text-[#ff7a98] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] lt:border-slate-200 lt:bg-slate-50 lt:text-slate-600 lt:shadow-none">
             <CalendarIcon className="size-3.5" />
           </span>
           <div>
@@ -275,7 +275,7 @@ function DeviceRow({
       <td className="px-2.5 py-3 2xl:px-4">
         <div className="flex flex-nowrap items-center gap-2">
           {isCurrent ? (
-            <span className="min-w-[72px] text-[12px] font-bold text-[#60a5fa] 2xl:min-w-[84px] lt:text-blue-600">Active</span>
+            <span className="min-w-[72px] text-[12px] font-bold text-[#ff4d79] 2xl:min-w-[84px] lt:text-rose-600">Active</span>
           ) : (
             <KickButton onClick={() => onKick(device.sessionId, name)} />
           )}
@@ -322,15 +322,15 @@ function OnlinePill() {
       className={cn(
         "inline-flex w-max items-center gap-2 rounded-full border px-3 py-1",
         "text-[10.5px] font-extrabold tracking-[0.8px] whitespace-nowrap uppercase",
-        "border-[rgba(52,211,153,0.45)] text-[#6ee7b7]",
-        "bg-[linear-gradient(180deg,rgba(16,185,129,0.3),rgba(16,185,129,0.1))]",
-        "shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.25),0_0_8px_rgba(16,185,129,0.14)]",
-        "lt:border-emerald-300 lt:bg-none lt:bg-emerald-50 lt:text-emerald-700 lt:shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]",
+        "border-[rgba(255,45,90,0.5)] text-[#ff4d79]",
+        "bg-[linear-gradient(180deg,rgba(255,45,90,0.25),rgba(255,45,90,0.08))]",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-2px_4px_rgba(0,0,0,0.25),0_0_10px_rgba(255,45,90,0.25)]",
+        "lt:border-rose-300 lt:bg-none lt:bg-rose-50 lt:text-rose-700 lt:shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]",
       )}
     >
       <span className="relative flex size-2 shrink-0">
-        <span aria-hidden className="absolute inset-0 rounded-full bg-[#34d399] opacity-20 [transform:scale(1.55)]" />
-        <span className="relative size-2 rounded-full bg-[#34d399] shadow-[0_0_5px_rgba(52,211,153,0.45)] lt:bg-emerald-500 lt:shadow-none" />
+        <span aria-hidden className="absolute inset-0 rounded-full bg-[#ff4d79] opacity-25 [transform:scale(1.55)]" />
+        <span className="relative size-2 rounded-full bg-[#ff4d79] shadow-[0_0_6px_rgba(255,45,90,0.6)] lt:bg-rose-500 lt:shadow-none" />
       </span>
       Online
     </span>
@@ -339,14 +339,14 @@ function OnlinePill() {
 
 const AVATAR_STYLE: Record<Role, React.CSSProperties> = {
   OWNER: {
-    background: "radial-gradient(circle at 32% 28%, #dbeafe 0%, #60a5fa 24%, #2563eb 58%, #1e3a8a 100%)",
+    background: "radial-gradient(circle at 32% 28%, #ffe4ec 0%, #ff4d79 24%, #e11d48 58%, #881337 100%)",
     boxShadow:
-      "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 8px rgba(59,130,246,0.22)",
+      "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 10px rgba(255,31,90,0.35)",
   },
   RESELLER: {
-    background: "radial-gradient(circle at 32% 28%, #ede9fe 0%, #a78bfa 24%, #7c3aed 58%, #4c1d95 100%)",
+    background: "radial-gradient(circle at 32% 28%, #fef3c7 0%, #f59e0b 24%, #d97706 58%, #78350f 100%)",
     boxShadow:
-      "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 8px rgba(139,92,246,0.22)",
+      "inset 0 -3px 6px rgba(0,0,0,0.35), inset 0 2px 3px rgba(255,255,255,0.45), 0 0 10px rgba(245,158,11,0.3)",
   },
 };
 
@@ -516,14 +516,12 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
         aria-expanded={open}
         onClick={() => (open ? setPos(null) : place())}
         className={cn(
-          "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border text-[#bfdbfe]",
-          "border-[rgba(96,165,250,0.4)] bg-[rgba(59,130,246,0.12)]",
-          "shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_6px_rgba(59,130,246,0.11)]",
-          "transition-all duration-200 hover:border-[rgba(147,197,253,0.7)] hover:bg-[rgba(59,130,246,0.22)] hover:text-white active:scale-90",
-          // lt:hover:text-* is needed: hover:text-white outranks lt:text-*
-          // (the lt: variant adds no specificity) and vanished on blue-50.
-          "lt:border-blue-200 lt:bg-white lt:text-blue-600 lt:shadow-[0_1px_3px_rgba(15,23,42,0.08)] lt:hover:bg-blue-50 lt:hover:text-blue-700",
-          open && "border-[rgba(147,197,253,0.8)] bg-[rgba(59,130,246,0.25)] text-white lt:bg-blue-50 lt:text-blue-700",
+          "flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full border text-[#ffb4c8]",
+          "border-[rgba(255,45,90,0.32)] bg-[rgba(255,31,90,0.12)]",
+          "shadow-[inset_0_1px_0_rgba(255,255,255,0.15),0_0_8px_rgba(255,31,90,0.15)]",
+          "transition-all duration-200 hover:border-[rgba(255,60,110,0.7)] hover:bg-[rgba(255,31,90,0.24)] hover:text-white active:scale-90",
+          "lt:border-rose-200 lt:bg-white lt:text-rose-600 lt:shadow-[0_1px_3px_rgba(15,23,42,0.08)] lt:hover:bg-rose-50 lt:hover:text-rose-700",
+          open && "border-[rgba(255,60,110,0.85)] bg-[rgba(255,31,90,0.3)] text-white lt:bg-rose-50 lt:text-rose-700",
         )}
       >
         <MoreHorizontalIcon className="size-4" />
@@ -537,8 +535,8 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
             style={{ top: pos.top, left: pos.left, width: MENU_W }}
             className={cn(
               "animate-dropdown-fade fixed z-[1000] overflow-hidden rounded-xl border p-1.5",
-              "border-[rgba(96,165,250,0.3)] bg-[rgba(8,15,40,0.94)] backdrop-blur-[20px]",
-              "shadow-[0_18px_40px_rgba(0,0,0,0.55),0_0_12px_rgba(59,130,246,0.09)]",
+              "border-[rgba(255,45,90,0.25)] bg-[linear-gradient(180deg,rgba(24,5,12,0.92),rgba(14,2,7,0.96))] backdrop-blur-[24px]",
+              "shadow-[0_18px_40px_rgba(0,0,0,0.7),0_0_16px_rgba(255,31,90,0.15)]",
               "lt:border-slate-200 lt:bg-white/95 lt:shadow-[0_18px_40px_rgba(15,23,42,0.15)]",
             )}
           >
@@ -557,8 +555,8 @@ function MoreMenu({ items }: { items: MenuItem[] }) {
                   "flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[12.5px] font-semibold",
                   "transition-colors disabled:cursor-not-allowed disabled:opacity-40",
                   danger
-                    ? "text-[#fda4af] hover:bg-[rgba(244,63,94,0.14)] lt:text-rose-600 lt:hover:bg-rose-50"
-                    : "text-[#dbeafe] hover:bg-[rgba(59,130,246,0.16)] lt:text-slate-700 lt:hover:bg-blue-50",
+                    ? "text-[#fda4af] hover:bg-[rgba(244,63,94,0.18)] lt:text-rose-600 lt:hover:bg-rose-50"
+                    : "text-[#ffe2ea] hover:bg-[rgba(255,31,90,0.16)] hover:text-white lt:text-slate-700 lt:hover:bg-rose-50",
                 )}
               >
                 <Icon className="size-3.5 shrink-0" />

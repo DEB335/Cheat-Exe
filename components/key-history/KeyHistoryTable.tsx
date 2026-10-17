@@ -162,9 +162,9 @@ const KeyRow = memo(function KeyRow({
           />
           <KeyIcon
             aria-hidden
-            className="size-[18px] shrink-0 text-[#a78bfa] drop-shadow-[0_0_5px_rgba(167,139,250,0.22)] lt:text-violet-600 lt:drop-shadow-none"
+            className="size-[18px] shrink-0 text-[#ff4d73] drop-shadow-[0_0_5px_rgba(255,45,90,0.35)] lt:text-rose-600 lt:drop-shadow-none"
           />
-          <span className="text-[#6ef3a5] lt:text-emerald-700">
+          <span className="font-mono font-bold tracking-wide text-white drop-shadow-[0_0_6px_rgba(255,255,255,0.2)] lt:text-slate-900">
             {item.key}
           </span>
           {item.banned ? (
@@ -189,15 +189,15 @@ const KeyRow = memo(function KeyRow({
         </NeonCell>
       ) : null}
       <NeonCell>
-        <span className="flex items-center gap-2.5 whitespace-nowrap">
-          <CalendarIcon aria-hidden className="size-[18px] shrink-0 text-[#a78bfa] lt:text-violet-600" />
+        <span className="flex items-center gap-2.5 whitespace-nowrap text-[#cbd5e1]">
+          <CalendarIcon aria-hidden className="size-[18px] shrink-0 text-[#ff7a98] lt:text-rose-500" />
           {formatStampForDisplay(item.date)}
         </span>
       </NeonCell>
       {showCopy ? (
         <NeonCell>
           <NeonButton
-            tone="blue"
+            tone="red"
             icon={<CopyIcon />}
             className="min-w-[104px]"
             onClick={async () => {

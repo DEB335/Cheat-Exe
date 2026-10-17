@@ -150,24 +150,8 @@ export default function GeneratorPage() {
     <div className="grid gap-[30px] xl:grid-cols-[3fr_2fr]">
       <NeonPanel rim="aurora" className="flex flex-col">
         <PanelHeader
-          icon={<CubeIcon />}
-          iconTone="blue"
-          iconTone2="violet"
           title="Generate License Keys"
           subtitle="Create keys through your connected API."
-          actions={
-            // Decoration, as it always was -- there is nothing for it to
-            // do, so it is a tile and not a button. Dropped on phones,
-            // where it would wrap onto a row of its own.
-            <IconTile
-              tone="blue"
-              variant="glass"
-              size="md"
-              className="max-sm:hidden [&>svg]:size-[22px]"
-            >
-              <KeyIcon />
-            </IconTile>
-          }
         />
 
         <p

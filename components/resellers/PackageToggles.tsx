@@ -1,4 +1,5 @@
-import { PackageIcon, packageTone, toneVars } from "@/components/neon";
+import { CheckIcon } from "@/components/icons";
+import { PackageIcon } from "@/components/neon";
 import { cn } from "@/lib/utils";
 
 /** Adds or removes one package from a grant list held in state. */
@@ -11,17 +12,10 @@ export function togglePackage(
 }
 
 /**
- * The grant list as a row of package chips, each in its own colour and
- * glyph: lit and filled when granted, a dim outline when not.
- *
- * Each chip is a real checkbox under a label, so Tab and Space work and
- * a screen reader hears "checked" -- the colour is only the look of it.
- * `size` "md" is the create form's row; "sm" fits the Perms modal.
- *
- * The md row spreads its chips across the panel like the mockup, as
- * equal grid tracks, whatever the provider's package count. Phones keep
- * content-width chips that wrap: two equal tracks would cut the longer
- * names.
+ * Package selection tiles matching the generator's package cards:
+ * dark crimson glass base, pure white icons and typography,
+ * subtle watermark icon on resting tiles, and glowing red border
+ * with checkmark badge on selected tiles.
  */
 export function PackageToggles({
   names,
@@ -44,40 +38,43 @@ export function PackageToggles({
       role="group"
       {...aria}
       className={cn(
-        "flex flex-wrap gap-2.5 sm:gap-3",
-        size === "md" && "sm:grid sm:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]",
+        "grid gap-2.5 sm:gap-3",
+        size === "md"
+          ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
+          : "grid-cols-2 sm:grid-cols-3",
         className,
       )}
     >
       {names.map((name) => {
         const on = selected.includes(name);
+        const subtitle = name.toLowerCase().includes("package") ? name : `${name} Package`;
+
         return (
           <label
             key={name}
             title={name}
-            style={toneVars(packageTone(name))}
             className={cn(
-              "inline-flex shrink-0 cursor-pointer items-center border font-bold tracking-[0.6px] whitespace-nowrap uppercase select-none",
+              "group/tile relative flex min-w-0 cursor-pointer flex-col items-start border-[1.5px] select-none",
+              "transition-[translate,scale,box-shadow,border-color] duration-300 ease-smooth",
+              "hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]",
+              "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[#ff0037]",
               size === "md"
-                ? "h-11 min-w-0 justify-center gap-2.5 rounded-[12px] px-4 text-[13.5px]"
-                : "h-9 gap-2 rounded-[10px] px-3 text-[12px]",
-              "transition-[translate,scale,background-color,border-color,box-shadow,color] duration-200 ease-smooth",
-              "hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.96] active:duration-75",
-              "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[rgb(var(--tone-hi))]",
+                ? "min-h-[120px] rounded-[16px] px-3.5 pt-4 pb-3.5"
+                : "min-h-[90px] rounded-[14px] px-3 pt-3 pb-2.5",
               on
                 ? [
-                    "border-[rgba(var(--tone-hi),0.85)] text-white",
-                    "[background:linear-gradient(180deg,rgba(var(--tone),0.44),rgba(var(--tone),0.14))]",
-                    "shadow-[0_0_11px_-2px_rgba(var(--tone),0.4),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_0_14px_rgba(var(--tone),0.12)]",
-                    "hover:shadow-[0_0_14px_-2px_rgba(var(--tone),0.54),inset_0_1px_0_rgba(255,255,255,0.28),inset_0_0_16px_rgba(var(--tone),0.15)]",
-                    "lt:border-[rgb(var(--tone))] lt:[background:rgba(var(--tone),0.14)] lt:text-[var(--tone-lt)] lt:shadow-none",
-                    "lt:hover:shadow-[0_3px_7px_-2px_rgba(var(--tone),0.25)]",
+                    "[background:linear-gradient(180deg,rgba(255,255,255,0.15),rgba(255,255,255,0)_50%),radial-gradient(130%_90%_at_0%_0%,rgba(255,0,55,0.35),rgba(255,0,55,0)_55%),linear-gradient(150deg,rgba(70,6,20,0.95)_0%,rgba(40,4,12,0.95)_52%,rgba(20,2,6,0.98)_100%)]",
+                    "border-[#ff0037]",
+                    "shadow-[0_0_20px_rgba(255,0,55,0.45),inset_0_1px_0_rgba(255,255,255,0.35),inset_0_0_18px_rgba(255,0,55,0.2)]",
+                    "lt:border-red-600 lt:[background:linear-gradient(150deg,rgba(255,230,235,0.95),rgba(255,255,255,0.95))]",
                   ]
                 : [
-                    "border-[rgba(var(--tone),0.3)] bg-[rgba(8,11,36,0.55)] text-[#8f9bc4]",
-                    "hover:border-[rgba(var(--tone),0.7)] hover:bg-[rgba(var(--tone),0.08)] hover:text-white",
-                    "lt:border-slate-300 lt:bg-white lt:text-slate-500",
-                    "lt:hover:border-[rgba(var(--tone),0.6)] lt:hover:bg-[rgba(var(--tone),0.05)] lt:hover:text-slate-900",
+                    "[background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0)_50%),radial-gradient(130%_90%_at_0%_0%,rgba(255,45,90,0.14),rgba(255,45,90,0)_55%),linear-gradient(150deg,rgba(28,4,12,0.85)_0%,rgba(18,2,8,0.9)_52%,rgba(12,2,5,0.95)_100%)] backdrop-blur-xl",
+                    "border-[rgba(255,45,90,0.28)]",
+                    "shadow-[0_0_10px_-4px_rgba(255,0,55,0.25),inset_0_1px_0_rgba(255,255,255,0.12)]",
+                    "hover:border-[#ff2a55]",
+                    "hover:shadow-[0_0_16px_rgba(255,0,55,0.35),inset_0_1px_0_rgba(255,255,255,0.2)]",
+                    "lt:border-rose-200 lt:bg-white lt:hover:border-rose-400",
                   ],
             )}
           >
@@ -87,20 +84,65 @@ export function PackageToggles({
               onChange={(event) => onToggle(name, event.target.checked)}
               className="sr-only"
             />
+
+            {/* Top-left main icon (always pure white with soft glow) */}
             <PackageIcon
               name={name}
               className={cn(
-                "shrink-0",
-                size === "md" ? "size-[18px]" : "size-[15px]",
-                on
-                  ? "text-[rgb(var(--tone-hi))] drop-shadow-[0_0_5px_rgba(var(--tone),0.38)] lt:text-[var(--tone-lt)] lt:drop-shadow-none"
-                  : "text-[rgba(var(--tone-hi),0.5)] lt:text-[rgba(var(--tone),0.55)]",
+                "shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.35)]",
+                "transition-transform duration-300 ease-smooth group-hover/tile:scale-110",
+                size === "md" ? "mb-3 size-[26px]" : "mb-2 size-[20px]",
+                "lt:text-slate-800 lt:drop-shadow-none",
               )}
             />
-            {/* Truncates only for a name longer than any grid track
-                -- one the provider added since. The label still reads
-                in full to a screen reader, and on hover. */}
-            <span className="truncate">{name}</span>
+
+            {/* Top-right indicator: red checkmark badge when selected, faint white watermark icon when unselected */}
+            {on ? (
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute flex items-center justify-center rounded-full border border-white/90 text-white shadow-[0_0_10px_rgba(255,0,55,0.7)] [background:linear-gradient(135deg,#ff0037,#cc002c)]",
+                  size === "md"
+                    ? "top-2.5 right-2.5 size-[22px]"
+                    : "top-2 right-2 size-[18px]",
+                )}
+              >
+                <CheckIcon
+                  className={size === "md" ? "size-3" : "size-2.5"}
+                  strokeWidth={3.2}
+                />
+              </span>
+            ) : (
+              <PackageIcon
+                name={name}
+                className={cn(
+                  "absolute text-white opacity-25 transition-all duration-300 group-hover/tile:opacity-50 group-hover/tile:scale-110",
+                  size === "md" ? "top-3 right-3 size-4" : "top-2.5 right-2.5 size-3.5",
+                  "lt:text-slate-400",
+                )}
+              />
+            )}
+
+            {/* Bottom typography: bold white title & subtitle */}
+            <span className="mt-auto flex w-full flex-col">
+              <span
+                className={cn(
+                  "font-display leading-tight font-bold break-words text-white uppercase tracking-wide [text-shadow:0_1px_8px_rgba(0,0,0,0.35)] lt:text-slate-900 lt:[text-shadow:none]",
+                  size === "md" ? "text-[13px]" : "text-[11.5px]",
+                )}
+              >
+                {name}
+              </span>
+              <span
+                className={cn(
+                  "truncate font-medium transition-colors",
+                  size === "md" ? "mt-0.5 text-[11.5px]" : "mt-0.5 text-[10px]",
+                  on ? "text-white/90 lt:text-slate-600" : "text-white/70 lt:text-slate-500",
+                )}
+              >
+                {subtitle}
+              </span>
+            </span>
           </label>
         );
       })}

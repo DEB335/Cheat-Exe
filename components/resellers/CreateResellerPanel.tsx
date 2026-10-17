@@ -24,14 +24,10 @@ export function CreateResellerPanel({ packageNames }: { packageNames: string[] }
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  // null means nobody has picked yet, which reads as everything on
-  // offer. Derived rather than copied into state on mount: the live
-  // list can arrive later, and a default frozen before it landed would
-  // leave a new package out of every reseller created since.
-  const [chosen, setChosen] = useState<string[] | null>(null);
-  const packages = chosen ?? packageNames;
+  // By default all packages are unselected (off)
+  const [packages, setPackagesState] = useState<string[]>([]);
   const setPackages = (updater: (current: string[]) => string[]) =>
-    setChosen((current) => updater(current ?? packageNames));
+    setPackagesState((current) => updater(current));
   const [validityDays, setValidityDays] = useState("30");
   const [keyLimit, setKeyLimit] = useState("");
   const [deviceLocked, setDeviceLocked] = useState(true);
@@ -50,6 +46,7 @@ export function CreateResellerPanel({ packageNames }: { packageNames: string[] }
       });
       setUsername("");
       setPassword("");
+      setPackagesState([]);
       toast("Reseller created successfully!", "success");
       void refresh();
     } catch (err) {
@@ -61,23 +58,9 @@ export function CreateResellerPanel({ packageNames }: { packageNames: string[] }
 
   return (
     <NeonPanel rim="aurora" className="mb-6">
-      {/* The mockup's corner glyph. Decorative, and kept off phones,
-          where the title runs the full width and would slide under it. */}
-      <IconTile
-        tone="magenta"
-        variant="glass"
-        size="sm"
-        className="absolute top-7 right-7 z-10 max-sm:hidden xl:top-8 xl:right-8"
-      >
-        <UserIcon />
-      </IconTile>
-
-      <div className="relative z-10 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8 2xl:grid-cols-[minmax(0,1fr)_420px] 2xl:gap-10">
+      <div className="relative z-10">
         <div className="min-w-0">
           <PanelHeader
-            icon={<UserPlusIcon />}
-            iconTone="violet"
-            iconTone2="magenta"
             title="Create Reseller Account"
             subtitle="Give dashboard access to sub-users."
             className="sm:pr-14 lg:pr-0"
@@ -87,7 +70,7 @@ export function CreateResellerPanel({ packageNames }: { packageNames: string[] }
             <NeonInput
               id="resUser"
               label="Reseller Username"
-              tone="blue"
+              tone="red"
               leftIcon={<UserIcon />}
               value={username}
               onChange={(event) => setUsername(event.target.value)}
@@ -96,7 +79,7 @@ export function CreateResellerPanel({ packageNames }: { packageNames: string[] }
             <NeonInput
               id="resPass"
               label="Password (min 4 chars)"
-              tone="magenta"
+              tone="red"
               leftIcon={<LockIcon />}
               type="password"
               value={password}
@@ -109,7 +92,7 @@ export function CreateResellerPanel({ packageNames }: { packageNames: string[] }
             <NeonInput
               id="resValidity"
               label="Validity (days)"
-              tone="cyan"
+              tone="red"
               leftIcon={<CalendarIcon />}
               type="number"
               min={0}
@@ -122,7 +105,7 @@ export function CreateResellerPanel({ packageNames }: { packageNames: string[] }
             <NeonInput
               id="resKeyLimit"
               label="Key limit"
-              tone="violet"
+              tone="red"
               leftIcon={<KeyIcon />}
               type="number"
               min={0}
@@ -141,13 +124,6 @@ export function CreateResellerPanel({ packageNames }: { packageNames: string[] }
             title="Lock to one device"
             description="Binds the account to the first machine it signs in from, so the login cannot be shared. Reset the HWID from the table to move them to a new device."
           />
-        </div>
-
-        {/* The hologram's column: an empty track the form never enters,
-            so the scene can stand centred beside it without covering a
-            field. Phones and tablets drop it and keep the form whole. */}
-        <div aria-hidden className="relative hidden lg:block">
-          <ResellerScene className="pointer-events-none absolute inset-0 m-auto size-[340px] 2xl:size-[420px]" />
         </div>
       </div>
 

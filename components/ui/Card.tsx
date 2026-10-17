@@ -28,25 +28,23 @@ export function Card({ flat = false, className, children, ...rest }: CardProps) 
     <div
       {...rest}
       className={cn(
-        "glow-ring relative rounded-[20px] border border-line p-[30px]",
-        "transition-[transform] duration-[400ms] ease-smooth",
+        "glow-ring relative rounded-[20px] border border-[rgba(255,45,90,0.16)] p-[30px]",
+        "backdrop-blur-xl transition-[transform,box-shadow,border-color] duration-300 ease-smooth",
         "before:pointer-events-none before:absolute before:inset-[-1px] before:rounded-[inherit] before:border",
-        "before:opacity-0 before:transition-opacity before:duration-[400ms] before:ease-smooth hover:before:opacity-100",
+        "before:opacity-0 before:transition-opacity before:duration-300 before:ease-smooth hover:before:opacity-100",
         "lt:before:shadow-none",
         flat
           ? [
-              "bg-[rgba(10,15,30,0.72)] shadow-[var(--card-shadow)]",
-              "before:border-[rgb(58,16,41)] before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.044)]",
-              "lt:before:border-[rgb(250,222,226)]",
-              "hover:-translate-y-1 hover:scale-[1.005]",
-              "hover:glow-ring-slow lt:bg-white/70",
+              "bg-[linear-gradient(180deg,rgba(22,5,11,0.52)_0%,rgba(12,2,6,0.72)_100%)] shadow-[0_12px_28px_-10px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.06)]",
+              "before:border-[rgba(255,45,90,0.38)] before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.08)]",
+              "hover:-translate-y-1 hover:border-[rgba(255,45,90,0.38)] hover:shadow-[0_16px_34px_-8px_rgba(255,0,50,0.16)]",
+              "hover:glow-ring-slow lt:bg-white/70 lt:border-slate-200",
             ]
           : [
-              "card-surface",
-              "before:border-[rgb(57,13,35)] before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.076)]",
-              "lt:before:border-[rgb(251,223,227)]",
-              "hover:-translate-y-1.5 hover:scale-[1.005]",
-              "hover:glow-ring-on",
+              "bg-[linear-gradient(180deg,rgba(26,6,13,0.52)_0%,rgba(13,3,7,0.74)_100%)] shadow-[0_16px_36px_-12px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.08)]",
+              "before:border-[rgba(255,45,90,0.45)] before:shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]",
+              "hover:-translate-y-1.5 hover:border-[rgba(255,45,90,0.45)] hover:shadow-[0_20px_42px_-10px_rgba(255,0,50,0.22)]",
+              "hover:glow-ring-on lt:border-slate-200",
             ],
         className,
       )}

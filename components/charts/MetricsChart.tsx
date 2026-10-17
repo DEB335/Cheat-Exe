@@ -48,27 +48,27 @@ type Palette = {
 
 const DARK: Palette = {
   line: [
-    [0, "#ff2d7a"],
-    [0.36, "#ff2d86"],
-    [0.58, "#d946ef"],
-    [0.8, "#ff3d9a"],
-    [1, "#ff2d7a"],
+    [0, "#ff1f5a"],
+    [0.36, "#ff3366"],
+    [0.58, "#ff1144"],
+    [0.8, "#ff3860"],
+    [1, "#ff1f5a"],
   ],
-  fillTop: "rgba(255, 45, 122, 0.58)",
-  fillMid: "rgba(196, 38, 170, 0.3)",
-  fillBottom: "rgba(110, 30, 190, 0.06)",
-  point: "#ff2d7a",
-  ring: "#ffe2ee",
-  bloom: "rgba(255, 45, 122, 0.4)",
-  bloomBlur: 10,
-  grid: "rgba(96, 116, 214, 0.13)",
-  tick: "#c9d3ef",
-  guide: "rgba(255, 184, 214, 0.26)",
-  axisDot: "#ffd6e6",
-  tooltipBg: "rgba(6, 9, 34, 0.94)",
+  fillTop: "rgba(255, 31, 90, 0.45)",
+  fillMid: "rgba(225, 29, 72, 0.18)",
+  fillBottom: "rgba(180, 10, 40, 0.0)",
+  point: "#ff1f5a",
+  ring: "#ffffff",
+  bloom: "rgba(255, 31, 90, 0.65)",
+  bloomBlur: 12,
+  grid: "rgba(255, 255, 255, 0.05)",
+  tick: "#d4b0b8",
+  guide: "rgba(255, 45, 90, 0.3)",
+  axisDot: "#ff708f",
+  tooltipBg: "rgba(22, 5, 11, 0.94)",
   tooltipTitle: "#ffffff",
-  tooltipBody: "#ff5c9a",
-  tooltipBorder: "rgba(120, 140, 255, 0.24)",
+  tooltipBody: "#ff4d79",
+  tooltipBorder: "rgba(255, 45, 90, 0.35)",
 };
 
 const LIGHT: Palette = {
@@ -714,24 +714,24 @@ export function PerformanceTicker() {
         title="Client frame rate, sampled briefly every 10s"
         className={cn(
           pill,
-          "border-[rgba(22,214,150,0.5)] bg-[#022b2c] text-[#3fe3ae]",
-          "shadow-[0_0_10px_rgba(16,185,129,0.09),inset_0_0_14px_rgba(16,185,129,0.06)]",
+          "border-[rgba(255,45,90,0.28)] bg-[linear-gradient(180deg,rgba(32,8,16,0.65),rgba(16,4,8,0.85))] text-[#5cf2c4] backdrop-blur-md",
+          "shadow-[0_4px_14px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]",
           "lt:border-[rgba(16,185,129,0.35)] lt:bg-[rgba(16,185,129,0.1)] lt:text-[#047857] lt:shadow-none",
         )}
       >
-        <ScreenIcon className="size-[19px] shrink-0" />
+        <ScreenIcon className="size-[19px] shrink-0 text-[#10b981]" />
         <span>{fps === null ? "-- FPS" : `${fps} FPS`}</span>
       </div>
       <div
         title="Round-trip latency to this server"
         className={cn(
           pill,
-          "border-[rgba(236,160,58,0.5)] bg-[#261c15] text-[#ffc454]",
-          "shadow-[0_0_10px_rgba(245,158,11,0.07),inset_0_0_14px_rgba(245,158,11,0.05)]",
+          "border-[rgba(255,45,90,0.28)] bg-[linear-gradient(180deg,rgba(32,8,16,0.65),rgba(16,4,8,0.85))] text-[#ff809b] backdrop-blur-md",
+          "shadow-[0_4px_14px_-2px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]",
           "lt:border-[rgba(217,119,6,0.35)] lt:bg-[rgba(245,158,11,0.1)] lt:text-[#b45309] lt:shadow-none",
         )}
       >
-        <BoltIcon className="size-[18px] shrink-0" />
+        <BoltIcon className="size-[18px] shrink-0 text-[#ff1f5a]" />
         <span>{ping === null ? "-- ms" : `${ping}ms`}</span>
       </div>
     </div>

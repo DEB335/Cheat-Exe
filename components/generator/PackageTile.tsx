@@ -29,7 +29,7 @@ const liftOver = (rgb: string, alpha: number, base: number[]) =>
   channels(rgb)
     .map((c, i) => lift(c * alpha + base[i] * (1 - alpha)))
     .join(", ");
-const NAVY = [11, 14, 48]; // #0b0e30, the tile's base
+const NAVY = [24, 4, 11]; // dark crimson glass base
 const WHITE = [255, 255, 255];
 
 function selectedVars(name: string): React.CSSProperties {
@@ -102,26 +102,25 @@ export function PackageTile({
         // glowing"), hover and selected no more than ~1.4x the resting one.
         selected
           ? [
-              "[background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0)_50%),radial-gradient(130%_90%_at_0%_0%,rgba(255,255,255,0.19),rgba(255,255,255,0)_55%),linear-gradient(150deg,rgb(var(--fill-0))_0%,rgb(var(--fill-1))_52%,rgb(var(--fill-2))_100%)]",
-              "lt:[background:linear-gradient(150deg,rgb(var(--fill-lt-0)),rgb(var(--fill-lt-1)),rgb(var(--fill-lt-2)),rgb(var(--fill-lt-3)),rgb(var(--fill-lt-4)))]",
+              "[background:linear-gradient(180deg,rgba(255,255,255,0.15),rgba(255,255,255,0)_50%),radial-gradient(130%_90%_at_0%_0%,rgba(255,0,55,0.35),rgba(255,0,55,0)_55%),linear-gradient(150deg,rgba(70,6,20,0.95)_0%,rgba(40,4,12,0.95)_52%,rgba(20,2,6,0.98)_100%)]",
+              "lt:[background:linear-gradient(150deg,rgba(255,230,235,0.95),rgba(255,255,255,0.95))]",
             ]
           : [
-              "[background:linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0)_50%),radial-gradient(130%_90%_at_0%_0%,rgba(255,255,255,0.16),rgba(255,255,255,0)_55%),linear-gradient(150deg,rgba(var(--tone),0.86)_0%,rgba(var(--tone),0.52)_52%,rgba(var(--tone),0.3)_100%),#0b0e30]",
-              "lt:[background:linear-gradient(150deg,rgba(var(--tone),0.2),rgba(var(--tone),0.06)),#fff]",
+              "[background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0)_50%),radial-gradient(130%_90%_at_0%_0%,rgba(255,45,90,0.14),rgba(255,45,90,0)_55%),linear-gradient(150deg,rgba(28,4,12,0.85)_0%,rgba(18,2,8,0.9)_52%,rgba(12,2,5,0.95)_100%)] backdrop-blur-xl",
+              "lt:[background:linear-gradient(150deg,rgba(255,245,247,0.9),#fff)]",
             ],
         selected
           ? [
-              "glow-ring-on -translate-y-1 scale-[1.02] border-[rgba(255,255,255,0.95)]",
-              "shadow-[0_0_0_1px_rgba(var(--tone-hi),0.6),0_0_16px_-1px_rgba(var(--tone),0.43),0_8px_17px_-8px_rgba(var(--tone),0.4),inset_0_1px_0_rgba(255,255,255,0.35),inset_0_0_22px_rgba(var(--tone-hi),0.13)]",
-              "lt:border-[rgb(var(--tone))] lt:shadow-[0_6px_13px_-7px_rgba(var(--tone),0.36),0_0_0_1px_rgba(var(--tone),0.5)]",
+              "border-[#ff0037]",
+              "shadow-[0_0_20px_rgba(255,0,55,0.45),inset_0_1px_0_rgba(255,255,255,0.35),inset_0_0_18px_rgba(255,0,55,0.2)]",
+              "lt:border-red-600 lt:shadow-[0_6px_13px_-7px_rgba(225,29,72,0.36)]",
             ]
           : [
-              "border-[rgba(var(--tone-hi),0.7)]",
-              "shadow-[0_0_12px_-4px_rgba(var(--tone),0.38),inset_0_1px_0_rgba(255,255,255,0.22),inset_0_0_18px_rgba(var(--tone-hi),0.08)]",
-              "hover:glow-ring-on hover:-translate-y-1 hover:border-[rgb(var(--tone-hi))]",
-              "hover:shadow-[0_0_14px_-2px_rgba(var(--tone),0.41),0_7px_14px_-8px_rgba(var(--tone),0.41),inset_0_1px_0_rgba(255,255,255,0.24),inset_0_0_20px_rgba(var(--tone),0.1)]",
-              "lt:border-[rgba(var(--tone),0.45)] lt:shadow-[0_1px_5px_-2px_rgba(var(--tone),0.18)]",
-              "lt:hover:border-[rgb(var(--tone))] lt:hover:shadow-[0_6px_12px_-7px_rgba(var(--tone),0.25)]",
+              "border-[rgba(255,45,90,0.35)]",
+              "shadow-[0_0_10px_-4px_rgba(255,0,55,0.25),inset_0_1px_0_rgba(255,255,255,0.12)]",
+              "hover:border-[#ff2a55]",
+              "hover:shadow-[0_0_16px_rgba(255,0,55,0.35),inset_0_1px_0_rgba(255,255,255,0.2)]",
+              "lt:border-rose-200 lt:shadow-none lt:hover:border-rose-400",
             ],
       )}
     >
@@ -137,7 +136,7 @@ export function PackageTile({
       {selected ? (
         <span
           aria-hidden
-          className="absolute top-2.5 right-2.5 flex size-[22px] items-center justify-center rounded-full border border-white/90 text-white shadow-[0_0_7px_rgba(var(--tone-hi),0.43)] [background:linear-gradient(145deg,var(--tone-a),var(--tone-b))] lt:shadow-none"
+          className="absolute top-2.5 right-2.5 flex size-[22px] items-center justify-center rounded-full border border-white/90 text-white shadow-[0_0_8px_rgba(255,0,55,0.6)] [background:linear-gradient(135deg,#ff0037,#cc002c)] lt:shadow-none"
         >
           <CheckIcon className="size-3" strokeWidth={3.2} />
         </span>

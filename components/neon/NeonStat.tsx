@@ -58,15 +58,12 @@ export function NeonStat({
       // Sparkline reads --stat; the kit's own classes read --tone.
       style={{ ...toneVars(tone), "--stat": "var(--tone)", "--spark": "var(--tone-hi)" } as React.CSSProperties}
       className={cn(
-        "group glow-ring relative flex min-h-[104px] min-w-0 items-center gap-4 rounded-[18px] border px-5 py-4 sm:gap-5",
-        "border-[rgba(var(--tone),0.5)]",
-        "[background:radial-gradient(90%_120%_at_0%_50%,rgba(var(--tone),0.2),transparent_65%),radial-gradient(60%_80%_at_100%_100%,rgba(var(--tone),0.1),transparent_70%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0)_40%),linear-gradient(160deg,rgba(10,14,44,0.88),rgba(6,8,30,0.92))]",
-        "shadow-[0_0_13px_-4px_rgba(var(--tone),0.32),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_0_24px_rgba(var(--tone),0.05)]",
-        "transition-[translate,scale,box-shadow,border-color] duration-[400ms] ease-smooth",
-        "hover:glow-ring-on hover:-translate-y-1.5 hover:scale-[1.02] hover:border-[rgba(var(--tone-hi),0.85)]",
-        "hover:shadow-[0_12px_22px_-12px_rgba(var(--tone),0.36),0_0_16px_-4px_rgba(var(--tone),0.44),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_0_26px_rgba(var(--tone),0.07)]",
+        "border border-[rgba(255,45,90,0.25)] backdrop-blur-xl",
+        "bg-[linear-gradient(180deg,rgba(26,6,13,0.52)_0%,rgba(13,3,7,0.72)_100%)]",
+        "shadow-[0_14px_34px_-10px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)]",
+        "transition-all duration-300 ease-smooth",
+        "hover:-translate-y-1.5 hover:border-[rgba(255,45,90,0.55)] hover:shadow-[0_20px_42px_-10px_rgba(255,0,50,0.35)]",
         "lt:border-[rgba(var(--tone),0.4)] lt:[background:linear-gradient(160deg,rgba(255,255,255,0.95),rgba(var(--tone),0.06))]",
-        "lt:shadow-[0_6px_14px_-8px_rgba(var(--tone),0.27)] lt:hover:shadow-[0_10px_20px_-10px_rgba(var(--tone),0.36)] lt:hover:border-[rgba(var(--tone),0.7)]",
         className,
       )}
     >

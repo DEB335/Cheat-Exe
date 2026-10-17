@@ -45,23 +45,10 @@ export function KeyConsole({ text, className }: { text: string; className?: stri
   return (
     <div
       className={cn(
-        "relative z-10 min-h-[240px] overflow-hidden rounded-[18px]",
-        "[background:linear-gradient(rgba(99,102,241,0.07)_1px,transparent_1px)_0_0/28px_28px,linear-gradient(90deg,rgba(99,102,241,0.07)_1px,transparent_1px)_0_0/28px_28px,linear-gradient(180deg,rgba(2,4,16,0.96),rgba(4,6,24,0.94))]",
-        "shadow-[0_0_16px_-5px_rgba(99,102,241,0.36),0_0_24px_-10px_rgba(34,211,238,0.32),inset_0_0_40px_rgba(0,0,0,0.7)]",
-        "lt:[background:#f8fafc] lt:shadow-[inset_0_1px_3px_rgba(15,23,42,0.08)]",
+        "relative z-10 min-h-[240px] overflow-hidden rounded-[18px] border border-white/10 bg-transparent",
         className,
       )}
     >
-      {/* The rim: cyan where the light comes in, through blue and indigo
-          to magenta, hot white at the two lit corners. */}
-      <span
-        aria-hidden
-        className="glass-edge z-[1] [--glass-edge:1.5px] [background:radial-gradient(18%_30%_at_100%_0%,rgba(255,255,255,0.95),transparent_70%),radial-gradient(18%_30%_at_0%_100%,rgba(236,254,255,0.85),transparent_70%),linear-gradient(125deg,#22d3ee_0%,#3b82f6_32%,#6366f1_58%,#c026d3_86%,#f0abfc_100%)] lt:opacity-50"
-      />
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 w-12 border-r border-[rgba(129,140,248,0.16)] bg-white/[0.015] lt:border-slate-200 lt:bg-slate-100"
-      />
 
       <div className="absolute inset-0 overflow-y-auto py-5 font-mono text-[15.5px] leading-[1.75]">
         {lines.map((line, i) => {

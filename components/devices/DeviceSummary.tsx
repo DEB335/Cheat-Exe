@@ -15,23 +15,14 @@ import {
 import { cn } from "@/lib/utils";
 
 export interface DeviceSummaryStats {
-  /** Signed-in sessions -- one per row of the table. */
   online: number;
-  /** Distinct accounts those sessions belong to. */
   accounts: number;
-  /** IP / device block rules in force. */
   blocked: number;
   uniqueIps: number;
 }
 
 type IconComponent = (p: React.SVGProps<SVGSVGElement>) => React.ReactNode;
 
-/**
- * The design's four chips. Its "Pending" and "Total Sessions" slots have
- * no data behind them in this panel, so they carry the distinct accounts
- * and addresses instead -- same colours and places, numbers that exist.
- * `rgb` drives border and glow, `ink` the brighter mark on the right.
- */
 const CHIPS: Array<{
   stat: keyof DeviceSummaryStats;
   label: string;
@@ -40,10 +31,10 @@ const CHIPS: Array<{
   Icon: IconComponent;
   Mark: IconComponent;
 }> = [
-  { stat: "online", label: "Online Devices", rgb: "16, 214, 160", ink: "#3dffc0", Icon: UserIcon, Mark: TrendUpIcon },
-  { stat: "accounts", label: "Accounts", rgb: "59, 130, 246", ink: "#7ab8ff", Icon: UsersIcon, Mark: ClockIcon },
-  { stat: "blocked", label: "Blocked", rgb: "255, 45, 122", ink: "#ff5c93", Icon: BanIcon, Mark: ShieldCheckIcon },
-  { stat: "uniqueIps", label: "Unique IPs", rgb: "139, 84, 255", ink: "#b692ff", Icon: GlobeIcon, Mark: BarChartIcon },
+  { stat: "online", label: "Online Devices", rgb: "255, 45, 90", ink: "#ff4d79", Icon: UserIcon, Mark: TrendUpIcon },
+  { stat: "accounts", label: "Accounts", rgb: "255, 75, 120", ink: "#ff6688", Icon: UsersIcon, Mark: ClockIcon },
+  { stat: "blocked", label: "Blocked", rgb: "255, 31, 90", ink: "#ff1f5a", Icon: BanIcon, Mark: ShieldCheckIcon },
+  { stat: "uniqueIps", label: "Unique IPs", rgb: "255, 45, 90", ink: "#ff6b8b", Icon: GlobeIcon, Mark: BarChartIcon },
 ];
 
 export function DeviceSummary({ stats, className }: { stats: DeviceSummaryStats; className?: string }) {
@@ -55,13 +46,6 @@ export function DeviceSummary({ stats, className }: { stats: DeviceSummaryStats;
     </div>
   );
 }
-
-/**
- * A glow layer the size of the tile's border box, faded at the lift's
- * pace: quick in on hover, slow settling back.
- */
-const GLOW =
-  "pointer-events-none absolute -inset-px rounded-[inherit] transition-opacity duration-[600ms] group-hover:duration-[120ms]";
 
 function Chip({
   label,
@@ -81,109 +65,52 @@ function Chip({
   const shown = useCountUp(value);
 
   return (
-    // The perspective lives on the parent, so the disc and mark standing
-    // forward of the glass keep their depth.
-    <div style={{ "--chip": rgb, "--ink": ink } as React.CSSProperties} className="min-w-0 [perspective:900px]">
+    <div style={{ "--chip": rgb, "--ink": ink } as React.CSSProperties} className="min-w-0">
       <div
         className={cn(
-          // No overflow-hidden here: it flattens preserve-3d, and the disc
-          // and mark would lose their depth. The clipped glass is the first
-          // layer inside instead.
-          "group relative flex h-full min-w-0 items-center gap-3 rounded-2xl border px-3 py-3 sm:px-3.5",
-          "border-[rgba(var(--chip),0.75)]",
-          "bg-[linear-gradient(135deg,rgba(var(--chip),0.24)_0%,rgba(6,10,36,0.86)_55%,rgba(var(--chip),0.1)_100%)]",
-          // The inner glow and top line as they looked through the glass's
-          // old 12px backdrop blur: wider and softer than drawn (18px at
-          // 0.12, a 0.09 line), matched to screenshots of the blurred tile
-          // -- then the glow halved with the rest (owner: "too glowing").
-          "shadow-[inset_0_0_30px_rgba(var(--chip),0.075),inset_0_1px_0_rgba(255,255,255,0.02)]",
-          "lt:border-[rgba(var(--chip),0.45)] lt:bg-none lt:bg-white/85",
-          "lt:shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]",
-          // Hover lifts the tile a few px -- quick up, slow settling back.
-          // It no longer tilts toward the pointer.
-          "[transform-style:preserve-3d] [transform:translateY(0px)] motion-safe:hover:[transform:translateY(-3px)]",
-          "transition-[transform] duration-[600ms] ease-smooth hover:duration-[120ms]",
+          "group relative flex h-full min-w-0 items-center gap-3 rounded-2xl border px-3.5 py-3",
+          "border-[rgba(255,45,90,0.18)]",
+          "bg-[linear-gradient(180deg,rgba(26,6,13,0.52)_0%,rgba(13,3,7,0.72)_100%)] backdrop-blur-xl",
+          "shadow-[0_10px_24px_-8px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.08)]",
+          "transition-all duration-300 ease-smooth",
+          "hover:-translate-y-1 hover:border-[rgba(255,45,90,0.45)] hover:shadow-[0_16px_30px_-8px_rgba(255,0,50,0.22)]",
+          "lt:border-slate-200 lt:bg-white/80 lt:shadow-sm",
         )}
       >
-        {/* The glow, pre-painted at rest and at hover strength; hover
-            cross-fades the two rather than repainting a shadow. The one
-            coming in rises fast and the one going out falls slowly, so
-            the glow never dips mid-fade. Both are about half what they
-            were, and hover at most ~1.4x rest. */}
+        {/* Soft gloss across the top */}
         <span
           aria-hidden
-          className={cn(
-            GLOW,
-            "ease-smooth group-hover:opacity-0 group-hover:ease-in",
-            "shadow-[0_0_11px_-2px_rgba(var(--chip),0.25),0_8px_16px_-11px_rgba(var(--chip),0.4)]",
-            "lt:shadow-[0_6px_14px_-10px_rgba(var(--chip),0.32)]",
-          )}
+          className="pointer-events-none absolute inset-x-0 top-0 h-10 rounded-t-2xl bg-[radial-gradient(ellipse_120px_40px_at_50%_0%,rgba(255,45,90,0.12),transparent_70%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         />
-        <span
-          aria-hidden
-          className={cn(
-            GLOW,
-            "opacity-0 ease-in group-hover:opacity-100 group-hover:ease-smooth",
-            // Plus what the inner glow brightens by on hover.
-            "shadow-[0_0_16px_-1px_rgba(var(--chip),0.34),0_12px_18px_-11px_rgba(var(--chip),0.43),inset_0_0_34px_rgba(var(--chip),0.03)]",
-            "lt:shadow-[0_10px_18px_-10px_rgba(var(--chip),0.34)]",
-          )}
-        />
-        {/* No backdrop blur on the glass: it re-ran on every repaint of
-            the tile, and only softened the tile's own inner glow (now
-            drawn soft above). */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]"
-        >
-          {/* Gloss across the top of the glass, faded in on hover. */}
-          <span
-            className={cn(
-              "absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100",
-              "bg-[radial-gradient(180px_circle_at_50%_0%,rgba(255,255,255,0.16),transparent_60%)]",
-              "lt:bg-[radial-gradient(180px_circle_at_50%_0%,rgba(var(--chip),0.12),transparent_60%)]",
-            )}
-          />
-          {/* Hairline sheen along the top edge. */}
-          <span className="absolute inset-x-4 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.45),transparent)] lt:opacity-0" />
-        </span>
 
-        {/* The disc stands forward of the glass. Still: a bob on four
-            small discs was decoration the page paid for every frame. */}
-        <div className="shrink-0 [transform:translateZ(26px)]">
+        {/* Icon disc */}
+        <div className="shrink-0">
           <div
             className={cn(
-              "flex size-9 items-center justify-center rounded-full border sm:size-10",
-              "border-[rgba(var(--chip),0.8)] text-white",
-              "bg-[radial-gradient(circle_at_34%_28%,rgba(255,255,255,0.35)_0%,rgba(var(--chip),0.75)_28%,rgba(var(--chip),0.28)_62%,rgba(4,8,30,0.95)_100%)]",
-              "shadow-[0_0_0_3px_rgba(var(--chip),0.14),0_0_10px_rgba(var(--chip),0.27),0_8px_14px_-6px_rgba(0,0,0,0.7),inset_0_-5px_8px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.4)]",
-              "lt:bg-none lt:bg-[rgba(var(--chip),0.14)] lt:text-[rgb(var(--chip))]",
-              "lt:shadow-[0_0_0_3px_rgba(var(--chip),0.08),0_6px_12px_-6px_rgba(var(--chip),0.7)]",
+              "flex size-9 items-center justify-center rounded-xl border sm:size-10",
+              "border-[rgba(var(--chip),0.4)] text-[var(--ink)]",
+              "bg-[linear-gradient(145deg,rgba(var(--chip),0.18)_0%,rgba(24,5,12,0.6)_100%)]",
+              "shadow-[0_0_12px_rgba(var(--chip),0.18),inset_0_1px_0_rgba(255,255,255,0.1)]",
+              "lt:bg-slate-100 lt:border-slate-200",
             )}
           >
-            <Icon className="size-[17px] drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)] sm:size-[18px] lt:drop-shadow-none" strokeWidth={2.2} />
+            <Icon className="size-[17px] sm:size-[18px]" strokeWidth={2.2} />
           </div>
         </div>
 
-        {/* Left on the glass: lifted in 3D, the number and label would be
-            drawn ~2% oversize and soft even with the tile at rest.
-            Positioned so it paints after the glass layers above; left in
-            flow, those absolute layers would paint over it. */}
+        {/* Number and label */}
         <div className="relative min-w-0 flex-1">
-          <div
-            className="font-display text-[21px] leading-none font-extrabold text-white tabular-nums [text-shadow:0_0_8px_rgba(var(--chip),0.24)] sm:text-[22px] lt:text-fg lt:[text-shadow:none]"
-          >
+          <div className="font-display text-[22px] sm:text-[24px] leading-none font-extrabold text-white tabular-nums tracking-tight [text-shadow:0_0_8px_rgba(var(--chip),0.2)] lt:[text-shadow:none] lt:text-slate-900">
             {shown}
           </div>
-          {/* Two lines on a phone rather than "Online Devic…"; one from sm up. */}
-          <div className="mt-1.5 line-clamp-2 text-[11.5px] leading-tight font-medium text-[#c9d6f2] sm:truncate sm:text-[12.5px] lt:text-muted">
+          <div className="mt-1 line-clamp-1 text-[11.5px] leading-tight font-medium text-[#c9b0b8] sm:text-[12px] lt:text-muted">
             {label}
           </div>
         </div>
 
         <Mark
           aria-hidden
-          className="hidden size-5 shrink-0 text-[var(--ink)] drop-shadow-[0_0_4px_rgba(var(--chip),0.34)] [transform:translateZ(22px)] sm:block lt:text-[rgb(var(--chip))] lt:drop-shadow-none"
+          className="hidden size-4 shrink-0 text-[var(--ink)] opacity-70 transition-transform duration-300 group-hover:scale-110 group-hover:opacity-100 sm:block"
           strokeWidth={2.2}
         />
       </div>
@@ -191,11 +118,6 @@ function Chip({
   );
 }
 
-/**
- * Counts from where the number last stood to its new value over `ms`,
- * easing out. One short frame loop per change; it stops when it lands.
- * Server and first client render both show 0, so hydration agrees.
- */
 function useCountUp(target: number, ms = 900) {
   const [shown, setShown] = useState(0);
   const from = useRef(0);
@@ -211,7 +133,6 @@ function useCountUp(target: number, ms = 900) {
       const progress = instant ? 1 : Math.min(1, (now - began) / ms);
       const eased = 1 - (1 - progress) ** 3;
       const value = Math.round(start + (target - start) * eased);
-      // Kept current, so a change mid-count carries on from here.
       from.current = value;
       setShown(value);
       if (progress < 1) frame = requestAnimationFrame(step);

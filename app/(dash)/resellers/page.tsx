@@ -43,7 +43,7 @@ export default function ResellersPage() {
   const [renewDays, setRenewDays] = useState("30");
   const [renewLimit, setRenewLimit] = useState("");
   const [renewEmulatorCredits, setRenewEmulatorCredits] = useState("0");
-  const [renewEmulatorAllowedDays, setRenewEmulatorAllowedDays] = useState<number[]>([1, 3, 7, 30, 60, 90, 180, 365]);
+  const [renewEmulatorAllowedDays, setRenewEmulatorAllowedDays] = useState<number[]>([]);
 
   const [manageFor, setManageFor] = useState<string | null>(null);
   const [manageUidBypass, setManageUidBypass] = useState(false);
@@ -118,9 +118,9 @@ export default function ResellersPage() {
   const actions: ResellerActions = {
     patch,
     remove,
-    openPerms: (name, user) => {
+    openPerms: (name, _user) => {
       setPermsFor(name);
-      setPermsDraft(user.packages);
+      setPermsDraft([]);
     },
     openManage: (name, user) => {
       setManageFor(name);
@@ -140,7 +140,7 @@ export default function ResellersPage() {
       setRenewDays(String(left && left > 0 ? left : 30));
       setRenewLimit(user.keyLimit ? String(user.keyLimit) : "");
       setRenewEmulatorCredits(String(user.emulatorCredits ?? 0));
-      setRenewEmulatorAllowedDays(user.emulatorAllowedDays ?? [1, 3, 7, 30, 60, 90, 180, 365]);
+      setRenewEmulatorAllowedDays([]);
     },
   };
 

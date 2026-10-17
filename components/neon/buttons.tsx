@@ -50,40 +50,40 @@ export function NeonCta({
       aria-busy={loading || undefined}
       className={cn(
         "group/cta relative isolate inline-flex shrink-0 cursor-pointer items-center justify-center rounded-full p-[1.5px] select-none",
-        lg ? "h-[60px] min-w-[260px]" : "h-[50px] min-w-[200px]",
-        "[background:linear-gradient(90deg,#8fc8ff_0%,#b9a7ff_38%,#f39dff_72%,#ffb8a0_100%)]",
-        "shadow-[0_0_8px_rgba(129,140,248,0.25),0_0_19px_-3px_rgba(236,72,255,0.25)]",
+        lg ? "h-[54px] min-w-[260px]" : "h-[46px] min-w-[200px]",
+        "[background:linear-gradient(90deg,#ff1f5a_0%,#e11d48_50%,#b91c1c_100%)]",
+        "shadow-[0_4px_20px_rgba(255,20,60,0.45),0_0_12px_rgba(255,31,90,0.3)]",
         "transition-[translate,scale,filter,box-shadow] duration-300 ease-smooth",
-        "hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-[1.12]",
-        "hover:shadow-[0_0_8px_rgba(129,140,248,0.34),0_0_22px_-3px_rgba(236,72,255,0.33)]",
+        "hover:-translate-y-0.5 hover:scale-[1.02] hover:brightness-[1.1]",
+        "hover:shadow-[0_6px_28px_rgba(255,20,60,0.6),0_0_20px_rgba(255,31,90,0.4)]",
         "active:translate-y-0 active:scale-[0.98] active:duration-100",
-        "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#c4b5fd]",
+        "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ff4d79]",
         "disabled:cursor-not-allowed disabled:opacity-50 disabled:saturate-[0.6] disabled:hover:translate-y-0 disabled:hover:scale-100 disabled:hover:brightness-100",
-        "lt:shadow-[0_6px_14px_-7px_rgba(99,102,241,0.32)]",
+        "lt:shadow-[0_6px_14px_-7px_rgba(225,29,72,0.32)]",
         className,
       )}
     >
-      {/* Bloom under the pill. Static; hover only lifts its opacity. */}
+      {/* Bloom under the pill */}
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-x-[10%] -bottom-3 -z-10 h-6 rounded-full opacity-[0.32] blur-[8px]",
-          "bg-[linear-gradient(90deg,#3b82f6,#8b5cf6_50%,#ff3df2)] transition-opacity duration-300",
-          "group-hover/cta:opacity-[0.45] lt:opacity-[0.16] lt:group-hover/cta:opacity-[0.22]",
+          "pointer-events-none absolute inset-x-[10%] -bottom-2 -z-10 h-6 rounded-full opacity-[0.45] blur-[10px]",
+          "bg-[linear-gradient(90deg,#ff1f5a,#e11d48_50%,#be123c)] transition-opacity duration-300",
+          "group-hover/cta:opacity-[0.65]",
         )}
       />
       <span
         className={cn(
           "relative flex h-full w-full items-center justify-center overflow-hidden rounded-full",
           lg ? "gap-3.5 px-9" : "gap-3 px-7",
-          "[background:linear-gradient(90deg,#2346e6_0%,#4a37e4_36%,#7a2fe2_68%,#c03ad8_100%)]",
-          "shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-12px_20px_-10px_rgba(30,0,70,0.55),inset_0_0_20px_rgba(255,255,255,0.04)]",
+          "[background:linear-gradient(90deg,#ff0037_0%,#e60032_50%,#cc002c_100%)]",
+          "shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-8px_16px_-8px_rgba(100,0,20,0.5)]",
         )}
       >
-        {/* Gloss across the top half. */}
+        {/* Subtle sheen across top */}
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-x-3 top-0 h-1/2 rounded-b-[40%] bg-[linear-gradient(180deg,rgba(255,255,255,0.24),rgba(255,255,255,0))]"
+          className="pointer-events-none absolute inset-x-2 top-0 h-1/2 rounded-b-[40%] bg-[linear-gradient(180deg,rgba(255,255,255,0.22),rgba(255,255,255,0))]"
         />
         {loading ? (
           <SpinnerIcon className={cn("relative shrink-0 text-white", lg ? "size-6" : "size-5")} />

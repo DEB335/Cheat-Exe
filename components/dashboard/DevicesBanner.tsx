@@ -1,88 +1,65 @@
 "use client";
 
-import { Laptop3D } from "@/components/dashboard/Laptop3D";
-import { ParticleGlobe } from "@/components/effects/ParticleGlobe";
-import { ArrowRightIcon } from "@/components/icons";
+import { ArrowRightIcon, CpuIcon } from "@/components/icons";
 import { GlowButton } from "@/components/ui/GlowButton";
 import { cn } from "@/lib/utils";
 
 /**
- * The "Real-Time Active Devices" band at the top of the devices card: a
- * 3D laptop on the left, the live count, a spinning globe, and the way
- * through to the full devices page.
- *
- * `online` is the store's device count -- the same authenticated
- * sessions the table underneath lists -- so the pill never says more
- * than the table can show.
+ * The "Real-Time Active Devices" header banner:
+ * Clean, transparent red glassmorphic design without heavy 3D models.
  */
 export function DevicesBanner({ online, onViewAll }: { online: number; onViewAll: () => void }) {
-  // Nothing here follows the pointer: the laptop holds one pose, and
-  // hovering the band only swings its lid open a little and brightens
-  // the screen.
   return (
     <div
       className={cn(
-        "group/banner relative isolate overflow-hidden border-b border-[rgba(59,76,160,0.28)]",
-        "bg-[#021026] shadow-[inset_0_1px_0_rgba(148,163,255,0.08)]",
-        "lt:border-line lt:bg-[linear-gradient(90deg,#eef0ff,#f6f4ff_55%,#eef2ff)]",
+        "group/banner relative isolate overflow-hidden border-b border-[rgba(255,45,90,0.18)]",
+        "bg-[linear-gradient(180deg,rgba(26,6,13,0.52)_0%,rgba(14,3,8,0.72)_100%)] backdrop-blur-xl",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]",
+        "lt:border-line lt:bg-white/70",
       )}
     >
-      {/* Ambient light: indigo behind the laptop, violet pooling on the
-          floor, a haze under the globe. Static gradients only. */}
+      {/* Ambient crimson light */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 lt:opacity-40"
+        className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background: [
-            "radial-gradient(ellipse 300px 170px at 70px 55%, rgba(49, 62, 190, 0.42), transparent 70%)",
-            "radial-gradient(ellipse 240px 70px at 110px 100%, rgba(139, 92, 246, 0.3), transparent 70%)",
-            "radial-gradient(ellipse 380px 150px at calc(100% - 372px) 115%, rgba(76, 56, 220, 0.34), transparent 70%)",
-            "linear-gradient(90deg, rgba(17, 30, 85, 0.5), transparent 30%)",
+            "radial-gradient(ellipse 400px 180px at 100px 50%, rgba(255, 31, 90, 0.15), transparent 70%)",
+            "radial-gradient(ellipse 300px 100px at calc(100% - 200px) 50%, rgba(225, 29, 72, 0.12), transparent 70%)",
           ].join(","),
         }}
       />
 
-      {/* The globe sits between the copy and the button, and runs behind
-          the button like the reference. Below xl the copy needs the room,
-          so it steps back behind the button and dims. */}
       <div
-        aria-hidden
         className={cn(
-          "pointer-events-none absolute inset-y-0 -z-[5] hidden w-[560px] sm:block",
-          "-right-[150px] opacity-55 xl:right-[92px] xl:opacity-100 lt:opacity-70",
+          "relative flex min-h-[100px] flex-col gap-4 px-6 py-5",
+          "lg:flex-row lg:items-center lg:justify-between",
         )}
       >
-        <ParticleGlobe cx={0.5} cy={1.1} radius={0.92} />
-      </div>
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl border border-[rgba(255,45,90,0.3)] bg-[linear-gradient(145deg,rgba(255,45,90,0.2)_0%,rgba(30,6,14,0.6)_100%)] text-[#ff4d79] shadow-[0_0_16px_rgba(255,30,60,0.22)]">
+            <CpuIcon className="size-6 drop-shadow-[0_0_6px_rgba(255,45,90,0.4)]" />
+          </div>
 
-      <div
-        className={cn(
-          "relative flex min-h-[140px] flex-col gap-5 px-5 py-6",
-          "sm:pl-0 lg:flex-row lg:items-center lg:gap-4 lg:py-0 lg:pr-[22px]",
-        )}
-      >
-        <div className="flex min-w-0 items-center lg:flex-1">
-          <Laptop3D className="-my-6 hidden shrink-0 sm:block lg:my-0" />
-          <div className="min-w-0 lg:mb-[14px]">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              <h3 className="font-display text-[22px] leading-[1.2] font-bold text-white sm:text-[24px] lt:text-fg">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <h3 className="font-display text-[22px] leading-[1.2] font-bold text-white sm:text-[23px] lt:text-fg">
                 Real-Time Active Devices
               </h3>
               <span
                 className={cn(
-                  "inline-flex items-center rounded-full border border-[rgba(16,185,129,0.55)] px-3 py-[6px]",
-                  "bg-[linear-gradient(180deg,rgba(2,60,52,0.9),rgba(1,36,32,0.9))]",
-                  "text-[12.5px] leading-none font-bold whitespace-nowrap text-[#5cf2c4] uppercase",
-                  "shadow-[0_0_8px_rgba(16,185,129,0.1),inset_0_0_10px_rgba(16,185,129,0.07)]",
-                  // bg-none: the dark gradient is a background-image, which
-                  // a light background-color alone would sit underneath.
-                  "lt:border-emerald-300 lt:bg-emerald-50 lt:bg-none lt:text-emerald-600 lt:shadow-none",
+                  "inline-flex items-center rounded-full border border-[rgba(255,45,90,0.5)] px-3 py-[4px]",
+                  "bg-[rgba(55,8,20,0.65)] backdrop-blur-md",
+                  "text-[12px] leading-none font-bold whitespace-nowrap text-[#ff4d79] uppercase",
+                  "shadow-[0_0_8px_rgba(255,45,90,0.3)]",
+                  "lt:border-rose-300 lt:bg-rose-50 lt:text-rose-600 lt:shadow-none",
                 )}
               >
+                <span className="mr-1.5 size-1.5 animate-pulse rounded-full bg-[#ff4d79]" />
                 {online} Online Now
               </span>
             </div>
-            <p className="mt-[7px] text-[14px] leading-5 text-[#a3b8e0] sm:text-[16px] lt:text-muted">
+            <p className="mt-[4px] text-[13.5px] leading-5 text-[#c9b0b8] sm:text-[14.5px] lt:text-muted">
               Live devices connected via authenticated sessions.
             </p>
           </div>
@@ -92,7 +69,7 @@ export function DevicesBanner({ online, onViewAll }: { online: number; onViewAll
           variant="vivid"
           onClick={onViewAll}
           trailingIcon={<ArrowRightIcon className="size-4" />}
-          className="w-full shrink-0 sm:ml-5 sm:w-auto sm:self-start lg:mb-[14px] lg:ml-0 lg:self-center"
+          className="w-full shrink-0 sm:w-auto"
         >
           View All Devices &amp; Controls
         </GlowButton>

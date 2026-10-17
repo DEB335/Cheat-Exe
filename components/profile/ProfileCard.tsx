@@ -68,8 +68,8 @@ export function ProfileCard({
         <div
           className={cn(
             "relative flex flex-1 flex-col items-center justify-center overflow-hidden rounded-[18px] px-3 pt-2 pb-5 text-center",
-            "border border-[rgba(167,139,250,0.35)]",
-            "shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_14px_-5px_rgba(168,85,247,0.36)]",
+            "border border-[rgba(255,45,90,0.22)] bg-[linear-gradient(180deg,rgba(26,6,13,0.6),rgba(14,2,7,0.85))]",
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(255,31,90,0.12)]",
             "lt:border-violet-200 lt:shadow-none",
           )}
         >
@@ -78,7 +78,7 @@ export function ProfileCard({
 
           {onEditAvatar ? (
             <NeonButton
-              tone="violet"
+              tone="red"
               aria-label="Edit avatar image URL"
               title="Edit avatar image URL"
               icon={<EditIcon />}
@@ -87,31 +87,29 @@ export function ProfileCard({
             />
           ) : null}
 
-          <ProfileAvatarStage
-            src={avatar}
-            crown={isOwner}
-            className="relative mx-auto h-[230px] w-full max-w-[320px]"
-          />
+          <div className="relative my-4 flex items-center justify-center">
+            <div className="size-24 overflow-hidden rounded-full border-2 border-[#ff2a55] bg-black shadow-[0_0_16px_rgba(255,42,85,0.4)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={avatar} alt="" className="size-full object-cover" />
+            </div>
+          </div>
 
-          {/* Pulled up into the empty strip the fitted stage leaves under
-              its pedestal, so the name sits right below the disc. The
-              stage takes no pointer events, so nothing is covered. */}
-          <h2 className="relative -mt-4 w-full truncate font-display text-[22px] leading-tight font-bold text-white lt:text-slate-900">
+          <h2 className="relative w-full truncate font-display text-[22px] leading-tight font-bold text-white lt:text-slate-900">
             {name}
           </h2>
-          <NeonChip tone={isOwner ? "violet" : "blue"} shape="pill" caps={false} icon={roleIcon} className="relative mt-2.5">
+          <NeonChip tone={isOwner ? "red" : "cyan"} shape="pill" caps={false} icon={roleIcon} className="relative mt-2.5 shadow-[0_0_10px_rgba(255,45,90,0.35)]">
             {role}
           </NeonChip>
         </div>
 
         <div
           className={cn(
-            "flex flex-col gap-3.5 rounded-[16px] border border-[rgba(129,140,248,0.22)] bg-[rgba(4,6,26,0.5)] px-4 py-4",
-            "shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] lt:border-slate-200 lt:bg-slate-50/80 lt:shadow-none",
+            "flex flex-col gap-3.5 rounded-[16px] border border-[rgba(255,45,90,0.22)] bg-[linear-gradient(180deg,rgba(22,4,10,0.7),rgba(14,2,7,0.85))] px-4 py-4",
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_0_14px_rgba(255,31,90,0.08)] lt:border-slate-200 lt:bg-slate-50/80 lt:shadow-none",
           )}
         >
           <MetaRow label="Role">
-            <NeonChip tone={isOwner ? "violet" : "blue"} size="xs" shape="pill" caps={false} icon={roleIcon}>
+            <NeonChip tone={isOwner ? "red" : "cyan"} size="xs" shape="pill" caps={false} icon={roleIcon}>
               {role}
             </NeonChip>
           </MetaRow>
@@ -123,10 +121,9 @@ export function ProfileCard({
             </MetaRow>
           )}
           <MetaRow label="Subscription Tier">
-            <span className="flex items-center gap-1.5 font-extrabold text-green">
-              {isOwner && <CrownIcon aria-hidden className="size-3.5" />}
+            <NeonChip tone={isOwner ? "green" : "teal"} size="xs" shape="pill" caps={false} icon={<CrownIcon className="size-3" />}>
               {isOwner ? "Owner" : "Paid"}
-            </span>
+            </NeonChip>
           </MetaRow>
 
           {!isOwner && own && (
@@ -302,7 +299,7 @@ function Banner({ src }: { src: string }) {
 function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 text-[13px]">
-      <span className="shrink-0 text-[11px] font-extrabold tracking-[1px] text-[#a9b8e0] uppercase lt:text-slate-500">
+      <span className="shrink-0 text-[11px] font-extrabold tracking-[1px] text-[#ff8ba7] uppercase lt:text-slate-500">
         {label}
       </span>
       {children}

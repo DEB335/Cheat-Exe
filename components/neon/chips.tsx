@@ -112,19 +112,20 @@ export function PackageChip({
   iconOnly?: boolean;
   className?: string;
 }) {
-  const { tone } = packageLook(name);
   return (
-    <NeonChip
-      tone={tone}
-      size={size}
-      icon={<PackageIcon name={name} />}
-      title={iconOnly ? name : undefined}
-      aria-label={iconOnly ? name : undefined}
-      role={iconOnly ? "img" : undefined}
-      className={className}
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-lg border leading-none font-bold whitespace-nowrap",
+        "border-[rgba(255,45,90,0.35)] text-white tracking-[0.6px] uppercase",
+        "bg-[linear-gradient(180deg,rgba(255,0,55,0.18),rgba(20,4,10,0.85))] backdrop-blur-md",
+        "shadow-[0_0_8px_rgba(255,0,55,0.2),inset_0_1px_0_rgba(255,255,255,0.15)]",
+        "h-[26px] gap-1.5 px-3 text-[11px]",
+        className,
+      )}
     >
+      <PackageIcon name={name} className="size-[13px] text-[#ff4d73] shrink-0" />
       {iconOnly ? null : name}
-    </NeonChip>
+    </span>
   );
 }
 

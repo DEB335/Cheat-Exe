@@ -15,6 +15,7 @@ import {
 import type { EntryAvatarVariant } from "@/components/scenes/WhitelistScene";
 import { MaintenanceNotice } from "@/components/ui/MaintenanceNotice";
 import { useToast } from "@/components/ui/Toast";
+import { TintButton } from "@/components/ui/buttons";
 import { AddUidPanel } from "@/components/whitelist/AddUidPanel";
 import { EntryCard } from "@/components/whitelist/EntryCard";
 import { ExtendModal } from "@/components/whitelist/ExtendModal";
@@ -22,6 +23,7 @@ import type { AddResult } from "@/components/whitelist/whitelist-shared";
 import { del, patchJson } from "@/lib/client-api";
 import type { WhitelistEntry } from "@/lib/types";
 import { useStoredFlag } from "@/lib/use-external";
+import { cn } from "@/lib/utils";
 
 import { AUTO_REFRESH_MS, daysLeft, isExpired, useWhitelist } from "../use-whitelist";
 
@@ -181,79 +183,85 @@ export default function WhitelistPage() {
     <>
       <AddUidPanel entries={entries} reload={reload} mutate={mutate} />
 
-      <NeonPanel rim="blue">
+      <NeonPanel rim="danger" className="relative z-10">
         <PanelHeader
-          icon={<DatabaseIcon />}
-          iconTone="blue"
-          iconTone2="cyan"
           title={`Whitelist Entries (${visible.length})`}
           subtitle={`${entries.length} total · ${expiredCount} expired`}
           actions={
             <>
-              <div className="relative w-full sm:w-[230px]">
+              <div className="relative w-full sm:w-[220px]">
                 <SearchIcon
                   aria-hidden
-                  className="pointer-events-none absolute top-1/2 left-3.5 z-[1] size-4 -translate-y-1/2 text-[#9fb0dd] lt:text-slate-400"
+                  className="pointer-events-none absolute top-1/2 left-3.5 z-[1] size-4 -translate-y-1/2 text-[#ffd1dc] lt:text-slate-400"
                 />
                 <NeonInput
-                  tone="blue"
+                  tone="red"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search UID…"
                   aria-label="Search whitelist"
-                  boxClassName="h-9 rounded-full"
-                  inputClassName="pl-10 text-[14px]"
+                  boxClassName="h-8 rounded-lg border-[rgba(255,45,90,0.25)]"
+                  inputClassName="pl-9 text-[12.5px]"
                 />
               </div>
 
-              <NeonButton
-                tone="pink"
-                icon={<TrashIcon />}
+              <TintButton
+                tone="red"
                 disabled={busy !== null || expiredCount === 0}
                 onClick={() => void removeMany(entries.filter(isExpired))}
+                className="disabled:opacity-40 disabled:hover:translate-y-0"
               >
+                <TrashIcon className="size-3" strokeWidth={2} />
                 Delete Expired
-              </NeonButton>
+              </TintButton>
 
-              <NeonButton
+              <TintButton
                 tone="red"
-                icon={<TrashIcon />}
                 disabled={busy !== null || entries.length === 0}
                 onClick={() => void removeMany(entries)}
+                className="disabled:opacity-40 disabled:hover:translate-y-0"
               >
+                <TrashIcon className="size-3" strokeWidth={2} />
                 Delete All
-              </NeonButton>
+              </TintButton>
 
               {/* Lit while the list is being re-read on a timer. */}
-              <NeonButton
-                tone="blue"
-                variant={auto ? "filled" : "outline"}
-                icon={<BoltIcon />}
+              <button
+                type="button"
                 onClick={() => setAuto(!auto)}
                 aria-pressed={auto}
                 title={`Re-read the list every ${AUTO_REFRESH_MS / 1000} seconds`}
+                className={cn(
+                  "inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-1.5",
+                  "text-[12px] font-semibold transition-all duration-300 ease-smooth hover:-translate-y-0.5",
+                  auto
+                    ? "border-[rgba(59,130,246,0.5)] bg-[rgba(59,130,246,0.2)] text-sky-400 shadow-[0_0_12px_rgba(59,130,246,0.3)]"
+                    : "border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.05)] text-[#ffd1dc] hover:bg-[rgba(255,255,255,0.1)]",
+                )}
               >
+                <BoltIcon className="size-3" />
                 Auto
-              </NeonButton>
+              </button>
 
-              <NeonButton
+              <TintButton
                 tone="green"
-                icon={<RefreshIcon />}
                 disabled={busy !== null}
                 onClick={() => void reload()}
+                className="disabled:opacity-40 disabled:hover:translate-y-0"
               >
+                <RefreshIcon className="size-3" />
                 Refresh
-              </NeonButton>
+              </TintButton>
             </>
           }
         />
 
         {loading ? (
-          <NeonEmpty icon={<SpinnerIcon />} tone="blue">
+          <NeonEmpty icon={<SpinnerIcon />} tone="red">
             Loading whitelist…
           </NeonEmpty>
         ) : visible.length === 0 ? (
-          <NeonEmpty icon={entries.length === 0 ? <DatabaseIcon /> : <SearchIcon />} tone="blue">
+          <NeonEmpty icon={entries.length === 0 ? <DatabaseIcon /> : <SearchIcon />} tone="red">
             {entries.length === 0 ? "No UIDs whitelisted yet." : "No UID matches that search."}
           </NeonEmpty>
         ) : (

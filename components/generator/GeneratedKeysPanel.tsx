@@ -29,17 +29,14 @@ export function GeneratedKeysPanel({
   onCopy: (text: string, message: string) => void;
 }) {
   return (
-    <NeonPanel rim="blue" className="flex flex-col">
+    <NeonPanel rim="danger" className="flex flex-col">
       <PanelHeader
         className="relative z-10"
-        icon={<LinkIcon />}
-        iconTone="blue"
-        iconTone2="cyan"
         title="Generated Keys"
         subtitle="API response appears here."
         actions={
           <NeonButton
-            tone="violet"
+            tone="red"
             size="md"
             trailingIcon={<CopyIcon />}
             onClick={() => onCopy(consoleText, "Copied to clipboard!")}
@@ -51,16 +48,14 @@ export function GeneratedKeysPanel({
 
       <KeyConsole text={consoleText} className="flex-1 xl:min-h-[250px]" />
 
-      {keys.length > 0 ? (
-        <div className="relative z-10 mt-5 rounded-[16px] border border-[rgba(52,211,120,0.42)] p-4 [background:linear-gradient(180deg,rgba(52,211,120,0.11),rgba(52,211,120,0.03)),rgba(3,6,22,0.7)] shadow-[0_0_13px_-5px_rgba(52,211,120,0.38),inset_0_1px_0_rgba(255,255,255,0.05)] lt:border-emerald-200 lt:[background:#f0fdf4] lt:shadow-none">
+      {keys.length > 0 && (
+        <div className="relative z-10 mt-5 rounded-[16px] border border-[rgba(255,45,90,0.35)] p-4 [background:linear-gradient(180deg,rgba(255,45,90,0.12),rgba(255,45,90,0.04)),rgba(24,4,11,0.7)] shadow-[0_0_16px_rgba(255,31,90,0.2),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl lt:border-rose-200 lt:[background:#fff1f2] lt:shadow-none">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <span className="text-[12px] font-extrabold tracking-[1.2px] text-[#6ef3a5] uppercase lt:text-emerald-700">
+            <span className="text-[12px] font-extrabold tracking-[1.2px] text-[#ff8ba7] uppercase lt:text-rose-700">
               {keys.length} key{keys.length === 1 ? "" : "s"}
             </span>
-            {/* shrink-0: the key list beside it used to take the whole row
-                and push this button out through the side of the card. */}
             <NeonButton
-              tone="green"
+              tone="red"
               size="xs"
               icon={<CopyIcon />}
               className="shrink-0"
@@ -70,23 +65,18 @@ export function GeneratedKeysPanel({
             </NeonButton>
           </div>
 
-          {/* One row per key, and capped so a batch of 100 scrolls inside
-              the card instead of stretching the whole page. The old
-              markup put keys.join("\n") in a plain span, where the
-              newlines collapsed to spaces and break-all then chopped
-              each key across lines mid-token. */}
           <ul className="max-h-[168px] space-y-0.5 overflow-y-auto pr-1">
             {keys.map((key) => (
               <li
                 key={key}
-                className="flex items-center justify-between gap-2 rounded-[8px] pl-2 transition-colors duration-200 hover:bg-[rgba(52,211,120,0.08)] lt:hover:bg-emerald-100/60"
+                className="flex items-center justify-between gap-2 rounded-[8px] pl-2 transition-colors duration-200 hover:bg-[rgba(255,45,90,0.12)] lt:hover:bg-rose-100/60"
               >
-                <span className="truncate font-mono text-[14px] font-semibold text-[#6ef3a5] lt:text-emerald-700">
+                <span className="truncate font-mono text-[14px] font-semibold text-[#ffb4c8] lt:text-rose-700">
                   {key}
                 </span>
                 <NeonButton
                   variant="ghost"
-                  tone="green"
+                  tone="red"
                   size="xs"
                   title="Copy this key"
                   aria-label="Copy this key"
@@ -97,12 +87,6 @@ export function GeneratedKeysPanel({
               </li>
             ))}
           </ul>
-        </div>
-      ) : (
-        // Phones get no hologram: the panel sits under the form there,
-        // and the console is what the page is for.
-        <div className="relative mt-5 hidden min-h-[240px] flex-1 sm:block xl:min-h-[290px]">
-          <KeygenScene className="absolute inset-x-0 top-0 -bottom-4" />
         </div>
       )}
     </NeonPanel>

@@ -3,46 +3,41 @@
 import { useId, useRef } from "react";
 
 import { MetricsChart, PerformanceTicker } from "@/components/charts/MetricsChart";
-import { ServerStack3D } from "@/components/dashboard/ServerStack3D";
 import { BarChartIcon } from "@/components/icons";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 
 /**
- * The overview's headline card: real tile counts as a glowing line, the
- * live FPS/ping pills, and a decorative 3D server stack whose slabs lift
- * apart on hover. The shared Card still owns the hover lift and the conic
- * ring; everything here sits inside it.
+ * Headline card for the overview: transparent red glassmorphic backdrop
+ * with real tile counts as a glowing ruby/crimson curve and live FPS/latency pills.
  */
 export function PerformanceCard({ values, labels }: { values: number[]; labels: string[] }) {
   const titleRef = useRef<HTMLDivElement>(null);
   const pillsRef = useRef<HTMLDivElement>(null);
-  // useId can contain characters that break a url(#...) reference.
   const gradientId = `perf-bars-${useId().replace(/[^\w-]/g, "")}`;
 
   return (
     <Card
       className={cn(
-        "group/perf rounded-[22px] border-[#18225e] p-0",
-        "lt:border-line",
+        "group/perf relative overflow-hidden rounded-[22px] border border-[rgba(255,45,90,0.18)] p-0",
+        "bg-[linear-gradient(180deg,rgba(26,6,13,0.52)_0%,rgba(13,3,7,0.72)_100%)] backdrop-blur-xl",
+        "shadow-[0_18px_40px_-12px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.08)]",
+        "transition-all duration-300 hover:border-[rgba(255,45,90,0.4)] hover:shadow-[0_22px_45px_-10px_rgba(255,0,50,0.2)]",
+        "lt:border-line lt:bg-white/80",
       )}
     >
       <div className="relative">
-        {/* Fill and glows on their own layer: the shared card-surface
-            gradient is too translucent for the background video behind
-            this one, and the stack's floor needs clipping to the corners. */}
+        {/* Soft radial crimson glow at the top centre */}
         <div
           aria-hidden
           className={cn(
             "pointer-events-none absolute inset-0 overflow-hidden rounded-[21px]",
-            "bg-[radial-gradient(ellipse_34%_70%_at_88%_38%,rgba(84,62,230,0.2),transparent_72%),radial-gradient(ellipse_40%_60%_at_40%_0%,rgba(60,70,200,0.08),transparent_70%),linear-gradient(180deg,rgba(5,8,38,0.94)_0%,rgba(2,4,26,0.96)_100%)]",
-            "shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
-            "lt:bg-[radial-gradient(ellipse_34%_70%_at_88%_38%,rgba(124,58,237,0.08),transparent_72%),linear-gradient(180deg,#ffffff,#f8fafc)] lt:shadow-none",
+            "bg-[radial-gradient(ellipse_65%_60%_at_50%_0%,rgba(255,30,60,0.14),transparent_70%)]",
+            "lt:bg-none",
           )}
         >
-          {/* Thin highlight along the top edge, like light catching the rim. */}
-          <span className="absolute top-0 left-[38%] h-px w-[34%] bg-[linear-gradient(90deg,transparent,rgba(190,110,255,0.55),rgba(90,120,255,0.4),transparent)]" />
-          <ServerStack3D className="hidden lg:block" />
+          {/* Thin crimson highlight along the top rim */}
+          <span className="absolute top-0 left-[25%] h-px w-[50%] bg-[linear-gradient(90deg,transparent,rgba(255,50,90,0.65),transparent)]" />
         </div>
 
         <div className="relative z-[2] flex flex-wrap items-start justify-between gap-4 pt-[22px] pr-[33px] pl-[23px] max-sm:pr-[23px]">
@@ -50,34 +45,33 @@ export function PerformanceCard({ values, labels }: { values: number[]; labels: 
             <div
               className={cn(
                 "relative size-[52px] shrink-0 rounded-2xl p-px",
-                "bg-[linear-gradient(150deg,rgba(124,92,255,0.8)_0%,rgba(80,70,220,0.35)_45%,rgba(255,45,122,0.7)_100%)]",
-                "shadow-[0_0_11px_rgba(110,80,255,0.11)]",
+                "bg-[linear-gradient(150deg,rgba(255,45,90,0.85)_0%,rgba(190,18,60,0.4)_50%,rgba(255,45,90,0.7)_100%)]",
+                "shadow-[0_0_16px_rgba(255,30,60,0.25)]",
                 "transition-transform duration-[400ms] ease-back group-hover/perf:scale-105 group-hover/perf:-rotate-3",
                 "lt:shadow-none",
               )}
             >
-              <div className="grid size-full place-items-center rounded-[15px] bg-[linear-gradient(160deg,#1b1450_0%,#0b0b2c_100%)] lt:bg-white">
+              <div className="grid size-full place-items-center rounded-[15px] bg-[linear-gradient(160deg,#24060f_0%,#0e0206_100%)] lt:bg-white">
                 <svg aria-hidden width="0" height="0" className="absolute">
                   <defs>
                     <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1="5" y1="0" x2="19" y2="0">
-                      <stop offset="0" stopColor="#ff3d8b" />
-                      <stop offset="0.5" stopColor="#d946ef" />
-                      <stop offset="1" stopColor="#8b5cf6" />
+                      <stop offset="0" stopColor="#ff4d79" />
+                      <stop offset="0.5" stopColor="#ff1f5a" />
+                      <stop offset="1" stopColor="#e11d48" />
                     </linearGradient>
                   </defs>
                 </svg>
                 <BarChartIcon
                   stroke={`url(#${gradientId})`}
                   strokeWidth={3.6}
-                  className="size-[25px] drop-shadow-[0_0_4px_rgba(255,45,122,0.2)]"
+                  className="size-[25px] drop-shadow-[0_0_8px_rgba(255,31,90,0.45)]"
                 />
               </div>
-              {/* The small glowing bead on the tile's rim. */}
-              <span className="absolute -top-[4px] right-[12px] size-[9px] rounded-full bg-[#4f6bff] shadow-[0_0_6px_1.5px_rgba(79,107,255,0.32)]" />
+              <span className="absolute -top-[4px] right-[12px] size-[9px] rounded-full bg-[#ff2244] shadow-[0_0_8px_2px_rgba(255,30,60,0.6)]" />
             </div>
             <div>
               <h3 className="font-display text-[20px] leading-tight font-bold text-fg">System Performance</h3>
-              <p className="mt-1 text-[14.5px] text-[#8ab3e0] lt:text-muted">Real-time metrics &amp; latency.</p>
+              <p className="mt-1 text-[14.5px] text-[#c9b0b8] lt:text-muted">Real-time metrics &amp; latency.</p>
             </div>
           </div>
           <div ref={pillsRef}>

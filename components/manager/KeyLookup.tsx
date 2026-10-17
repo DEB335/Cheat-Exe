@@ -34,10 +34,10 @@ export function KeyLookup({
   const id = useId();
 
   return (
-    <NeonInset rim="violet">
+    <NeonInset rim="danger">
       <label
         htmlFor={id}
-        className="mb-3 block text-[13px] font-extrabold tracking-[1.2px] text-[#a98bff] uppercase lt:text-violet-700"
+        className="mb-3 block text-[13px] font-extrabold tracking-[1.2px] text-[#ff8ba7] uppercase lt:text-rose-700"
       >
         Enter license key
       </label>
@@ -46,7 +46,7 @@ export function KeyLookup({
         <div className="group/key relative min-w-0 flex-1">
           <NeonInput
             id={id}
-            tone="violet"
+            tone="red"
             value={value}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && onLookup()}
@@ -54,31 +54,16 @@ export function KeyLookup({
             boxClassName="h-[58px] sm:h-[62px]"
             inputClassName="px-5 text-[16px] sm:text-[17px]"
           />
-          {/* The line of light under the field: white-hot at its centre,
-              violet into blue either side, with a flare beneath. It burns
-              brighter while the field has focus. Sits outside the field's
-              box, which clips its own overflow. */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-[14%] -bottom-px h-[2px] bg-[linear-gradient(90deg,transparent,rgba(167,139,250,0.95)_32%,rgba(255,255,255,0.95)_50%,rgba(96,165,250,0.95)_68%,transparent)] opacity-90 transition-opacity duration-300 group-focus-within/key:opacity-100 lt:opacity-40 lt:group-focus-within/key:opacity-70"
-          />
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-[36%] -bottom-2 h-4 rounded-full bg-[radial-gradient(50%_50%_at_50%_50%,rgba(139,92,246,0.36),transparent)] opacity-80 blur-[5px] transition-opacity duration-300 group-focus-within/key:opacity-100 lt:hidden"
-          />
         </div>
         <NeonButton
-          tone="violet"
+          tone="red"
           variant="filled"
           size="md"
           icon={<SearchIcon strokeWidth={2} />}
           loading={checking}
           disabled={disabled}
           onClick={onLookup}
-          // Bolder and bluer than the kit's filled violet, as the mockup's
-          // Lookup is. The kit's pale light-theme fill reads as disabled
-          // beside the field, so the light theme gets a solid one too.
-          className="h-[58px] shrink-0 px-7 text-[17px] font-bold [background:linear-gradient(135deg,rgba(139,92,246,0.7),rgba(59,130,246,0.45))] shadow-[0_0_16px_-2px_rgba(99,102,241,0.4),inset_0_1px_0_rgba(255,255,255,0.3),inset_0_0_14px_rgba(139,92,246,0.18)] hover:[background:linear-gradient(135deg,rgba(139,92,246,0.88),rgba(59,130,246,0.62))] hover:shadow-[0_0_20px_-1px_rgba(99,102,241,0.54),inset_0_1px_0_rgba(255,255,255,0.36),inset_0_0_16px_rgba(139,92,246,0.2)] sm:h-[62px] sm:min-w-[170px] sm:text-[18px] lt:text-white lt:[background:linear-gradient(135deg,#8b5cf6,#6366f1)] lt:shadow-[0_5px_11px_-4px_rgba(99,102,241,0.36),inset_0_1px_0_rgba(255,255,255,0.35)] lt:hover:text-white lt:hover:[background:linear-gradient(135deg,#7c3aed,#4f46e5)] lt:hover:shadow-[0_6px_13px_-4px_rgba(99,102,241,0.45),inset_0_1px_0_rgba(255,255,255,0.35)] [&_svg]:size-5"
+          className="h-[58px] shrink-0 rounded-full px-8 text-[16px] font-black uppercase tracking-wider text-white [background:linear-gradient(90deg,#ff0037_0%,#e60032_50%,#cc002c_100%)] shadow-[0_0_24px_rgba(255,0,55,0.7),inset_0_1px_1px_rgba(255,255,255,0.4)] hover:brightness-110 active:scale-[0.98] sm:h-[62px] sm:min-w-[170px] [&_svg]:size-5 border-none"
         >
           {checking ? "Checking..." : "Lookup"}
         </NeonButton>

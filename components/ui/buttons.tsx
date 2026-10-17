@@ -20,12 +20,12 @@ export function PrimaryButton({
     <button
       {...rest}
       className={cn(
-        "group relative flex h-[52px] w-full max-w-[320px] cursor-pointer items-center justify-center",
-        "rounded-[15px] border-none p-[2.5px] transition-all duration-300 select-none",
-        "bg-[image:linear-gradient(to_bottom_right,#2e8eff_0%,rgba(46,142,255,0)_30%)]",
-        "bg-[color:rgba(46,142,255,0.65)] shadow-[0_0_9px_rgba(46,142,255,0.2)]",
-        "hover:bg-[color:rgba(46,142,255,0.85)] hover:shadow-[0_0_11px_rgba(46,142,255,0.28)] hover:scale-[1.02]",
-        "focus:bg-[color:rgba(46,142,255,0.85)] focus:shadow-[0_0_11px_rgba(46,142,255,0.28)] focus:outline-none",
+        "group relative flex h-[52px] w-full max-w-[340px] cursor-pointer items-center justify-center select-none",
+        "rounded-full border-none p-[1.5px] transition-all duration-300",
+        "bg-[linear-gradient(90deg,#ff1f5a_0%,#e11d48_50%,#b91c1c_100%)]",
+        "shadow-[0_4px_22px_rgba(255,20,60,0.5),0_0_12px_rgba(255,31,90,0.3)]",
+        "hover:shadow-[0_6px_28px_rgba(255,20,60,0.65),0_0_18px_rgba(255,31,90,0.4)] hover:scale-[1.02]",
+        "focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#ff4d79]",
         "active:scale-[0.98]",
         "disabled:pointer-events-none disabled:opacity-40 disabled:shadow-none",
         className,
@@ -33,9 +33,10 @@ export function PrimaryButton({
     >
       <span
         className={cn(
-          "flex h-full w-full items-center justify-center gap-3 rounded-[13px] bg-[#161726]",
-          "font-display text-[12.5px] font-extrabold tracking-[2px] text-white transition-colors duration-200",
-          "group-hover:bg-[#1a1a2e]",
+          "flex h-full w-full items-center justify-center gap-2.5 rounded-full",
+          "bg-[linear-gradient(90deg,#ff0037_0%,#e60032_50%,#cc002c_100%)]",
+          "shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-8px_16px_-8px_rgba(100,0,20,0.5)]",
+          "font-display text-[14px] font-extrabold tracking-[1.5px] text-white transition-all duration-200",
           innerClassName,
         )}
       >

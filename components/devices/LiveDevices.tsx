@@ -149,18 +149,18 @@ function GlassPanel({ className, children }: { className?: string; children: Rea
       {/* Reflection: the panel's glow pooling on the card beneath it. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-[8%] -bottom-4 h-8 rounded-[50%] bg-[rgba(37,99,235,0.16)] blur-xl lt:bg-[rgba(59,130,246,0.08)]"
+        className="pointer-events-none absolute inset-x-[8%] -bottom-4 h-8 rounded-[50%] bg-[rgba(255,45,90,0.12)] blur-xl lt:bg-[rgba(255,45,90,0.06)]"
       />
 
       <div
         className={cn(
           "relative overflow-hidden rounded-[18px] border [transform-origin:50%_0%]",
-          "border-[rgba(59,130,246,0.55)]",
-          "bg-[linear-gradient(180deg,rgba(16,34,96,0.62)_0%,rgba(8,16,52,0.82)_45%,rgba(5,10,36,0.9)_100%)]",
-          "shadow-[0_0_0_1px_rgba(59,130,246,0.12),0_0_18px_-2px_rgba(37,99,235,0.25),0_24px_40px_-24px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(147,197,253,0.22),inset_0_0_24px_rgba(37,99,235,0.04)]",
+          "border-[rgba(255,45,90,0.18)]",
+          "bg-[linear-gradient(180deg,rgba(26,6,13,0.52)_0%,rgba(13,3,7,0.72)_100%)] backdrop-blur-xl",
+          "shadow-[0_16px_36px_-12px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.08)]",
           "transition-[transform,opacity] duration-[900ms] ease-smooth",
-          "lt:border-blue-200 lt:bg-none lt:bg-white/85",
-          "lt:shadow-[0_0_0_1px_rgba(59,130,246,0.06),0_14px_20px_-11px_rgba(37,99,235,0.2),inset_0_1px_0_rgba(255,255,255,0.9)]",
+          "lt:border-slate-200 lt:bg-none lt:bg-white/85",
+          "lt:shadow-sm",
           settled
             ? "[transform:none] opacity-100"
             : "[transform:rotateX(9deg)_translateY(18px)_scale(0.985)] opacity-0",
@@ -169,7 +169,7 @@ function GlassPanel({ className, children }: { className?: string; children: Rea
         {/* Top highlight: the glass catching light along its upper edge. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(125,170,255,0.1),transparent)] lt:bg-none lt:bg-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,rgba(255,45,90,0.08),transparent)] lt:bg-none lt:bg-transparent"
         />
         <div className="relative">{children}</div>
       </div>
@@ -196,18 +196,18 @@ const PAGER_BUTTON = cn(
 );
 
 const PAGER_IDLE = cn(
-  "border-[rgba(59,130,246,0.35)] text-[#9cc3ff]",
-  "bg-[linear-gradient(180deg,rgba(37,64,150,0.55),rgba(10,20,62,0.85))]",
-  "shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_3px_8px_-2px_rgba(0,0,0,0.55)]",
-  "enabled:hover:border-[rgba(96,165,250,0.7)] enabled:hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_0_7px_rgba(59,130,246,0.2)]",
-  "lt:border-blue-200 lt:bg-none lt:bg-white lt:text-blue-600 lt:shadow-[0_2px_4px_-2px_rgba(37,99,235,0.18)]",
+  "border-[rgba(255,45,90,0.22)] text-[#ff99af]",
+  "bg-[linear-gradient(180deg,rgba(32,8,16,0.6),rgba(16,4,8,0.85))]",
+  "shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_3px_8px_-2px_rgba(0,0,0,0.55)]",
+  "enabled:hover:border-[rgba(255,45,90,0.6)] enabled:hover:text-white enabled:hover:shadow-[0_0_8px_rgba(255,45,90,0.3)]",
+  "lt:border-slate-200 lt:bg-none lt:bg-white lt:text-slate-600 lt:shadow-sm",
 );
 
 const PAGER_ACTIVE = cn(
-  "border-[rgba(147,197,253,0.8)] text-white",
-  "bg-[linear-gradient(180deg,#4f8dff,#1d4ed8)]",
-  "shadow-[0_0_10px_rgba(59,130,246,0.36),inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-2px_0_rgba(0,0,0,0.25)]",
-  "lt:bg-none lt:bg-blue-600 lt:shadow-[0_4px_7px_-2px_rgba(37,99,235,0.32)]",
+  "border-[rgba(255,45,90,0.8)] text-white",
+  "bg-[linear-gradient(180deg,#ff1f5a,#be123c)]",
+  "shadow-[0_0_12px_rgba(255,30,60,0.45),inset_0_1px_0_rgba(255,255,255,0.4)]",
+  "lt:bg-rose-600 lt:shadow-sm",
 );
 
 function Pager({

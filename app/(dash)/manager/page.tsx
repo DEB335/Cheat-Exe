@@ -92,21 +92,13 @@ export default function ManagerPage() {
   };
 
   return (
-    <NeonPanel rim="blue">
-      {/* The key hologram stands in the header's right-hand side from lg
-          up; the header row is held tall enough for it, and padded clear
-          of it, so it never sits on the title or the key field. */}
-      <ManageKeyScene className="pointer-events-none absolute top-0 right-4 hidden h-[260px] w-[460px] lg:block 2xl:right-8" />
-
+    <NeonPanel rim="danger">
       <div className="relative z-10">
-        <div className="mb-6 lg:flex lg:min-h-[196px] lg:items-center lg:pr-[470px] 2xl:pr-[490px]">
+        <div className="mb-6">
           <PanelHeader
-            icon={<LinkIcon />}
-            iconTone="violet"
-            iconVariant="glass"
             title="Manage Key"
             subtitle="Use the same actions supported by your existing API."
-            className="mb-0 lg:flex-1"
+            className="mb-0"
           />
         </div>
 

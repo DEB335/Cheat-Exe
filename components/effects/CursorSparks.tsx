@@ -1,19 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
 import { pageZoom } from "@/lib/zoom";
-
-const MAX_PARTICLES = 30;
-
-/** Gold, crimson, cyan, violet, diamond white. */
-const PALETTE = [
-  "rgba(251, 191, 36, ",
-  "rgba(255, 51, 102, ",
-  "rgba(0, 243, 255, ",
-  "rgba(168, 85, 247, ",
-  "rgba(255, 255, 255, ",
-];
 
 interface Spark {
   x: number;
@@ -26,14 +14,20 @@ interface Spark {
   maxLife: number;
 }
 
-/**
- * Sparks that trail the cursor and burst on click. Skipped entirely for
- * reduced-motion users and touch-only pointers, as in the original.
- */
+/** Pure bright fiery red, crimson, and ruby palette for mouse cursor trail */
+const PALETTE = [
+  "rgba(255, 0, 55, ",
+  "rgba(255, 45, 90, ",
+  "rgba(255, 80, 110, ",
+  "rgba(230, 0, 50, ",
+  "rgba(255, 120, 140, ",
+];
+
 export function CursorSparks() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (!window.matchMedia("(pointer: fine)").matches) return;
 
@@ -42,14 +36,10 @@ export function CursorSparks() {
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
-    // The backing store is the viewport in real screen px, as before. The
-    // box is sized here because a canvas with only `inset-0` keeps its
-    // intrinsic size, which the page zoom then shrinks to 75% of the
-    // screen. Sparks are drawn in the page's zoomed px so they shrink with
-    // everything else.
     let zoom = 1;
     let width = 0;
     let height = 0;
+
     const fit = () => {
       zoom = pageZoom();
       canvas.width = window.innerWidth;
@@ -61,142 +51,78 @@ export function CursorSparks() {
       height = window.innerHeight / zoom;
     };
     fit();
+    window.addEventListener("resize", fit);
 
-    const particles: Spark[] = [];
-    let mouseX = -100;
-    let mouseY = -100;
-    let lastX = -100;
-    let lastY = -100;
-    let ticking = false;
-    let frame = 0;
-    /** Whether a render frame is scheduled. */
-    let running = false;
-    let resizeTimer: number | undefined;
+    const sparks: Spark[] = [];
 
-    const onResize = () => {
-      window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(fit, 150);
-    };
-
-    const addSpark = (x: number, y: number, vx: number, vy: number, size: number, life: number) => {
-      if (particles.length >= MAX_PARTICLES) particles.shift();
-      particles.push({
-        x,
-        y,
-        vx,
-        vy,
-        color: PALETTE[Math.floor(Math.random() * PALETTE.length)]!,
-        size,
-        life,
-        maxLife: life,
-      });
-    };
-
-    /** Inside the collapsed sidebar the sparks fight the nav glow, so skip. */
-    const inCollapsedSidebar = (target: EventTarget | null) =>
-      target instanceof Element && Boolean(target.closest("aside[data-collapsed='true']"));
-
-    // clientX/Y are real screen px; the context draws in zoomed px.
-    const onMouseMove = (event: MouseEvent) => {
-      mouseX = event.clientX / zoom;
-      mouseY = event.clientY / zoom;
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(() => {
-        if (inCollapsedSidebar(event.target)) {
-          ticking = false;
-          return;
-        }
-        if (Math.hypot(mouseX - lastX, mouseY - lastY) > 4) {
-          const vx = (mouseX - lastX) * 0.15 + (Math.random() - 0.5) * 0.8;
-          const vy = (mouseY - lastY) * 0.15 + (Math.random() - 0.5) * 0.8;
-          addSpark(mouseX, mouseY, vx, vy, Math.random() * 2.5 + 1.5, 14);
-          lastX = mouseX;
-          lastY = mouseY;
-          start();
-        }
-        ticking = false;
-      });
-    };
-
-    const onMouseDown = (event: MouseEvent) => {
-      if (inCollapsedSidebar(event.target)) return;
-      for (let i = 0; i < 14; i++) {
-        const angle = ((Math.PI * 2) / 14) * i + Math.random() * 0.2;
-        const speed = Math.random() * 4 + 1.5;
-        addSpark(
-          event.clientX / zoom,
-          event.clientY / zoom,
-          Math.cos(angle) * speed,
-          Math.sin(angle) * speed,
-          Math.random() * 3.5 + 2,
-          Math.floor(Math.random() * 15 + 15),
-        );
+    const addSpark = (clientX: number, clientY: number, count = 2) => {
+      const x = clientX / zoom;
+      const y = clientY / zoom;
+      for (let i = 0; i < count; i++) {
+        const color = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 1.5 + 0.5;
+        sparks.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 0.5,
+          color,
+          size: Math.random() * 2.5 + 1.5,
+          life: 0,
+          maxLife: Math.random() * 20 + 20,
+        });
       }
-      start();
+      if (sparks.length > 50) sparks.splice(0, sparks.length - 50);
     };
 
-    // The loop runs only while there are sparks. This canvas covers the
-    // whole screen above everything, so even a clearRect of an empty
-    // canvas made the compositor redraw the page -- every backdrop blur
-    // included -- 60 times a second with the mouse at rest.
+    const onPointerMove = (e: MouseEvent) => {
+      addSpark(e.clientX, e.clientY, 2);
+    };
+
+    const onClick = (e: MouseEvent) => {
+      addSpark(e.clientX, e.clientY, 8);
+    };
+
+    window.addEventListener("mousemove", onPointerMove, { passive: true });
+    window.addEventListener("click", onClick, { passive: true });
+
+    let raf = 0;
     const render = () => {
       ctx.clearRect(0, 0, width, height);
-      ctx.globalCompositeOperation = "lighter";
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i]!;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vx *= 0.92;
-        p.vy *= 0.92;
-        p.life--;
 
-        const alpha = p.life / p.maxLife;
-        if (alpha > 0) {
-          ctx.fillStyle = `${p.color}${alpha})`;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
-          ctx.fill();
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        s.life++;
+        if (s.life >= s.maxLife) {
+          sparks.splice(i, 1);
+          continue;
         }
-        if (p.life <= 0) particles.splice(i, 1);
+
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vy += 0.04; // subtle gravity
+
+        const alpha = Math.max(0, 1 - s.life / s.maxLife);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size * (1 - (s.life / s.maxLife) * 0.4), 0, Math.PI * 2);
+        ctx.fillStyle = `${s.color}${alpha})`;
+        ctx.shadowColor = "rgba(255, 0, 55, 0.8)";
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.shadowBlur = 0;
       }
-      // The frame that retires the last spark has just cleared the canvas,
-      // so stopping here leaves it blank.
-      if (particles.length > 0 && !document.hidden) {
-        frame = requestAnimationFrame(render);
-      } else {
-        running = false;
-      }
+
+      raf = requestAnimationFrame(render);
     };
 
-    function start() {
-      if (running || document.hidden) return;
-      running = true;
-      frame = requestAnimationFrame(render);
-    }
-
-    // A hidden tab keeps its sparks frozen and picks them up on return.
-    const onVisibility = () => {
-      if (document.hidden) {
-        cancelAnimationFrame(frame);
-        running = false;
-      } else if (particles.length > 0) {
-        start();
-      }
-    };
-
-    window.addEventListener("resize", onResize);
-    window.addEventListener("mousemove", onMouseMove, { passive: true });
-    window.addEventListener("mousedown", onMouseDown, { passive: true });
-    document.addEventListener("visibilitychange", onVisibility);
+    raf = requestAnimationFrame(render);
 
     return () => {
-      cancelAnimationFrame(frame);
-      window.clearTimeout(resizeTimer);
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mousedown", onMouseDown);
-      document.removeEventListener("visibilitychange", onVisibility);
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", fit);
+      window.removeEventListener("mousemove", onPointerMove);
+      window.removeEventListener("click", onClick);
     };
   }, []);
 
@@ -204,7 +130,8 @@ export function CursorSparks() {
     <canvas
       ref={canvasRef}
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-[999998]"
+      className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden"
     />
   );
 }
+
