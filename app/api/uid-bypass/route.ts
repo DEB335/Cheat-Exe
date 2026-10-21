@@ -42,10 +42,41 @@ function visibleTo(
   user: SessionUser,
   entries: WhitelistEntry[],
   owners: Record<string, string>,
+  resellers: Record<string, unknown>,
+  adminUser: string,
 ): WhitelistEntry[] {
-  if (user.role === "OWNER") return entries;
   const me = user.username.toLowerCase();
-  return entries.filter((entry) => owners[entry.uid] === me);
+  const adminLower = (adminUser || "").toLowerCase();
+
+  const filtered =
+    user.role === "OWNER"
+      ? entries
+      : entries.filter((entry) => (owners[entry.uid] || "").toLowerCase() === me);
+
+  return filtered.map((entry) => {
+    const rawOwner = (owners[entry.uid] || "").trim().toLowerCase();
+    let createdBy = "OWNER";
+
+    if (
+      !rawOwner ||
+      rawOwner === adminLower ||
+      rawOwner === "owner" ||
+      rawOwner === "admin" ||
+      rawOwner === "cheatexe"
+    ) {
+      createdBy = "OWNER";
+    } else {
+      const resellerMatch = Object.keys(resellers).find(
+        (name) => name.toLowerCase() === rawOwner,
+      );
+      createdBy = (resellerMatch || rawOwner).toUpperCase();
+    }
+
+    return {
+      ...entry,
+      createdBy,
+    };
+  });
 }
 
 export const GET = route(async () => {
@@ -62,7 +93,13 @@ export const GET = route(async () => {
   }
 
   try {
-    const entries = visibleTo(user, await listWhitelist(), db.cheatExeWhitelistOwners);
+    const entries = visibleTo(
+      user,
+      await listWhitelist(),
+      db.cheatExeWhitelistOwners,
+      db.cheatExeUsers,
+      db.adminUser,
+    );
     return NextResponse.json({ success: true, entries, maintenance: false });
   } catch (err) {
     // A provider that is unreachable, or a key it will not take, is a
@@ -135,7 +172,8 @@ export const POST = route(async (request: Request) => {
   }
 
   await updateDb(async (db, tx) => {
-    db.cheatExeWhitelistOwners[uid] = user.username.toLowerCase();
+    db.cheatExeWhitelistOwners[uid] =
+      user.role === "OWNER" ? "owner" : user.username.toLowerCase();
     pushAudit(db, {
       user: displayUser(user.username, user.role),
       action: `Whitelisted UID ${uid}${added.name ? ` (${added.name})` : ""} on ${region} for ${whitelistDaysLabel(days).toLowerCase()}`,
@@ -213,7 +251,8 @@ export const PATCH = route(async (request: Request) => {
   }
 
   await updateDb(async (current, tx) => {
-    current.cheatExeWhitelistOwners[uid] = owner ?? user.username.toLowerCase();
+    current.cheatExeWhitelistOwners[uid] =
+      owner ?? (user.role === "OWNER" ? "owner" : user.username.toLowerCase());
     pushAudit(current, {
       user: displayUser(user.username, user.role),
       action: `Re-issued UID ${uid}${added.name ? ` (${added.name})` : ""} on ${region} for ${whitelistDaysLabel(days).toLowerCase()}`,

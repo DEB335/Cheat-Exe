@@ -9,6 +9,7 @@ import { KeyHistoryAmbient } from "@/components/scenes/KeyHistoryScene";
 import { useToast } from "@/components/ui/Toast";
 import { patchJson, postJson } from "@/lib/client-api";
 import { DEFAULT_WHITELIST_DAYS, DEFAULT_WHITELIST_REGION, isWhitelistDays } from "@/lib/packages";
+import { useDashboard } from "@/lib/store";
 import type { WhitelistEntry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,8 @@ export function AddUidPanel({
   mutate: (updater: (prev: WhitelistEntry[]) => WhitelistEntry[]) => void;
 }) {
   const toast = useToast();
+  const user = useDashboard((s) => s.user);
+  const isOwner = user?.role === "OWNER";
 
   const [uid, setUid] = useState("");
   // The name the provider reads off the account. Never typed: the field
@@ -171,7 +174,7 @@ export function AddUidPanel({
           region,
           note: body.note,
           expireDate: result.expireDate ?? "",
-          createdBy: "",
+          createdBy: isOwner ? "OWNER" : (user?.username?.toUpperCase() ?? "RESELLER"),
         },
         ...prev.filter((row) => row.uid !== target),
       ]);

@@ -26,7 +26,12 @@ export const DELETE = route(async (request: Request) => {
     const before = db.cheatExeKeyHistory.length;
 
     if (scope === "owner") {
-      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => k.creator !== "admin");
+      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => {
+        if (k.package === "EMULATOR BYPASS") return true;
+        const c = (k.creator || "").trim().toLowerCase();
+        const isOwnerKey = c === "admin" || c === "owner" || c.startsWith("owner (") || c.startsWith("owner ");
+        return !isOwnerKey;
+      });
       if (db.cheatExeKeyHistory.length === before) return;
       pushAudit(db, {
         user: displayUser(user.username, user.role),
@@ -34,7 +39,12 @@ export const DELETE = route(async (request: Request) => {
         ip,
       });
     } else if (user.role === "OWNER") {
-      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => k.creator === "admin");
+      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => {
+        if (k.package === "EMULATOR BYPASS") return true;
+        const c = (k.creator || "").trim().toLowerCase();
+        const isOwnerKey = c === "admin" || c === "owner" || c.startsWith("owner (") || c.startsWith("owner ");
+        return isOwnerKey;
+      });
       if (db.cheatExeKeyHistory.length === before) return;
       pushAudit(db, {
         user: displayUser(user.username, user.role),
@@ -42,7 +52,13 @@ export const DELETE = route(async (request: Request) => {
         ip,
       });
     } else {
-      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => k.creator !== user.username);
+      const me = user.username.toLowerCase();
+      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => {
+        if (k.package === "EMULATOR BYPASS") return true;
+        const c = (k.creator || "").trim().toLowerCase();
+        const isMyKey = c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
+        return !isMyKey;
+      });
       if (db.cheatExeKeyHistory.length === before) return;
       pushAudit(db, {
         user: displayUser(user.username, user.role),

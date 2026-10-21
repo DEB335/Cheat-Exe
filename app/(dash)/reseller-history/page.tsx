@@ -12,13 +12,33 @@ export default function ResellerHistoryPage() {
   const toast = useToast();
   const refresh = useDashboard((s) => s.refresh);
   const isOwner = useDashboard((s) => s.user?.role === "OWNER");
+  const user = useDashboard((s) => s.user);
   const [showConfirm, setShowConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
 
   // Same as the owner history: derive from a stable slice, never from a
   // selector that allocates.
   const keyHistory = useDashboard((s) => s.db.cheatExeKeyHistory);
-  const history = useMemo(() => keyHistory.filter((k) => k.creator !== "admin"), [keyHistory]);
+  const history = useMemo(() => {
+    return keyHistory.filter((k) => {
+      // Exclude all Emulator Bypass keys
+      if (k.package === "EMULATOR BYPASS") return false;
+
+      const c = (k.creator || "").trim().toLowerCase();
+      // Exclude Owner keys
+      const isOwnerKey = c === "admin" || c === "owner" || c.startsWith("owner (") || c.startsWith("owner ");
+      if (isOwnerKey) return false;
+
+      // If reseller is viewing, show only this reseller's keys
+      if (!isOwner && user) {
+        const me = user.username.toLowerCase();
+        return c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
+      }
+
+      // If Owner is viewing, show all keys created by resellers
+      return true;
+    });
+  }, [keyHistory, isOwner, user]);
 
   const handleClear = async () => {
     setClearing(true);

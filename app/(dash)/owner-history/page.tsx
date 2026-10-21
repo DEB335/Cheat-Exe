@@ -17,7 +17,15 @@ export default function OwnerHistoryPage() {
   // Select the stable slice and derive here: a selector that returns a
   // fresh array each call breaks useSyncExternalStore in Zustand v5.
   const keyHistory = useDashboard((s) => s.db.cheatExeKeyHistory);
-  const history = useMemo(() => keyHistory.filter((k) => k.creator === "admin"), [keyHistory]);
+  const history = useMemo(
+    () =>
+      keyHistory.filter((k) => {
+        if (k.package === "EMULATOR BYPASS") return false;
+        const c = (k.creator || "").trim().toLowerCase();
+        return c === "admin" || c === "owner" || c.startsWith("owner (") || c.startsWith("owner ");
+      }),
+    [keyHistory],
+  );
 
   const handleClear = async () => {
     setClearing(true);
