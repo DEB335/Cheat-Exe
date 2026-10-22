@@ -9,7 +9,7 @@ export interface DeviceMarks {
 }
 
 /** The rule that blocks this request, or null when nothing matches. */
-export function matchBan(db: Database, marks: DeviceMarks): BanRule | null {
+export function matchBan(db: Pick<Database, "cheatExeBans">, marks: DeviceMarks): BanRule | null {
   for (const rule of db.cheatExeBans) {
     const against = marks[rule.scope];
     if (against && against.toLowerCase() === rule.value.toLowerCase()) return rule;

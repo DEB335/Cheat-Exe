@@ -4,7 +4,7 @@ import { cookies, headers } from "next/headers";
 import { cache } from "react";
 
 import { matchBan } from "./bans";
-import { accountBlock, findReseller, readDb, readSlice } from "./db";
+import { accountBlock, findReseller, readDb, readSlice, type SliceField } from "./db";
 import { lockedToAnotherDevice } from "./device-lock";
 import { deviceIdentity } from "./device";
 import { PACKAGE_NAMES } from "./packages";
@@ -93,6 +93,20 @@ export async function requireUser(): Promise<SessionUser> {
  */
 export async function requireUserWithDb(): Promise<{ user: SessionUser; db: Database }> {
   return authorize(readDb);
+}
+
+/**
+ * requireUser for a route that also needs a few more fields: the checks
+ * and those fields come off one slice read, where requireUser plus a
+ * readSlice beside it would take two queries and two of the pool's
+ * three connections.
+ */
+export async function requireUserWith<K extends SliceField>(
+  fields: readonly K[],
+): Promise<{ user: SessionUser; db: AccessState & Pick<Database, K> }> {
+  return authorize(
+    () => readSlice([...ACCESS_FIELDS, ...fields]) as Promise<AccessState & Pick<Database, K>>,
+  );
 }
 
 /** The checks behind both of the above, against whichever read they hand it. */

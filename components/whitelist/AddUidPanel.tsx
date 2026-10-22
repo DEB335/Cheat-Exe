@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { GlobeIcon, SearchIcon, UserIcon, UserPlusIcon } from "@/components/icons";
 import { NeonButton, NeonCta, NeonInput, NeonPanel, NeonSelect, PanelHeader, PlusCircleIcon } from "@/components/neon";
@@ -18,9 +18,12 @@ import { RegionSelect } from "./RegionSelect";
 import { addedMessage, wantedDays, type AddResult } from "./whitelist-shared";
 
 type LookupResult = AddResult & {
+  region?: string;
   alreadyWhitelisted?: boolean;
   strayEntry?: boolean;
   resetExisting?: boolean;
+  contested?: boolean;
+  claimFailed?: boolean;
 };
 
 /**
@@ -42,9 +45,21 @@ export function AddUidPanel({
 }) {
   const toast = useToast();
   const user = useDashboard((s) => s.user);
+  // The owner's list is the provider's whole list; a reseller's is only
+  // the entries their owner row names. Decides what a search may draw.
   const isOwner = user?.role === "OWNER";
 
-  const [uid, setUid] = useState("");
+  const [uid, setUidState] = useState("");
+  // What the UID field holds right now, readable from inside a search
+  // that is still waiting on the provider. The field stays editable
+  // while a search runs, so an answer may arrive for a UID that is no
+  // longer the one on screen -- and a green name standing next to the
+  // wrong number is exactly what would sell the wrong customer.
+  const uidNow = useRef("");
+  const setUid = (value: string) => {
+    uidNow.current = value;
+    setUidState(value);
+  };
   // The name the provider reads off the account. Never typed: the field
   // that shows it is disabled, and it is cleared whenever the UID
   // changes so a name can never be left standing against a different
@@ -108,15 +123,64 @@ export function AddUidPanel({
         uid: target,
         region,
       });
-      setPlayer(found.name ?? "");
+      // The name is only shown against the UID it was bought for. If the
+      // field has moved on, the list below is still updated -- whatever
+      // the search left behind is real either way -- but the green name
+      // is not, and the toast says to search again.
+      const stillShown = uidNow.current.trim() === target;
+      if (stillShown) setPlayer(found.name ?? "");
       // Anything that left a row behind has to be reflected, because
       // `onList` is read from the list and decides what ADD does next.
-      if (found.alreadyWhitelisted || found.strayEntry || found.resetExisting) {
-        await reload();
+      // The reply already says what the row is, so it is drawn now and
+      // the answer shown at once; the re-read behind it corrects the
+      // details (note, who added it) rather than being waited for.
+      //
+      // Drawn only where the re-read will keep it. A probe that left its
+      // entry (strayEntry) or landed on an existing one (resetExisting)
+      // wrote this account's owner row, so it is theirs to see. A UID
+      // answered straight from the provider's list was not touched, and
+      // for a reseller that means an entry nobody owns -- one their list
+      // never shows, and one ADD has to reach with a plain add, not the
+      // re-issue a painted row would switch it to.
+      //
+      // Nor is a UID somebody else whitelisted while the search was in
+      // flight (contested): it is theirs, and the re-read draws it for
+      // whoever may see it.
+      const leftRow = Boolean(found.strayEntry || found.resetExisting);
+      if (leftRow || (found.alreadyWhitelisted && !found.contested && isOwner)) {
+        mutate((prev) => {
+          const held = prev.find((row) => row.uid === target);
+          return [
+            {
+              uid: target,
+              name: found.name ?? held?.name ?? "",
+              region: found.region ?? held?.region ?? region,
+              note: held?.note ?? "",
+              expireDate: found.expireDate ?? held?.expireDate ?? "",
+              createdBy:
+                held?.createdBy ??
+                (leftRow ? (isOwner ? "OWNER" : (user?.username?.toUpperCase() ?? "RESELLER")) : ""),
+            },
+            ...prev.filter((row) => row.uid !== target),
+          ];
+        });
       }
+      if (found.alreadyWhitelisted || leftRow || found.claimFailed) void reload();
 
       if (!found.name) {
         toast("The provider returned no name for that UID.", "error");
+      } else if (found.contested) {
+        toast(
+          `${found.name} (${target}) was whitelisted while it was being checked, so it was left untouched.`,
+          "error",
+        );
+      } else if (found.claimFailed) {
+        // No owner row was written, so a reseller cannot see or delete
+        // what the search may have left; only the owner's list shows it.
+        toast(
+          `${found.name} — but the check could not be recorded, so its 1-day check entry may still be on the whitelist. The owner can remove it.`,
+          "error",
+        );
       } else if (found.resetExisting) {
         // The add landed on an entry that already existed, so its
         // validity is now a day. Removing it was refused -- deleting
@@ -131,6 +195,11 @@ export function AddUidPanel({
           `${found.name} — but the 1-day check entry could not be removed. Delete it from the list.`,
           "error",
         );
+      } else if (!stillShown) {
+        toast(
+          `${found.name} is UID ${target}, but the UID field has changed since. Search the new UID before adding.`,
+          "error",
+        );
       } else {
         toast(`${found.name} — now choose the validity and press ADD UID.`, "success");
       }
@@ -143,6 +212,10 @@ export function AddUidPanel({
 
   const add = async (event: React.FormEvent) => {
     event.preventDefault();
+    // Not while a search is running -- the button is disabled then, and
+    // this stops Enter too. A real add landing mid-search is a sale the
+    // search's clean-up could otherwise mistake for its own check entry.
+    if (looking) return;
     setAdding(true);
     const wanted = wantedDays(days);
     const target = uid.trim();
@@ -285,7 +358,7 @@ export function AddUidPanel({
             type="submit"
             icon={<PlusCircleIcon />}
             loading={adding}
-            disabled={!isWhitelistDays(wantedDays(days))}
+            disabled={looking || !isWhitelistDays(wantedDays(days))}
             className="w-full sm:w-auto sm:justify-self-start md:col-start-1 md:row-start-3 md:min-w-[max(260px,55%)] md:self-end"
           >
             {adding ? "Adding…" : "Add UID"}

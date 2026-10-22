@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { ACCESS_FIELDS, asDatabase, clientIp, livePackages } from "@/lib/auth";
 import { pushAudit, route } from "@/lib/api-helpers";
 import { matchBan } from "@/lib/bans";
-import { accountBlock, findReseller, getDbUpdatedAt, readSlice, updateDb } from "@/lib/db";
+import { accountBlock, findReseller, getDbUpdatedAt, readSlice, updateSlice } from "@/lib/db";
 import { deviceIdentity } from "@/lib/device";
 import { unreadFor } from "@/lib/messages";
 import { lockedToAnotherDevice } from "@/lib/device-lock";
@@ -24,7 +24,8 @@ function ended(terminated: string): NextResponse {
  * Closes out a session that has reached its fixed lifetime.
  */
 async function timedOut(user: SessionUser, ip: string): Promise<NextResponse> {
-  await updateDb((db) => {
+  // A slice, not the whole document: see the note in the logout route.
+  await updateSlice(["cheatExeDevices", "cheatExeAuditLogs"], (db) => {
     db.cheatExeDevices = db.cheatExeDevices.filter((d) => d.sessionId !== user.sessionId);
     pushAudit(db, {
       user: displayUser(user.username, user.role),

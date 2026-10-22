@@ -25,7 +25,10 @@ export function route<T extends unknown[]>(
 }
 
 /** Appends an audit entry in place, keeping the newest 100. */
-export function pushAudit(db: Database, entry: Omit<AuditLog, "timestamp">): void {
+export function pushAudit(
+  db: Pick<Database, "cheatExeAuditLogs">,
+  entry: Omit<AuditLog, "timestamp">,
+): void {
   db.cheatExeAuditLogs.unshift({ timestamp: formatTimestamp(), ...entry });
   if (db.cheatExeAuditLogs.length > 100) db.cheatExeAuditLogs.pop();
 }

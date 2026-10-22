@@ -20,7 +20,7 @@ import type { Database, DeviceLock, Reseller } from "./types";
 
 /** True when the account is locked and this is not the machine it is bound to. */
 export function lockedToAnotherDevice(
-  db: Database,
+  db: Pick<Database, "cheatExeUsers">,
   username: string,
   marks: DeviceMarks,
 ): boolean {

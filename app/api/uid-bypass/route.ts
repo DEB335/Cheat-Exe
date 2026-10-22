@@ -1,21 +1,45 @@
 import { NextResponse } from "next/server";
 
-import { HttpError, clientIp, loadDb, requireUser } from "@/lib/auth";
+import { HttpError, clientIp, getSessionUser, requireUserWith } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
-import { updateDb } from "@/lib/db";
+import { updateSlice } from "@/lib/db";
 import { canManageWhitelist, whitelistDaysLabel } from "@/lib/packages";
 import { ping } from "@/lib/realtime";
-import type { SessionUser, WhitelistEntry } from "@/lib/types";
-import { MAINTENANCE, addWhitelist, listWhitelist, removeWhitelist } from "@/lib/uid-api";
+import type { Database, SessionUser, WhitelistEntry } from "@/lib/types";
+import {
+  MAINTENANCE,
+  addWhitelist,
+  listWhitelistCached,
+  removeWhitelist,
+} from "@/lib/uid-api";
 import { cleanDays, cleanNote, cleanRegion, cleanUid } from "@/lib/whitelist-input";
 import { displayUser } from "@/lib/utils";
 
-async function requireWhitelistAccess(): Promise<SessionUser> {
-  const user = await requireUser();
+/**
+ * The access check and the ownership map, off one read.
+ *
+ * requireUserWith hands back the owner map from the same slice the
+ * account checks read, so a whitelist request costs one query and one
+ * of the pool's three connections -- and a database error can no longer
+ * surface in place of the 403 the checks would have given. The same
+ * slice carries the reseller records and the owner's name, which the
+ * list's "created by" column is resolved from.
+ */
+async function requireWhitelistAccess(): Promise<{
+  user: SessionUser;
+  owners: Record<string, string>;
+  db: Pick<Database, "cheatExeWhitelistOwners" | "cheatExeUsers" | "adminUser">;
+}> {
+  const { user, db } = await requireUserWith(["cheatExeWhitelistOwners"]);
   if (!canManageWhitelist(user)) {
     throw new HttpError(403, "The UID BYPASS package is required to manage the whitelist.");
   }
-  return user;
+  return { user, owners: db.cheatExeWhitelistOwners, db };
+}
+
+/** Marks a promise as handled, for one that may lose a race and never be awaited. */
+function quiet(promise: Promise<unknown> | null): void {
+  promise?.catch(() => {});
 }
 
 /**
@@ -79,9 +103,32 @@ function visibleTo(
   });
 }
 
-export const GET = route(async () => {
-  const user = await requireWhitelistAccess();
-  const db = await loadDb();
+export const GET = route(async (request: Request) => {
+  // `?fresh=1` comes from a reload behind a change, or Refresh; a plain
+  // visit may be answered from the few-second cache. See
+  // listWhitelistCached.
+  const wantsFresh = new URL(request.url).searchParams.get("fresh") === "1";
+
+  // A plain read of the list leaves alongside the access check rather
+  // than after it -- the list is the slow one. It only starts for a
+  // request carrying a valid session cookie, nothing it returns is sent
+  // unless the full check passes, and it is marked handled so a read
+  // that fails while the check refuses the request is not an unhandled
+  // rejection.
+  //
+  // A fresh read waits for the check instead. It skips the cache and
+  // retires whatever is in it, and an account that has since been
+  // suspended, or lost the package, must not be able to do that on every
+  // call just by holding a cookie that still verifies.
+  const session = await getSessionUser();
+  const access = requireWhitelistAccess();
+  const early = session && !MAINTENANCE && !wantsFresh ? listWhitelistCached() : null;
+  quiet(early);
+
+  // A database failure in here is this app's fault, not the provider's,
+  // so it is awaited outside the try below and surfaces as an error
+  // rather than as the maintenance notice.
+  const { user, db } = await access;
 
   if (MAINTENANCE) {
     return NextResponse.json({
@@ -95,7 +142,7 @@ export const GET = route(async () => {
   try {
     const entries = visibleTo(
       user,
-      await listWhitelist(),
+      await (early ?? listWhitelistCached({ fresh: wantsFresh })),
       db.cheatExeWhitelistOwners,
       db.cheatExeUsers,
       db.adminUser,
@@ -121,7 +168,7 @@ export const GET = route(async () => {
 });
 
 export const POST = route(async (request: Request) => {
-  const user = await requireWhitelistAccess();
+  const { user, owners } = await requireWhitelistAccess();
   assertAvailable();
   const ip = await clientIp();
 
@@ -150,7 +197,7 @@ export const POST = route(async (request: Request) => {
   // make this endpoint a way to delete another reseller's customer and
   // put them under your own name, so the owner row is checked first
   // and the provider's refusal is allowed to stand when it is theirs.
-  const existingOwner = (await loadDb()).cheatExeWhitelistOwners[uid];
+  const existingOwner = owners[uid];
   const mayReclaim =
     !existingOwner || user.role === "OWNER" || existingOwner === user.username.toLowerCase();
 
@@ -171,7 +218,10 @@ export const POST = route(async (request: Request) => {
     added = await addWhitelist({ uid, region, days, note });
   }
 
-  await updateDb(async (db, tx) => {
+  // Before the response, not after it: a reseller's list shows only the
+  // UIDs their owner row names, and the page re-reads the list the
+  // moment this answers. Only the two fields it touches cross the wire.
+  await updateSlice(["cheatExeWhitelistOwners", "cheatExeAuditLogs"], async (db, tx) => {
     db.cheatExeWhitelistOwners[uid] =
       user.role === "OWNER" ? "owner" : user.username.toLowerCase();
     pushAudit(db, {
@@ -204,7 +254,7 @@ export const POST = route(async (request: Request) => {
  * so plainly -- there is nothing to roll back to.
  */
 export const PATCH = route(async (request: Request) => {
-  const user = await requireWhitelistAccess();
+  const { user, owners } = await requireWhitelistAccess();
   assertAvailable();
   const ip = await clientIp();
 
@@ -219,8 +269,7 @@ export const PATCH = route(async (request: Request) => {
   const region = cleanRegion(body.region);
   const days = cleanDays(body.days);
 
-  const db = await loadDb();
-  const owner = db.cheatExeWhitelistOwners[uid];
+  const owner = owners[uid];
   if (user.role !== "OWNER" && owner !== user.username.toLowerCase()) {
     throw new HttpError(403, "That UID was whitelisted by someone else.");
   }
@@ -234,7 +283,7 @@ export const PATCH = route(async (request: Request) => {
     try {
       added = await addWhitelist({ uid, region, days, note });
     } catch (err) {
-      await updateDb(async (current, tx) => {
+      await updateSlice(["cheatExeWhitelistOwners", "cheatExeAuditLogs"], async (current, tx) => {
         delete current.cheatExeWhitelistOwners[uid];
         pushAudit(current, {
           user: displayUser(user.username, user.role),
@@ -250,7 +299,7 @@ export const PATCH = route(async (request: Request) => {
     }
   }
 
-  await updateDb(async (current, tx) => {
+  await updateSlice(["cheatExeWhitelistOwners", "cheatExeAuditLogs"], async (current, tx) => {
     current.cheatExeWhitelistOwners[uid] =
       owner ?? (user.role === "OWNER" ? "owner" : user.username.toLowerCase());
     pushAudit(current, {
@@ -265,14 +314,13 @@ export const PATCH = route(async (request: Request) => {
 });
 
 export const DELETE = route(async (request: Request) => {
-  const user = await requireWhitelistAccess();
+  const { user, owners } = await requireWhitelistAccess();
   assertAvailable();
   const ip = await clientIp();
 
   const uid = cleanUid(new URL(request.url).searchParams.get("uid"));
 
-  const db = await loadDb();
-  const owner = db.cheatExeWhitelistOwners[uid];
+  const owner = owners[uid];
   if (user.role !== "OWNER" && owner !== user.username.toLowerCase()) {
     throw new HttpError(403, "That UID was whitelisted by someone else.");
   }
@@ -282,7 +330,7 @@ export const DELETE = route(async (request: Request) => {
   // a list that drifted from the provider leaves a trace.
   const existed = await removeWhitelist(uid);
 
-  await updateDb(async (current, tx) => {
+  await updateSlice(["cheatExeWhitelistOwners", "cheatExeAuditLogs"], async (current, tx) => {
     delete current.cheatExeWhitelistOwners[uid];
     pushAudit(current, {
       user: displayUser(user.username, user.role),

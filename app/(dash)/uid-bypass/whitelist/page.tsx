@@ -112,6 +112,9 @@ export default function WhitelistPage() {
           : `UID ${entry.uid} removed.`,
         "success",
       );
+      // Re-read now the delete has landed, so the next list to arrive is
+      // one taken after it rather than one that still holds the row.
+      void reload();
     } catch (err) {
       mutate((prev) => (prev.some((row) => row.uid === entry.uid) ? prev : [entry, ...prev]));
       toast((err as Error).message, "error");

@@ -108,14 +108,53 @@ export async function callLicenseApi<T extends LicenseEnvelope>(
 ): Promise<T> {
   const ttl = CACHE_TTL_MS[action];
   if (ttl !== undefined) return cachedRead<T>(action, params, ttl);
+  if (SHARED_ACTIONS.has(action)) return sharedRead<T>(action, params);
 
   try {
     return await sendToLicenseApi<T>(action, params);
   } finally {
     // Settled either way: a call that failed or timed out may still have
     // landed upstream, so the counts are suspect after any attempt.
-    if (!READ_ONLY_ACTIONS.has(action)) forgetCounts();
+    if (!READ_ONLY_ACTIONS.has(action)) {
+      forgetCounts();
+      // A lookup that set out before this change describes the key as it
+      // was; nothing asked after it may join that one.
+      lookups.clear();
+    }
   }
+}
+
+/**
+ * Lookups that are shared while they are on their way, and never kept.
+ *
+ * Checking a key is asked by hand, so an answer from a moment ago is the
+ * wrong answer -- there is no TTL here. But the manager page checks a key
+ * as soon as it is pasted and again when Lookup is pressed, and two tabs
+ * can ask about the same key at once; those may as well ride one request.
+ * A change upstream through this instance (above) drops whatever is in
+ * flight, so a lookup made after a reset or a ban is always a fresh one.
+ */
+const SHARED_ACTIONS = new Set(["key_info"]);
+
+const lookups = new Map<string, Promise<LicenseEnvelope>>();
+
+async function sharedRead<T extends LicenseEnvelope>(
+  action: string,
+  params: Record<string, string | number>,
+): Promise<T> {
+  const key = `${action}\u0000${JSON.stringify(Object.entries(params).sort())}`;
+
+  let pending = lookups.get(key);
+  if (!pending) {
+    const request = sendToLicenseApi<LicenseEnvelope>(action, params).finally(() => {
+      if (lookups.get(key) === request) lookups.delete(key);
+    });
+    pending = request;
+    lookups.set(key, request);
+  }
+
+  // A copy each, so no caller can edit the answer another one is handed.
+  return structuredClone(await pending) as T;
 }
 
 /**
@@ -275,6 +314,38 @@ export async function livePackage(
 export const getStats = () => callLicenseApi<StatsResponse>("reseller_stats");
 
 export const getKeyInfo = (key: string) => callLicenseApi<KeyInfoResponse>("key_info", { key });
+
+/** What the manager page draws for a key: key_info, renamed and with blanks filled. */
+export interface KeyInfoView {
+  key: string;
+  appName: string;
+  packageName: string;
+  status: string;
+  createdAt: string;
+  expiryDate: string;
+  hwid: string;
+  ip: string;
+  durationDays: number;
+}
+
+/**
+ * Shapes a successful key_info answer for the browser. Shared by the
+ * lookup route and the key actions, which hand back the key's state
+ * after the change so the page does not have to ask again.
+ */
+export function toKeyInfoView(data: KeyInfoResponse, asked: string): KeyInfoView {
+  return {
+    key: data.key ?? asked,
+    appName: data.app_name ?? "",
+    packageName: data.package_name ?? "",
+    status: data.status ?? "unknown",
+    createdAt: data.created_at ?? "",
+    expiryDate: data.expiry_date ?? "",
+    hwid: data.hwid ?? "",
+    ip: data.ip ?? "",
+    durationDays: data.duration_days ?? 0,
+  };
+}
 
 /**
  * The package names a reseller grant is allowed to contain.

@@ -242,6 +242,82 @@ export async function listWhitelist(): Promise<WhitelistEntry[]> {
 }
 
 /**
+ * How long the page's list may be answered from this instance's memory.
+ *
+ * The whitelist page asks on every visit, on every Refresh, every ten
+ * seconds while Auto is on, and once more behind every add, re-issue
+ * and delete -- each a fresh round trip to the provider. Five seconds
+ * absorbs those bursts (two tabs, a navigation straight after a write)
+ * without ever showing a list older than one Auto tick.
+ *
+ * Only `listWhitelistCached` reads this, and only the page's GET calls
+ * that. The lookup reads `listWhitelistSnapshot` directly: the search
+ * decides whether a UID is safe to probe-and-delete on the strength of
+ * the list, so it must never be handed one from a few seconds ago.
+ * Every add or remove through this instance drops the cache (see
+ * `forgetWhitelist`); a write through another instance is covered by
+ * the page asking for a fresh read after every change.
+ */
+const LIST_TTL_MS = 5_000;
+
+let listCache: { entries: WhitelistEntry[]; expires: number } | null = null;
+let listInFlight: Promise<WhitelistEntry[]> | null = null;
+/** Bumped by every write, so a read already on its way when one lands is not kept. */
+let listGeneration = 0;
+
+/**
+ * The whitelist for display, from memory when a read in the last few
+ * seconds already fetched it.
+ *
+ * Callers arriving while a read is out share it rather than each
+ * sending their own. Only a success is kept; a failure is handed to
+ * whoever was waiting and the next call asks again. Every caller gets
+ * its own copy, so no caller can edit the list another one is handed.
+ *
+ * `fresh` skips both the cache and any read already on its way, and
+ * keeps what it gets for the next caller. The page asks for it after a
+ * change and on Refresh: the change may have gone through a different
+ * server instance, whose write this instance's cache knows nothing of.
+ */
+export async function listWhitelistCached(
+  options: { fresh?: boolean } = {},
+): Promise<WhitelistEntry[]> {
+  if (!options.fresh && listCache && listCache.expires > Date.now()) {
+    return structuredClone(listCache.entries);
+  }
+
+  // A fresh read also outranks any older one still on its way, which
+  // would otherwise land after it and put its older list in the cache.
+  if (options.fresh) listGeneration += 1;
+
+  let request = options.fresh ? null : listInFlight;
+  if (!request) {
+    const started = listGeneration;
+    const sent: Promise<WhitelistEntry[]> = listWhitelist()
+      .then((entries) => {
+        if (started === listGeneration) {
+          listCache = { entries, expires: Date.now() + LIST_TTL_MS };
+        }
+        return entries;
+      })
+      .finally(() => {
+        if (listInFlight === sent) listInFlight = null;
+      });
+    listInFlight = sent;
+    request = sent;
+  }
+
+  return structuredClone(await request);
+}
+
+/** Drops the cached list, and any read of it already on its way. */
+export function forgetWhitelist(): void {
+  listGeneration += 1;
+  listCache = null;
+  listInFlight = null;
+}
+
+/**
  * Whitelists a UID and answers what the provider made of it.
  *
  * The provider verifies the UID against the game and answers with the
@@ -286,18 +362,26 @@ export async function addWhitelist(input: {
       ];
     });
 
+    forgetWhitelist();
     return {
       name,
       expireDate,
     };
   }
 
-  const payload = await call("whitelist_uid", {
-    uid: input.uid,
-    region: input.region || DEFAULT_WHITELIST_REGION,
-    days: input.days,
-    note: input.note,
-  });
+  let payload: Envelope;
+  try {
+    payload = await call("whitelist_uid", {
+      uid: input.uid,
+      region: input.region || DEFAULT_WHITELIST_REGION,
+      days: input.days,
+      note: input.note,
+    });
+  } finally {
+    // Settled either way: a call that failed or timed out may still have
+    // landed upstream, so the cached list is suspect after any attempt.
+    forgetWhitelist();
+  }
 
   const data = Array.isArray(payload.data) ? payload.data[0] : payload.data;
 
@@ -327,6 +411,7 @@ export async function removeWhitelist(uid: string): Promise<boolean> {
       existed = filtered.length < current.length;
       db.cheatExeWhitelistEntries = filtered;
     });
+    forgetWhitelist();
     return existed;
   }
 
@@ -336,6 +421,8 @@ export async function removeWhitelist(uid: string): Promise<boolean> {
   } catch (err) {
     if (err instanceof HttpError && err.status === 404) return false;
     throw err;
+  } finally {
+    forgetWhitelist();
   }
 }
 

@@ -1,8 +1,8 @@
 import { NextResponse, after } from "next/server";
 
-import { HttpError, clientIp, requireUser } from "@/lib/auth";
+import { HttpError, clientIp, getSessionUser, requireUser } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
-import { findReseller, keysUsedBy, updateDb } from "@/lib/db";
+import { countKeysBy, findReseller, updateDb, updateSlice, type SlicedField } from "@/lib/db";
 import { keysRemaining, pendingCount } from "@/lib/reseller";
 import { callLicenseApi, getKeyInfo, livePackage, type GenerateResponse } from "@/lib/license-api";
 import { packageById } from "@/lib/packages";
@@ -22,18 +22,15 @@ interface GenerateBody {
   hwidLock?: boolean;
 }
 
-/**
- * Generates keys through the upstream license API. The API key lives in
- * an env var and is attached here -- it is never sent to the browser.
- */
-export const POST = route(async (request: Request) => {
-  const user = await requireUser();
-  const body = await readJson<GenerateBody>(request);
-  const requested = body.packageId ?? "";
-  // Check known packages first for instant resolution, falling back to live API
-  const pkg = packageById(requested) ?? (await livePackage(requested));
-  if (!pkg) throw new HttpError(400, "Unknown package.");
+/** A generate request's body, checked. */
+interface GenerateInput {
+  requested: string;
+  duration: string;
+  amount: number;
+  hwidLock: boolean;
+}
 
+function parseGenerate(body: GenerateBody): GenerateInput {
   // A whole number of days, 0 for lifetime. Checked here because the
   // provider mints first and the reseller's allowance pays for whatever
   // it made of a stray "-3" or "7.5".
@@ -46,21 +43,70 @@ export const POST = route(async (request: Request) => {
     throw new HttpError(400, "Count must be a whole number between 1 and 100.");
   }
 
-  // Not sent to the provider: it has no such parameter and binds every
-  // key regardless. The panel records the choice, and the sweep
-  // (lib/hwid-release.ts) keeps an unlocked key's device free.
-  const hwidLock = body.hwidLock !== false;
+  return {
+    requested: body.packageId ?? "",
+    duration,
+    amount,
+    // Not sent to the provider: it has no such parameter and binds every
+    // key regardless. The panel records the choice, and the sweep
+    // (lib/hwid-release.ts) keeps an unlocked key's device free.
+    hwidLock: body.hwidLock !== false,
+  };
+}
+
+/**
+ * Generates keys through the upstream license API. The API key lives in
+ * an env var and is attached here -- it is never sent to the browser.
+ */
+export const POST = route(async (request: Request) => {
+  // A signed cookie, checked before anything else is started: the
+  // package lookup below goes out before the full account check has
+  // answered, and it should never go out for an anonymous caller.
+  if (!(await getSessionUser())) throw new HttpError(401, "Not authenticated");
+
+  // The account check, the body and the package lookup side by side:
+  // none needs the others, and one after the other they were separate
+  // round trips on every click. The account check is still answered
+  // first -- a suspended or deleted account hears that, not a complaint
+  // about its form -- so a bad body is held, not thrown, until it has.
+  // The empty catch marks a refusal as seen while the body is read; the
+  // await below still throws it.
+  const account = requireUser();
+  account.catch(() => {});
+  const input = await readJson<GenerateBody>(request)
+    .then(parseGenerate)
+    .catch((err: unknown) => err);
+
+  // Known packages resolve instantly from the bundled list; only an id it
+  // does not know waits on the live one. That lookup starts here, beside
+  // the account check, rather than after it. livePackage never throws (it
+  // answers null on any failure), so it cannot be left unhandled by a
+  // refusal above.
+  const bundled = input instanceof Error ? undefined : packageById((input as GenerateInput).requested);
+  const live =
+    input instanceof Error || bundled ? null : livePackage((input as GenerateInput).requested);
+
+  const user = await account;
+  if (input instanceof Error) throw input;
+  const { duration, amount, hwidLock } = input as GenerateInput;
+
+  const pkg = bundled ?? (await live);
+  if (!pkg) throw new HttpError(400, "Unknown package.");
 
   const isReseller = user.role !== "OWNER";
 
   // Reserve the allowance BEFORE minting. The reservation is written
-  // inside updateDb, whose row lock serialises concurrent requests, so a
-  // reseller cannot double-submit from two tabs and slip past the cap:
+  // inside updateSlice, whose row lock serialises concurrent requests, so
+  // a reseller cannot double-submit from two tabs and slip past the cap:
   // the second request sees the first's reservation. The mint happens
   // outside the lock (it is a slow external call), and the reservation is
   // converted to real history -- or released -- once it returns.
+  //
+  // Only the reseller records are read and written. The keys already
+  // used are counted in Postgres under the same lock, so the history --
+  // most of the document -- never leaves the database for a quota check.
   if (isReseller) {
-    await updateDb((db) => {
+    await updateSlice(["cheatExeUsers"], async (db, tx) => {
       const match = findReseller(db, user.username);
       if (!match) throw new HttpError(403, "This account no longer exists.");
 
@@ -75,8 +121,9 @@ export const POST = route(async (request: Request) => {
         throw new HttpError(403, `You are not allowed to generate keys for ${pkg.name}.`);
       }
 
-      const limit = keysRemaining(match.user, keysUsedBy(db, user.username));
-      if (limit === null) return; // uncapped
+      // Uncapped accounts skip the count altogether.
+      if (keysRemaining(match.user, 0) === null) return;
+      const limit = keysRemaining(match.user, await countKeysBy(tx, user.username)) ?? 0;
 
       const pending = pendingCount(match.user, Date.now());
       const free = Math.max(0, limit - pending);
@@ -155,32 +202,53 @@ export const POST = route(async (request: Request) => {
   }));
 
   const ip = await clientIp();
-  await updateDb(async (db, tx) => {
-    for (const record of records) db.cheatExeKeyHistory.unshift(record);
 
-    // Convert the reservation to recorded history. Release the full
-    // amount reserved, not generated.length -- the two match on success,
-    // and releasing what was reserved keeps the counter honest even if
-    // the upstream returned a different count.
-    if (isReseller) {
-      const match = findReseller(db, user.username);
-      if (match) clearReservation(match.user, amount);
-    }
+  // One transaction and one UPDATE, and only the small fields cross the
+  // wire: the new records go on top of the history inside Postgres, in
+  // the same statement that merges the slice back, so recording a mint no
+  // longer pulls the whole history down and writes every byte of it back.
+  // The reseller records come along only when there is a reservation to
+  // convert.
+  const fields: Extract<SlicedField, "cheatExeAuditLogs" | "cheatExeUsers">[] = isReseller
+    ? ["cheatExeAuditLogs", "cheatExeUsers"]
+    : ["cheatExeAuditLogs"];
+  await updateSlice(
+    fields,
+    async (db, tx) => {
+      // Convert the reservation to recorded history. Release the full
+      // amount reserved, not generated.length -- the two match on success,
+      // and releasing what was reserved keeps the counter honest even if
+      // the upstream returned a different count.
+      if (isReseller) {
+        const match = findReseller(db, user.username);
+        if (match) clearReservation(match.user, amount);
+      }
 
-    pushAudit(db, {
-      user: displayUser(user.username, user.role),
-      action: `Generated ${records.length} key(s) for ${pkg.name}${hwidLock ? "" : " (HWID unlocked)"}`,
-      ip,
-    });
+      pushAudit(db, {
+        user: displayUser(user.username, user.role),
+        action: `Generated ${records.length} key(s) for ${pkg.name}${hwidLock ? "" : " (HWID unlocked)"}`,
+        ip,
+      });
 
-    // `generated.length === 0` returned above, so reaching here always
-    // added history and (for a reseller) moved their quota.
-    await ping("key", tx);
-  });
+      // `generated.length === 0` returned above, so reaching here always
+      // added history and (for a reseller) moved their quota.
+      await ping("key", tx);
+    },
+    { prepend: records },
+  );
 
   recordRealExpiry(generated);
 
-  return NextResponse.json({ success: true, keys: generated, raw: data, hwidLock });
+  return NextResponse.json({
+    success: true,
+    keys: generated,
+    raw: data,
+    hwidLock,
+    // The rows exactly as they now sit at the top of the history, newest
+    // first, so the page can show them in Key History (and count them
+    // against a reseller's allowance) without waiting for a re-read.
+    history: [...records].reverse(),
+  });
 });
 
 /**
@@ -225,7 +293,7 @@ function recordRealExpiry(keys: string[]): void {
 
 /** Hands a failed request's reserved allowance back. */
 async function releaseReservation(username: string, amount: number): Promise<void> {
-  await updateDb((db) => {
+  await updateSlice(["cheatExeUsers"], (db) => {
     const match = findReseller(db, username);
     if (match) clearReservation(match.user, amount);
   });

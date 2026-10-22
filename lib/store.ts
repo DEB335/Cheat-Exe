@@ -166,6 +166,12 @@ export const useDashboard = create<DashboardState>((set, get) => ({
 
   patch: (apply) => {
     const before = get().db;
+    // Outranks every read already on its way: one sent before this
+    // change can carry the state from before it, and landing afterwards
+    // it would wipe the change off the screen -- freshly minted keys
+    // vanishing from the history until the next refresh. Reads sent from
+    // here on are newer than the patch and still apply.
+    applied = issued + 1;
     set({ db: apply(before) });
     broadcastPing("store-patch");
     return before;
