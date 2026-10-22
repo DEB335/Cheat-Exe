@@ -37,6 +37,9 @@ interface LoginBody {
  */
 const WRITE_FIELDS = [...LOGIN_FIELDS, "cheatExeDevices", "cheatExeAuditLogs"] as const;
 
+/** Thrown out of the sign-in transaction to retry it with a derived owner hash. */
+const NEEDS_LEGACY_HASH = Symbol("needs legacy hash");
+
 /** Turns a refusal into the error the login page switches on. */
 function refuse(outcome: Exclude<LoginOutcome, { ok: true }>): never {
   if (outcome.reason === "invalid") {
@@ -76,15 +79,20 @@ export const POST = route(async (request: Request) => {
     ticketVouches(ticket, { account, hash, password, hwid }),
   );
 
-  // First pass against an unlocked read, so the password comparison --
-  // bcrypt, when there is no ticket -- never runs while the row is
-  // locked. A refusal here is final: the transaction below would have
-  // written nothing for it either.
-  const unlocked = await readSliceWithHash(LOGIN_FIELDS);
-  const early = await resolveLogin(unlocked, user, password, marks, check);
-  if (!early.ok) refuse(early);
+  // With the file store, a first pass against an unlocked read, so the
+  // password comparison -- bcrypt, when there is no ticket -- never runs
+  // inside its write queue; a refusal there is final, since the write
+  // below would have written nothing for it either. With Postgres the
+  // transaction's own locked read is the only read: an unlocked pass
+  // first would cost a round trip of its own, ~135ms on the live site, to
+  // spare the lock one bcrypt that a ticket usually spares anyway.
+  const unlocked = process.env.DATABASE_URL ? null : await readSliceWithHash(LOGIN_FIELDS);
+  if (unlocked) {
+    const early = await resolveLogin(unlocked, user, password, marks, check);
+    if (!early.ok) refuse(early);
+  }
 
-  const session = await updateSlice(WRITE_FIELDS, async (db, tx): Promise<SessionUser> => {
+  const signIn = (legacyHash: string) => updateSlice(WRITE_FIELDS, async (db, tx): Promise<SessionUser> => {
     // Stamp any account whose validity has lapsed, so the reseller table
     // reads EXPIRED rather than a stale ACTIVE. Access does not depend on
     // this -- resolveLogin computes expiry itself -- it is bookkeeping.
@@ -105,7 +113,12 @@ export const POST = route(async (request: Request) => {
     // no database and so no transaction.
     let adminPassHash = "";
     if (isOwnerLogin(db.adminUser, user)) {
-      adminPassHash = (await ownerHashIn(tx)) || unlocked.adminPassHash;
+      adminPassHash = (await ownerHashIn(tx)) || unlocked?.adminPassHash || legacyHash;
+      // Postgres with no hash on file: a document still carrying the
+      // plaintext password. Only readSliceWithHash knows how to derive
+      // one, and it must not run on the pool while this holds the lock,
+      // so the transaction is abandoned and retried below with it.
+      if (!adminPassHash) throw NEEDS_LEGACY_HASH;
     }
 
     // Authoritative pass, against the locked state. The checker answers
@@ -165,6 +178,14 @@ export const POST = route(async (request: Request) => {
     // fine. Logouts below are symmetric for the same reason.
     return resolved;
   });
+
+  let session: SessionUser;
+  try {
+    session = await signIn("");
+  } catch (err) {
+    if (err !== NEEDS_LEGACY_HASH) throw err;
+    session = await signIn((await readSliceWithHash(LOGIN_FIELDS)).adminPassHash);
+  }
 
   const token = await createSessionToken(session);
   const response = NextResponse.json({

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { updateDb, type Tx } from "./db";
+import { literal, updateDb, type Tx } from "./db";
 import { sql } from "./sql";
 
 /** What to do to every history row for one key. */
@@ -51,9 +51,11 @@ export async function editKeyRows(
   }
 
   const db = tx ?? sql();
+  // Written out rather than parameterised, for one round trip -- see literal.
+  const wantedSql = literal(wanted);
 
   if (edit === "delete") {
-    const rows = await db`
+    const rows = await db.unsafe(`
       update app_state
       set data = jsonb_set(
         data,
@@ -61,7 +63,7 @@ export async function editKeyRows(
         (
           select coalesce(jsonb_agg(k order by i), '[]'::jsonb)
           from jsonb_array_elements(data -> 'cheatExeKeyHistory') with ordinality as h(k, i)
-          where upper(k ->> 'key') is distinct from ${wanted}
+          where upper(k ->> 'key') is distinct from ${wantedSql}
         )
       ),
       updated_at = now()
@@ -69,16 +71,16 @@ export async function editKeyRows(
         and jsonb_typeof(data -> 'cheatExeKeyHistory') = 'array'
         and exists (
           select 1 from jsonb_array_elements(data -> 'cheatExeKeyHistory') as k
-          where upper(k ->> 'key') = ${wanted}
+          where upper(k ->> 'key') = ${wantedSql}
         )
       returning id
-    `;
+    `);
     return rows.length > 0;
   }
 
   // `banned` absent counts as different from false, as `k.banned !==
   // false` does in memory, so the first check of a key records the flag.
-  const rows = await db`
+  const rows = await db.unsafe(`
     update app_state
     set data = jsonb_set(
       data,
@@ -87,8 +89,8 @@ export async function editKeyRows(
         select coalesce(
           jsonb_agg(
             case
-              when upper(k ->> 'key') = ${wanted}
-              then k || jsonb_build_object('banned', ${edit.banned}::boolean)
+              when upper(k ->> 'key') = ${wantedSql}
+              then k || jsonb_build_object('banned', ${edit.banned ? "true" : "false"}::boolean)
               else k
             end
             order by i
@@ -103,10 +105,10 @@ export async function editKeyRows(
       and jsonb_typeof(data -> 'cheatExeKeyHistory') = 'array'
       and exists (
         select 1 from jsonb_array_elements(data -> 'cheatExeKeyHistory') as k
-        where upper(k ->> 'key') = ${wanted}
-          and (k ->> 'banned') is distinct from ${String(edit.banned)}
+        where upper(k ->> 'key') = ${wantedSql}
+          and (k ->> 'banned') is distinct from ${edit.banned ? "'true'" : "'false'"}
       )
     returning id
-  `;
+  `);
   return rows.length > 0;
 }

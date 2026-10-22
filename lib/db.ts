@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomBytes } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import bcrypt from "bcryptjs";
@@ -282,6 +283,53 @@ type Sliceable = Omit<Database, "adminPassHash">;
 export type SliceField = keyof Sliceable;
 
 /**
+ * A string as a dollar-quoted SQL literal.
+ *
+ * The hot statements below carry their values in the SQL text instead of
+ * as parameters, and this is why: with `prepare: false`, which the
+ * Supabase transaction pooler requires, postgres.js sends every
+ * statement that has parameters to be described before it runs it -- a
+ * second round trip each time, and one that keeps the statement out of
+ * a pipeline. Measured through a link with the live site's latency, a
+ * parameterised read took two round trips where the same read written
+ * out took one; on the live site a round trip is ~135ms, and every
+ * authenticated request starts with one of these reads.
+ *
+ * A dollar-quoted string ends only at its own tag, so nothing inside it
+ * -- quotes, backslashes, a stray `$` -- can end it early. The tag is
+ * random and checked against the text, so the text cannot contain it.
+ */
+export function literal(text: string): string {
+  let tag: string;
+  do tag = `$v${randomBytes(6).toString("hex")}$`;
+  while (text.includes(tag));
+  return `${tag}${text}${tag}`;
+}
+
+/** A value as a jsonb literal -- see literal. */
+function jsonLiteral(value: unknown): string {
+  return `${literal(JSON.stringify(value))}::jsonb`;
+}
+
+/**
+ * The statement that reads these top-level fields as one object, written
+ * out so it costs one round trip (see literal). `forUpdate` takes the row
+ * lock in the same statement, which Postgres allows here because the
+ * aggregate sits in a subquery, not in the locking query itself.
+ */
+function sliceQuery(fields: readonly string[], forUpdate = false): string {
+  const names = `array[${fields.map(literal).join(", ")}]::text[]`;
+  return `
+    select (
+      select jsonb_object_agg(key, value)
+      from jsonb_each(data)
+      where key = any(${names})
+    ) as data
+    from app_state where id = 1${forUpdate ? "\n    for update" : ""}
+  `;
+}
+
+/**
  * Reads only the named top-level fields of the state.
  *
  * The state is one JSONB document, and nearly all of its weight is the
@@ -316,14 +364,7 @@ export async function readSlice<K extends SliceField>(
   }
 
   const db = sql();
-  const rows = await db<{ data: Partial<Database> | null }[]>`
-    select (
-      select jsonb_object_agg(key, value)
-      from jsonb_each(data)
-      where key = any(${[...fields]}::text[])
-    ) as data
-    from app_state where id = 1
-  `;
+  const rows = await db.unsafe<{ data: Partial<Database> | null }[]>(sliceQuery(fields));
 
   // First run: readDb seeds the document, and its answer covers any slice.
   const source: Sliceable =
@@ -352,14 +393,9 @@ export async function readSliceWithHash<K extends SliceField>(
     source = await readRawFile();
   } else {
     const db = sql();
-    const rows = await db<{ data: Partial<Database> | null }[]>`
-      select (
-        select jsonb_object_agg(key, value)
-        from jsonb_each(data)
-        where key = any(${[...fields, "adminPassHash"]}::text[])
-      ) as data
-      from app_state where id = 1
-    `;
+    const rows = await db.unsafe<{ data: Partial<Database> | null }[]>(
+      sliceQuery([...fields, "adminPassHash"]),
+    );
 
     const stored = rows[0]?.data ?? {};
     const hash = typeof stored.adminPassHash === "string" ? stored.adminPassHash : "";
@@ -433,32 +469,39 @@ export async function updateSlice<K extends SlicedField, T>(
     });
   }
 
+  // One reserved connection, and the statements sent two batches at a
+  // time: `begin` with the locked read, then any pings, the write and the
+  // commit together. Awaited one by one, the same transaction made five to
+  // seven round trips -- begin, lock, read, write and commit each waited
+  // for the last -- and on the live site a round trip is ~135ms. Nothing
+  // here waits on the network in between but `mutate`, and only if it
+  // asks something of `tx` itself.
   const db = sql();
-
-  return db.begin(async (tx) => {
-    // The lock first, on its own: a plain row lock is unambiguous, where
-    // `for update` on a query that aggregates is not allowed everywhere.
-    let locked = await tx`select id from app_state where id = 1 for update`;
-    if (locked.length === 0) {
+  const conn = await db.reserve();
+  const tx = conn as unknown as Tx;
+  try {
+    const [, read] = await Promise.all([
+      conn.unsafe("begin").execute(),
+      conn.unsafe<{ data: StoredSlice | null }[]>(sliceQuery([...fields, "adminPassHash"], true)).execute(),
+    ]);
+    let rows = read;
+    if (rows.length === 0) {
       // First run. Seed the document inside this transaction so the
-      // slice below has something to read, then take the lock on it.
+      // slice has something to read, then take the lock on it.
       const fresh = emptyDb(await bcrypt.hash(DEFAULT_ADMIN_PASS, 10));
-      await tx`
-        insert into app_state (id, data) values (1, ${tx.json(asJson(fresh))})
+      await conn.unsafe(`
+        insert into app_state (id, data) values (1, ${jsonLiteral(fresh)})
         on conflict (id) do nothing
-      `;
-      locked = await tx`select id from app_state where id = 1 for update`;
+      `);
+      rows = await conn.unsafe<{ data: StoredSlice | null }[]>(
+        sliceQuery([...fields, "adminPassHash"], true),
+      );
     }
 
-    const rows = await tx<{ data: Partial<Database> | null }[]>`
-      select (
-        select jsonb_object_agg(key, value)
-        from jsonb_each(data)
-        where key = any(${[...fields]}::text[])
-      ) as data
-      from app_state where id = 1
-    `;
-    const source = withDefaults(rows[0]?.data ?? {});
+    const stored = rows[0]?.data ?? {};
+    // The owner's hash rode along on the locked read, for ownerHashIn.
+    lockedHashes.set(tx, typeof stored.adminPassHash === "string" ? stored.adminPassHash : null);
+    const source = withDefaults(stored);
 
     const slice = {} as Pick<Sliceable, K>;
     for (const field of fields) slice[field] = source[field];
@@ -468,20 +511,20 @@ export async function updateSlice<K extends SlicedField, T>(
 
     const patch: Partial<Sliceable> = {};
     for (const field of fields) patch[field] = slice[field];
-    const merged = tx.json(asJson(patch as Database));
+    const merged = jsonLiteral(patch);
     const sliceChanged = JSON.stringify(patch) !== before;
 
+    let write: string | null = null;
     if (history && "prepend" in history && history.prepend.length > 0) {
       // Same order as `for (const r of records) history.unshift(r)`: the
       // last record ends up first, so a batch reads as it always has.
       const newestFirst = [...history.prepend].reverse();
-      await tx`
+      write = `
         update app_state
         set data = jsonb_set(
-          data || ${merged}::jsonb,
+          data || ${merged},
           '{cheatExeKeyHistory}',
-          ${tx.json(newestFirst as unknown as Parameters<Tx["json"]>[0])}::jsonb
-            || coalesce(data -> 'cheatExeKeyHistory', '[]'::jsonb)
+          ${jsonLiteral(newestFirst)} || coalesce(data -> 'cheatExeKeyHistory', '[]'::jsonb)
         ),
         updated_at = now()
         where id = 1
@@ -491,42 +534,49 @@ export async function updateSlice<K extends SlicedField, T>(
       // no key at all is kept, as the filter keeps it. When the key is not
       // in the history the history is left alone and only the slice is
       // merged -- or nothing is written, if the slice did not change.
-      const key = history.remove;
-      await tx`
+      const key = `${literal(history.remove)}::text`;
+      const held = `coalesce(data -> 'cheatExeKeyHistory', '[]'::jsonb) @> jsonb_build_array(jsonb_build_object('key', ${key}))`;
+      write = `
         update app_state
         set data = case
-          when coalesce(data -> 'cheatExeKeyHistory', '[]'::jsonb)
-            @> jsonb_build_array(jsonb_build_object('key', ${key}::text))
+          when ${held}
           then jsonb_set(
-            data || ${merged}::jsonb,
+            data || ${merged},
             '{cheatExeKeyHistory}',
             jsonb_path_query_array(
               data -> 'cheatExeKeyHistory',
               '$[*] ? (!(@.key == $k))',
-              jsonb_build_object('k', ${key}::text)
+              jsonb_build_object('k', ${key})
             )
           )
-          else data || ${merged}::jsonb
+          else data || ${merged}
         end,
         updated_at = now()
-        where id = 1
-          and (
-            ${sliceChanged}
-            or coalesce(data -> 'cheatExeKeyHistory', '[]'::jsonb)
-              @> jsonb_build_array(jsonb_build_object('key', ${key}::text))
-          )
+        where id = 1 and (${sliceChanged ? "true" : "false"} or ${held})
       `;
     } else if (sliceChanged) {
-      await tx`
-        update app_state
-        set data = data || ${merged}::jsonb, updated_at = now()
-        where id = 1
-      `;
+      write = `update app_state set data = data || ${merged}, updated_at = now() where id = 1`;
     }
 
+    await Promise.all([
+      ...(write ? [conn.unsafe(write).execute()] : []),
+      conn.unsafe("commit").execute(),
+    ]);
     return result;
-  }) as Promise<T>;
+  } catch (err) {
+    await conn.unsafe("rollback").catch(() => undefined);
+    throw err;
+  } finally {
+    lockedHashes.delete(tx);
+    conn.release();
+  }
 }
+
+/** What the locked read hands back: slice fields, and the owner's hash. */
+type StoredSlice = Partial<Database>;
+
+/** The owner's hash as read under each open updateSlice lock. */
+const lockedHashes = new WeakMap<Tx, string | null>();
 
 /** Every slice field except the key history -- see updateSlice. */
 export type SlicedField = Exclude<SliceField, "cheatExeKeyHistory">;
@@ -558,7 +608,8 @@ export async function countKeysBy(tx: Tx | undefined, username: string): Promise
 
   const name = username.toLowerCase().trim();
   if (!name) return 0;
-  const rows = await tx<{ n: number }[]>`
+  // Written out rather than parameterised, for one round trip -- see literal.
+  const rows = await tx.unsafe<{ n: number }[]>(`
     select count(*)::int as n
     from app_state,
       jsonb_array_elements(coalesce(data -> 'cheatExeKeyHistory', '[]'::jsonb)) as k,
@@ -566,15 +617,15 @@ export async function countKeysBy(tx: Tx | undefined, username: string): Promise
     where id = 1
       and creator.c is not null and creator.c <> ''
       and (
-        creator.c = ${name}
-        or starts_with(creator.c, ${name + " "})
-        or starts_with(creator.c, ${name + "("})
+        creator.c = ${literal(name)}
+        or starts_with(creator.c, ${literal(name + " ")})
+        or starts_with(creator.c, ${literal(name + "(")})
         or coalesce(
-          nullif(trim(regexp_replace(creator.c, ${"\\s*[([].*$"}, '')), ''),
+          nullif(trim(regexp_replace(creator.c, ${literal("\s*[([].*$")}, '')), ''),
           creator.c
-        ) = ${name}
+        ) = ${literal(name)}
       )
-  `;
+  `);
   return rows[0]?.n ?? 0;
 }
 
@@ -590,9 +641,12 @@ export async function countKeysBy(tx: Tx | undefined, username: string): Promise
  */
 export async function ownerHashIn(tx: Tx | undefined): Promise<string | null> {
   if (!process.env.DATABASE_URL || !tx) return (await readRawFile()).adminPassHash || null;
-  const rows = await tx<{ hash: string | null }[]>`
-    select data ->> 'adminPassHash' as hash from app_state where id = 1
-  `;
+  // updateSlice's locked read already brought it back; no second trip.
+  const held = lockedHashes.get(tx);
+  if (held !== undefined) return held;
+  const rows = await tx.unsafe<{ hash: string | null }[]>(
+    "select data ->> 'adminPassHash' as hash from app_state where id = 1",
+  );
   return rows[0]?.hash ?? null;
 }
 
