@@ -142,8 +142,9 @@ export default function UidBypassOverviewPage() {
   // Derived the same way the emulator page does, so the overview raises
   // exactly the notices that page would -- per engine, not just the
   // blanket `active` flag, which is why a V1-only maintenance used to go
-  // unnoticed here while the emulator page was already showing it.
-  const emulator = deriveEmulatorStatus(db.emulatorBypassMaintenance);
+  // unnoticed here while the emulator page was already showing it. V1
+  // stays locked by default, matching the emulator page and the generator.
+  const emulator = deriveEmulatorStatus(db.emulatorBypassMaintenance, { v1LockedByDefault: true });
 
   return (
     <>

@@ -55,9 +55,18 @@ export interface EmulatorStatus {
  * This is deliberately unaware of the clock: whose flag is still valid is
  * decided by `pruneExpiredMaintenance`, which runs on the server, so the
  * browser only ever sees state that was already checked against the TTL.
+ *
+ * `v1LockedByDefault` is the interface's long-standing default, kept
+ * opt-in so the server's gate is not silently tightened with it: with no
+ * `v1Maintenance` on file at all, the panel has always shown Version 1
+ * (the Discord Bot Engine) as locked -- a fresh document, or one that
+ * predates the per-engine flags, reads as "V1 is down" rather than
+ * offering an engine that is known to be offline. An explicit
+ * `v1Maintenance: false` still brings it back, everywhere.
  */
 export function deriveEmulatorStatus(
   maint?: EmulatorMaintenance | null,
+  opts: { v1LockedByDefault?: boolean } = {},
 ): EmulatorStatus {
   const active = Boolean(maint?.active);
   const engine = maint?.engine;
@@ -66,7 +75,9 @@ export function deriveEmulatorStatus(
   const v1 =
     maint?.v1Maintenance !== undefined
       ? Boolean(maint.v1Maintenance)
-      : Boolean(legacyAll || (active && engine === "V1"));
+      : opts.v1LockedByDefault
+        ? true
+        : Boolean(legacyAll || (active && engine === "V1"));
   const v2 =
     maint?.v2Maintenance !== undefined
       ? Boolean(maint.v2Maintenance)

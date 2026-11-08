@@ -12,8 +12,9 @@ export default function EmulatorBypassPage() {
   // Per-engine verdict, read once here and mirrored by the generator below.
   // A learned maintenance lapses on its own (see `lib/emulator-status`), so
   // this clears without a reload the moment the engine is offered again --
-  // and re-raises if the next attempt proves it is still down.
-  const status = deriveEmulatorStatus(db.emulatorBypassMaintenance);
+  // and re-raises if the next attempt proves it is still down. V1 stays
+  // locked by default, as the panel has always shown it.
+  const status = deriveEmulatorStatus(db.emulatorBypassMaintenance, { v1LockedByDefault: true });
   const isV1Maintenance = status.v1;
   const isV2Maintenance = status.v2;
   const isMaintenance = status.any;

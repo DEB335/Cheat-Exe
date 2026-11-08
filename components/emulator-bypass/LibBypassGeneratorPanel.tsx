@@ -44,8 +44,8 @@ export function LibBypassGeneratorPanel() {
   // and the emulator page all agree on which engines are down. It shifts
   // live: the route records what the provider reports on a generate, the
   // store re-reads within a second, and the effects below re-pick the
-  // engine without a reload.
-  const status = deriveEmulatorStatus(db.emulatorBypassMaintenance);
+  // engine without a reload. V1 stays locked by default, as always.
+  const status = deriveEmulatorStatus(db.emulatorBypassMaintenance, { v1LockedByDefault: true });
   const isV1Maintenance = status.v1;
   const isV2Maintenance = status.v2;
 

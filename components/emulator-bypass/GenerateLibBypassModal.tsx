@@ -28,8 +28,9 @@ export function GenerateLibBypassModal({
   const refresh = useDashboard((s) => s.refresh);
   const isOwner = user?.role === "OWNER";
 
-  // Per-engine maintenance, derived the same way everywhere.
-  const status = deriveEmulatorStatus(db.emulatorBypassMaintenance);
+  // Per-engine maintenance, derived the same way everywhere. V1 stays
+  // locked by default, as the panel has always shown it.
+  const status = deriveEmulatorStatus(db.emulatorBypassMaintenance, { v1LockedByDefault: true });
   const isV1Maintenance = status.v1;
   const isV2Maintenance = status.v2;
 
