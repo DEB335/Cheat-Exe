@@ -7,7 +7,7 @@ import { pruneExpiredMaintenance } from "@/lib/emulator-status";
 import { ping } from "@/lib/realtime";
 import { displayUser } from "@/lib/utils";
 
-export function checkEmulatorMaintenance(envVal?: string, dbActive?: boolean, dbReason?: string) {
+function checkEmulatorMaintenance(envVal?: string, dbActive?: boolean, dbReason?: string) {
   const envOn = /^(1|true|on|yes)$/i.test(envVal ?? process.env.EMULATOR_BYPASS_MAINTENANCE ?? "");
   if (envOn) {
     return {

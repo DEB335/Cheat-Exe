@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 
+import { prefetchWhitelist } from "@/app/(dash)/uid-bypass/use-whitelist";
 import { emitClickWave } from "@/components/effects/ClickWave";
 import { AppsIcon, ChevronLeftIcon, ChevronRightIcon, LinkIcon } from "@/components/icons";
 import { InteractiveTitle } from "@/components/layout/InteractiveTitle";
 import { NAV_GROUPS, PROFILE_ITEM, canSeeItem, type NavItem } from "@/lib/nav";
+import { canManageWhitelist } from "@/lib/packages";
 import { useDashboard, useEffectiveUser, useMyPackages } from "@/lib/store";
 import { useMediaQuery, useStoredFlag } from "@/lib/use-external";
 import type { Role } from "@/lib/types";
@@ -163,6 +165,7 @@ export const Sidebar = memo(function Sidebar({
 }) {
   const pathname = usePathname();
   const effectiveUser = useEffectiveUser();
+  const canWarmWhitelist = canManageWhitelist(effectiveUser);
 
   // The three counts the badges print, each its own selector, so the rail
   // re-renders when a count moves rather than whenever anything in the
@@ -322,6 +325,11 @@ export const Sidebar = memo(function Sidebar({
                         prefetch={prefetch}
                         onNavigate={onCloseMobile}
                         onTooltip={setTooltip}
+                        onWarm={
+                          canWarmWhitelist && item.href.startsWith("/uid-bypass")
+                            ? prefetchWhitelist
+                            : undefined
+                        }
                       />
                     ))}
                 </div>
@@ -415,6 +423,7 @@ const NavLink = memo(function NavLink({
   prefetch,
   onNavigate,
   onTooltip,
+  onWarm,
   className,
 }: {
   item: NavItem;
@@ -424,6 +433,15 @@ const NavLink = memo(function NavLink({
   /** False until the first data load is in; see usePrefetchReady. */
   prefetch: boolean;
   onNavigate: () => void;
+  /**
+   * Starts reading the whitelist when the link is pointed at. The
+   * whitelist lives with a third-party provider, so its pages used to
+   * open on a spinner; a hover gives the read a head start on the
+   * click. Passed only to the UID Bypass links of an account that may
+   * read the whitelist -- the Overview also shows for emulator-only
+   * resellers, who would only be refused.
+   */
+  onWarm?: () => void;
   onTooltip: TooltipSetter;
   className?: string;
 }) {
@@ -432,6 +450,7 @@ const NavLink = memo(function NavLink({
   const ref = useRef<HTMLAnchorElement>(null);
 
   const showTooltip = () => {
+    onWarm?.();
     if (!collapsed || !ref.current) return;
     onTooltip(tooltipFor(item.label, ref.current));
   };
@@ -460,6 +479,8 @@ const NavLink = memo(function NavLink({
       prefetch={prefetch}
       onMouseEnter={showTooltip}
       onMouseLeave={() => onTooltip(null)}
+      onFocus={onWarm}
+      onTouchStart={onWarm}
       onClick={handleClick}
       aria-current={active ? "page" : undefined}
       style={{ "--tab": hexToRgbTriplet(item.color) } as React.CSSProperties}

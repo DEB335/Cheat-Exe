@@ -15,6 +15,7 @@ export function KeyLookup({
   value,
   onChange,
   onLookup,
+  onPaste,
   disabled,
   checking,
   notFound,
@@ -23,6 +24,8 @@ export function KeyLookup({
   value: string;
   onChange: (value: string) => void;
   onLookup: () => void;
+  /** A paste into the field, so the page can look the key up at once. */
+  onPaste?: () => void;
   /** Any request (lookup or action) is in flight. */
   disabled: boolean;
   /** The lookup itself is the request in flight. */
@@ -49,6 +52,7 @@ export function KeyLookup({
             tone="red"
             value={value}
             onChange={(event) => onChange(event.target.value)}
+            onPaste={onPaste}
             onKeyDown={(event) => event.key === "Enter" && onLookup()}
             placeholder="Enter license key"
             boxClassName="h-[58px] sm:h-[62px]"

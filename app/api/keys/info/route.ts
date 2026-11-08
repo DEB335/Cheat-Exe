@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 
-import { HttpError, requireUser } from "@/lib/auth";
+import { HttpError, getSessionUser, requireUser } from "@/lib/auth";
 import { readJson, route } from "@/lib/api-helpers";
-import { updateDb } from "@/lib/db";
-import { getKeyInfo } from "@/lib/license-api";
+import { editKeyRows } from "@/lib/key-history";
+import { getKeyInfo, toKeyInfoView } from "@/lib/license-api";
 import { ping } from "@/lib/realtime";
 
 interface Body {
@@ -15,12 +15,34 @@ interface Body {
  * audit entry, because checking a key is not an action on it.
  */
 export const POST = route(async (request: Request) => {
-  await requireUser();
-  const { key = "" } = await readJson<Body>(request);
-  const trimmed = key.trim();
-  if (!trimmed) throw new HttpError(400, "Enter a valid license key first!");
+  // The signed cookie first: it costs nothing, and it keeps the lookup
+  // below from being started on an anonymous caller's behalf.
+  if (!(await getSessionUser())) throw new HttpError(401, "Not authenticated");
 
-  const data = await getKeyInfo(trimmed);
+  // The account check and the provider lookup side by side. The lookup
+  // changes nothing upstream, so starting it early is safe -- and nothing
+  // it says leaves this function unless requireUser passes first. The
+  // account check is also answered before a bad body is: a suspended
+  // account hears that, not "enter a key". The empty catches only mark a
+  // failure as seen while something else is awaited; the awaits below
+  // still throw it.
+  const account = requireUser();
+  account.catch(() => {});
+
+  const input = await readJson<Body>(request)
+    .then(({ key = "" }) => {
+      const trimmed = key.trim();
+      if (!trimmed) throw new HttpError(400, "Enter a valid license key first!");
+      return trimmed;
+    })
+    .catch((err: unknown) => err);
+
+  const lookup = typeof input === "string" ? getKeyInfo(input) : null;
+  lookup?.catch(() => {});
+
+  await account;
+  if (typeof input !== "string" || !lookup) throw input;
+  const data = await lookup;
 
   if (!data.success) {
     return NextResponse.json({
@@ -29,34 +51,21 @@ export const POST = route(async (request: Request) => {
     });
   }
 
+  // Mirror the provider's banned/active verdict onto this key's history
+  // rows, so Key History's pill agrees with what was just looked up. It
+  // is bookkeeping, so it runs after the answer has gone out: the lookup
+  // is the thing being waited on, and the write only rings the doorbell
+  // when a row actually changed.
   if (data.status) {
-    const isBanned = data.status.toLowerCase() === "banned";
-    await updateDb(async (db, tx) => {
-      let changed = false;
-      for (const k of db.cheatExeKeyHistory) {
-        if (k.key.toUpperCase() === trimmed.toUpperCase()) {
-          if (k.banned !== isBanned) {
-            k.banned = isBanned;
-            changed = true;
-          }
-        }
+    const banned = data.status.toLowerCase() === "banned";
+    after(async () => {
+      try {
+        if (await editKeyRows(input, { banned })) await ping("key");
+      } catch (err) {
+        console.error("key info: banned flag sync failed", err);
       }
-      if (changed) await ping("key", tx);
     });
   }
 
-  return NextResponse.json({
-    success: true,
-    info: {
-      key: data.key ?? trimmed,
-      appName: data.app_name ?? "",
-      packageName: data.package_name ?? "",
-      status: data.status ?? "unknown",
-      createdAt: data.created_at ?? "",
-      expiryDate: data.expiry_date ?? "",
-      hwid: data.hwid ?? "",
-      ip: data.ip ?? "",
-      durationDays: data.duration_days ?? 0,
-    },
-  });
+  return NextResponse.json({ success: true, info: toKeyInfoView(data, input) });
 });

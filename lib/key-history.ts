@@ -1,56 +1,114 @@
-import type { KeyRecord, Role } from "./types";
-import { isCreatorMatch } from "./utils";
+import "server-only";
+
+import { literal, updateDb, type Tx } from "./db";
+import { sql } from "./sql";
+
+/** What to do to every history row for one key. */
+export type KeyRowEdit = { banned: boolean } | "delete";
 
 /**
- * Who a "Clear" removes, shared by the API route and the client mirror.
+ * Applies `edit` to every key-history row whose key matches `key`,
+ * ignoring case -- the same match the key routes have always used -- and
+ * answers whether any row changed.
  *
- * The same list holds owner keys, reseller keys and Emulator Bypass keys.
- * A clear names a scope -- the owner's own keys, or the resellers' -- and
- * the two sides must agree on it exactly, or the row the client paints
- * disappears and comes back when the refetch lands.
+ * With Postgres it is one UPDATE, done inside the database: the history is
+ * most of the document and never needs to come into this process for a
+ * flag on one row. The `exists` guard means a key with nothing to change
+ * writes nothing, so checking a key whose flag is already right costs a
+ * read, not a rewrite. Pass updateSlice's `tx` to make it part of that
+ * transaction; without one it runs on its own.
+ *
+ * With no database configured it goes through the file store's updateDb.
+ * Call it outside updateSlice there: both read the in-memory document, and
+ * a nested write could be overwritten by the outer one.
  */
+export async function editKeyRows(
+  key: string,
+  edit: KeyRowEdit,
+  tx?: Tx,
+): Promise<boolean> {
+  const wanted = key.trim().toUpperCase();
+  if (!wanted) return false;
 
-/** Package name the bypass engine owns; never cleared from here. */
-export const EMULATOR_PACKAGE = "EMULATOR BYPASS";
+  if (!process.env.DATABASE_URL) {
+    return updateDb((db) => {
+      const matches = (k: { key?: string }) => (k.key ?? "").toUpperCase() === wanted;
+      if (edit === "delete") {
+        const kept = db.cheatExeKeyHistory.filter((k) => !matches(k));
+        const changed = kept.length !== db.cheatExeKeyHistory.length;
+        db.cheatExeKeyHistory = kept;
+        return changed;
+      }
+      let changed = false;
+      for (const k of db.cheatExeKeyHistory) {
+        if (matches(k) && k.banned !== edit.banned) {
+          k.banned = edit.banned;
+          changed = true;
+        }
+      }
+      return changed;
+    });
+  }
 
-export type HistoryScope = "owner" | "reseller";
+  const db = tx ?? sql();
+  // Written out rather than parameterised, for one round trip -- see literal.
+  const wantedSql = literal(wanted);
 
-export interface HistoryActor {
-  role: Role;
-  username: string;
-}
+  if (edit === "delete") {
+    const rows = await db.unsafe(`
+      update app_state
+      set data = jsonb_set(
+        data,
+        '{cheatExeKeyHistory}',
+        (
+          select coalesce(jsonb_agg(k order by i), '[]'::jsonb)
+          from jsonb_array_elements(data -> 'cheatExeKeyHistory') with ordinality as h(k, i)
+          where upper(k ->> 'key') is distinct from ${wantedSql}
+        )
+      ),
+      updated_at = now()
+      where id = 1
+        and jsonb_typeof(data -> 'cheatExeKeyHistory') = 'array'
+        and exists (
+          select 1 from jsonb_array_elements(data -> 'cheatExeKeyHistory') as k
+          where upper(k ->> 'key') = ${wantedSql}
+        )
+      returning id
+    `);
+    return rows.length > 0;
+  }
 
-/** Rows the owner created ("admin", "Owner", "Owner (OWNER)"). */
-export function isOwnerCreator(creator: string | undefined | null): boolean {
-  const c = (creator ?? "").trim().toLowerCase();
-  return c === "admin" || c === "owner" || c.startsWith("owner (") || c.startsWith("owner ");
-}
-
-/**
- * Whether a clear of `scope` by `actor` removes this row.
- *
- *  - owner    -- the owner's own keys (owner only).
- *  - reseller -- every reseller's keys when the owner asks; a reseller
- *                clearing their own list only loses their own rows.
- *
- * Emulator Bypass keys are never in scope: the bypass tables delete them
- * one by one against their own engine, so a history clear must not take
- * them with it.
- */
-export function inClearScope(
-  record: Pick<KeyRecord, "creator" | "package">,
-  scope: HistoryScope,
-  actor: HistoryActor,
-): boolean {
-  if (record.package === EMULATOR_PACKAGE) return false;
-  if (scope === "owner") return isOwnerCreator(record.creator);
-  if (actor.role === "OWNER") return !isOwnerCreator(record.creator);
-  return isCreatorMatch(record.creator, actor.username);
-}
-
-/** The audit line a clear of this scope writes. */
-export function clearAuditAction(scope: HistoryScope, actor: HistoryActor): string {
-  if (scope === "owner") return "Cleared Owner key history";
-  if (actor.role !== "OWNER") return "Cleared own key history";
-  return "Cleared Reseller key history";
+  // `banned` absent counts as different from false, as `k.banned !==
+  // false` does in memory, so the first check of a key records the flag.
+  const rows = await db.unsafe(`
+    update app_state
+    set data = jsonb_set(
+      data,
+      '{cheatExeKeyHistory}',
+      (
+        select coalesce(
+          jsonb_agg(
+            case
+              when upper(k ->> 'key') = ${wantedSql}
+              then k || jsonb_build_object('banned', ${edit.banned ? "true" : "false"}::boolean)
+              else k
+            end
+            order by i
+          ),
+          '[]'::jsonb
+        )
+        from jsonb_array_elements(data -> 'cheatExeKeyHistory') with ordinality as h(k, i)
+      )
+    ),
+    updated_at = now()
+    where id = 1
+      and jsonb_typeof(data -> 'cheatExeKeyHistory') = 'array'
+      and exists (
+        select 1 from jsonb_array_elements(data -> 'cheatExeKeyHistory') as k
+        where upper(k ->> 'key') = ${wantedSql}
+          and (k ->> 'banned') is distinct from ${edit.banned ? "'true'" : "'false'"}
+      )
+    returning id
+  `);
+  return rows.length > 0;
 }

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { HttpError, clientIp, requireUser } from "@/lib/auth";
 import { pushAudit, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
-import { clearAuditAction, inClearScope } from "@/lib/key-history";
+import { clearAuditAction, inClearScope } from "@/lib/history-scope";
 import { ping } from "@/lib/realtime";
 import { displayUser } from "@/lib/utils";
 

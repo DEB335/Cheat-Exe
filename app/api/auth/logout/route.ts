@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { clientIp, getSessionUser } from "@/lib/auth";
 import { pushAudit, route } from "@/lib/api-helpers";
-import { updateDb } from "@/lib/db";
+import { updateSlice } from "@/lib/db";
 import { SESSION_COOKIE, sessionCookieOptions } from "@/lib/session";
 import { displayUser } from "@/lib/utils";
 
@@ -11,7 +11,10 @@ export const POST = route(async () => {
   const ip = await clientIp();
 
   if (user) {
-    await updateDb((db) => {
+    // Only the two fields a sign-out touches. updateDb would read and
+    // rewrite the whole document -- key history and all -- under the row
+    // lock every sign-in waits on.
+    await updateSlice(["cheatExeDevices", "cheatExeAuditLogs"], (db) => {
       db.cheatExeDevices = db.cheatExeDevices.filter((d) => d.sessionId !== user.sessionId);
       pushAudit(db, {
         user: displayUser(user.username, user.role),

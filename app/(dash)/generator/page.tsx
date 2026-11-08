@@ -7,8 +7,6 @@ import { PackageTile } from "@/components/generator/PackageTile";
 import { CalendarIcon, KeyIcon, UsersIcon } from "@/components/icons";
 import {
   AlertTriangleIcon,
-  CubeIcon,
-  IconTile,
   NeonCta,
   NeonInput,
   NeonPanel,
@@ -86,12 +84,15 @@ export default function GeneratorPage() {
     );
 
     try {
-      const data = await postJson<{ keys?: string[]; raw?: unknown }>("/api/keys", {
-        packageId: active,
-        duration: days,
-        amount: count,
-        hwidLock,
-      });
+      const data = await postJson<{ keys?: string[]; raw?: unknown; history?: KeyRecord[] }>(
+        "/api/keys",
+        {
+          packageId: active,
+          duration: days,
+          amount: count,
+          hwidLock,
+        },
+      );
 
       append(`[SUCCESS] API Response: ${JSON.stringify(data.raw, null, 2)}`);
       const generated = data.keys ?? [];
@@ -99,20 +100,34 @@ export default function GeneratorPage() {
       if (generated.length > 0) {
         setKeys(generated);
 
+        // The reply carries the history rows exactly as the server stored
+        // them, newest first. Painting them now puts the keys in Key
+        // History and takes them off a reseller's allowance this instant;
+        // the refresh below only confirms what is already on screen. A
+        // reply without them (an older server) gets rows built here from
+        // what was asked for. A refresh that already carries the keys may
+        // have landed first, so any row for them is dropped before they go
+        // on top.
         const pkgName = allowed.find((p) => p.id === active)?.name ?? active;
-        const newRecords: KeyRecord[] = generated.map((key) => ({
-          key,
-          package: pkgName,
-          duration: days,
-          appliedDays: Number.isFinite(Number(days)) && Number(days) >= 0 ? Number(days) : undefined,
-          hwidLock,
-          creator: isOwner ? "admin" : (user?.username ?? ""),
-          date: formatTimestamp(),
-        }));
-
-        patchDb((currentDb) => ({
-          ...currentDb,
-          cheatExeKeyHistory: [...newRecords, ...currentDb.cheatExeKeyHistory],
+        const added: KeyRecord[] = data.history?.length
+          ? data.history
+          : generated.map((key) => ({
+              key,
+              package: pkgName,
+              duration: days,
+              appliedDays:
+                Number.isFinite(Number(days)) && Number(days) >= 0 ? Number(days) : undefined,
+              hwidLock,
+              creator: isOwner ? "admin" : (user?.username ?? ""),
+              date: formatTimestamp(),
+            }));
+        const minted = new Set(added.map((record) => record.key));
+        patchDb((db) => ({
+          ...db,
+          cheatExeKeyHistory: [
+            ...added,
+            ...db.cheatExeKeyHistory.filter((record) => !minted.has(record.key)),
+          ],
         }));
 
         // Confirm in the same tick the keys appear. Everything that used

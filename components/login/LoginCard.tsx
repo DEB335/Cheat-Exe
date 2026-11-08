@@ -30,7 +30,12 @@ export interface LoginCardProps {
   onPasswordChange: (value: string) => void;
   onTogglePassword: () => void;
   onSubmit: (event: React.FormEvent) => void;
-  signIn: { state: SignInState; label: string; busy: boolean };
+  /**
+   * `canSubmit` decides whether a press goes through; `state` only paints
+   * the button. A check still on its way is no reason to hold a press
+   * back -- the login route verifies the pair itself.
+   */
+  signIn: { state: SignInState; label: string; busy: boolean; canSubmit: boolean };
   notice: { tone: "error" | "warn" | "ok"; text: string } | null;
   shake: number;
   usernameRef?: React.Ref<HTMLInputElement>;
@@ -81,10 +86,16 @@ export function LoginCard({
   usernameRef,
 }: LoginCardProps) {
 
-  // The form can submit whenever username and password are provided and not already submitting
-  const canSubmit = username.trim().length > 0 && password.length > 0 && !signIn.busy;
-  const ready = (signIn.state === "ready" || canSubmit) && !signIn.busy;
-  const visualState: SignInState = signIn.busy ? "checking" : (signIn.state === "checking" && canSubmit ? "ready" : signIn.state);
+  // Whether a press reaches the server. The page decides: everything but
+  // empty fields and a pair the server has already turned down -- so a
+  // press while the live check is still out signs in straight away.
+  const canSubmit = signIn.canSubmit && !signIn.busy;
+  // Painted ready while that check is out, as it can already be pressed.
+  const visualState: SignInState = signIn.busy
+    ? "checking"
+    : signIn.state === "checking" && canSubmit
+      ? "ready"
+      : signIn.state;
 
   // Clicks (and Enter) on a locked button shake it instead of submitting.
   const [nudge, setNudge] = useState(0);

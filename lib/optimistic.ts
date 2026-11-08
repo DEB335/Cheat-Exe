@@ -1,7 +1,7 @@
 "use client";
 
 import type { PublicAnnouncement, PublicDatabase, ResellerStatus } from "./types";
-import { inClearScope, type HistoryActor, type HistoryScope } from "./key-history";
+import { inClearScope, type HistoryActor, type HistoryScope } from "./history-scope";
 
 /**
  * Local edits that mirror what the server is about to do.
