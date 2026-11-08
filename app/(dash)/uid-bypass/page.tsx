@@ -383,6 +383,10 @@ export default function UidBypassOverviewPage() {
               serviceName={
                 emulator.all ? "Lib Bypass" : emulator.v1 ? "Lib Bypass V1" : "Lib Bypass V2"
               }
+              engines={[
+                { name: "V1", up: !emulator.v1 },
+                { name: "V2", up: !emulator.v2 },
+              ]}
               tone="red"
               icon={<GamepadIcon className="size-7" />}
               compact
