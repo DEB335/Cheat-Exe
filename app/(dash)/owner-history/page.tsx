@@ -6,11 +6,15 @@ import { KeyHistoryPanel } from "@/components/key-history/KeyHistoryPanel";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { del } from "@/lib/client-api";
+import { applyKeyHistoryClear } from "@/lib/optimistic";
 import { useDashboard } from "@/lib/store";
 
 export default function OwnerHistoryPage() {
   const toast = useToast();
   const refresh = useDashboard((s) => s.refresh);
+  const patchDb = useDashboard((s) => s.patch);
+  const restore = useDashboard((s) => s.restore);
+  const user = useDashboard((s) => s.user);
   const [showConfirm, setShowConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
 
@@ -29,12 +33,21 @@ export default function OwnerHistoryPage() {
 
   const handleClear = async () => {
     setClearing(true);
+    // Paint the empty list at once; the route clears the same rows for real
+    // behind it, and the license API is left untouched.
+    const snapshot =
+      user && user.role === "OWNER"
+        ? patchDb((db) =>
+            applyKeyHistoryClear(db, "owner", { role: user.role, username: user.username }),
+          )
+        : null;
+    setShowConfirm(false);
     try {
       await del("/api/history?scope=owner");
+      toast("Owner key history cleared.", "success");
       await refresh();
-      toast("Owner key history cleared successfully.", "success");
-      setShowConfirm(false);
     } catch (err) {
+      if (snapshot) restore(snapshot);
       toast((err as Error).message, "error");
     } finally {
       setClearing(false);
@@ -48,7 +61,7 @@ export default function OwnerHistoryPage() {
         onClose={() => setShowConfirm(false)}
         onConfirm={handleClear}
         title="Clear Owner Key History"
-        description="Are you sure you want to permanently clear all Owner key history? This cannot be undone."
+        description="This removes every Owner key from the panel's list — here and on every other page. The keys themselves stay active on the license API. This cannot be undone."
         confirmText="Clear History"
         confirmVariant="danger"
         loading={clearing}

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CopyIcon, LockIcon, XSquareIcon } from "@/components/icons";
 import { useToast } from "@/components/ui/Toast";
 import { postJson } from "@/lib/client-api";
+import { deriveEmulatorStatus } from "@/lib/emulator-status";
 import { patchDb, useDashboard } from "@/lib/store";
 import type { KeyRecord } from "@/lib/types";
 import { cn, isCreatorMatch } from "@/lib/utils";
@@ -27,14 +28,10 @@ export function GenerateLibBypassModal({
   const refresh = useDashboard((s) => s.refresh);
   const isOwner = user?.role === "OWNER";
 
-  // Dynamic Engine maintenance calculation
-  const maint = db.emulatorBypassMaintenance;
-  const isV2Maintenance = maint?.v2Maintenance !== undefined 
-    ? Boolean(maint.v2Maintenance) 
-    : Boolean(maint?.active && (maint?.engine === "V2" || maint?.engine === "ALL"));
-  const isV1Maintenance = maint?.v1Maintenance !== undefined 
-    ? Boolean(maint.v1Maintenance) 
-    : true;
+  // Per-engine maintenance, derived the same way everywhere.
+  const status = deriveEmulatorStatus(db.emulatorBypassMaintenance);
+  const isV1Maintenance = status.v1;
+  const isV2Maintenance = status.v2;
 
   // Selected engine: points to whichever engine is active
   const [engine, setEngine] = useState<"V1" | "V2">(() => {
@@ -43,6 +40,8 @@ export function GenerateLibBypassModal({
     return "V2";
   });
 
+  // A down engine cannot be selected, so the selection always follows
+  // whichever engine is up.
   useEffect(() => {
     if (isV2Maintenance && !isV1Maintenance && engine === "V2") {
       setEngine("V1");

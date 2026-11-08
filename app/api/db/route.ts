@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireUserWithDb } from "@/lib/auth";
 import { route } from "@/lib/api-helpers";
 import { toPublic } from "@/lib/db";
+import { pruneExpiredMaintenance } from "@/lib/emulator-status";
 import { toPublicMessages } from "@/lib/messages";
 import type { PublicDatabase } from "@/lib/types";
 
@@ -16,6 +17,11 @@ export const GET = route(async () => {
   // would fetch the whole document twice.
   const { user, db: raw } = await requireUserWithDb();
   const db = toPublic(raw);
+
+  // A learned maintenance decays after a while: the engine is offered
+  // again and the next attempt re-learns the truth. Pruned here, once, so
+  // every open tab sees the same verdict the moment the poll next lands.
+  db.emulatorBypassMaintenance = pruneExpiredMaintenance(db.emulatorBypassMaintenance);
 
   // Announcements go to everyone -- that is the point of them -- but the
   // reaction map names other users, so it is shaped for the viewer.
@@ -38,6 +44,11 @@ export const GET = route(async () => {
     cheatExeBans: [],
     cheatExeKeyHistory: db.cheatExeKeyHistory.filter((k) => {
       const c = (k.creator || "").toLowerCase();
+      const me = user.username.toLowerCase();
+      return c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
+    }),
+    cheatExeGloryBots: db.cheatExeGloryBots.filter((b) => {
+      const c = (b.creator || "").toLowerCase();
       const me = user.username.toLowerCase();
       return c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
     }),

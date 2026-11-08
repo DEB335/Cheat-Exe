@@ -16,6 +16,7 @@ import { TintButton } from "@/components/ui/buttons";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { MaintenanceNotice } from "@/components/ui/MaintenanceNotice";
 import { StatCard } from "@/components/ui/StatCard";
+import { deriveEmulatorStatus } from "@/lib/emulator-status";
 import { UID_BYPASS_PACKAGE } from "@/lib/packages";
 import { useDashboard } from "@/lib/store";
 import { useStoredFlag } from "@/lib/use-external";
@@ -138,9 +139,11 @@ export default function UidBypassOverviewPage() {
 
   const uidMaintenance = maintenance;
   const uidReason = reason;
-  const emulatorMaintenance = Boolean(db.emulatorBypassMaintenance?.active);
-  const emulatorReason = db.emulatorBypassMaintenance?.reason;
-  const bothUnderMaintenance = uidMaintenance && emulatorMaintenance;
+  // Derived the same way the emulator page does, so the overview raises
+  // exactly the notices that page would -- per engine, not just the
+  // blanket `active` flag, which is why a V1-only maintenance used to go
+  // unnoticed here while the emulator page was already showing it.
+  const emulator = deriveEmulatorStatus(db.emulatorBypassMaintenance);
 
   return (
     <>
@@ -191,71 +194,12 @@ export default function UidBypassOverviewPage() {
         />
       </div>
 
-      {/* Maintenance Notices */}
-      {(() => {
-        const showUidMaint = showUidStats && uidMaintenance;
-        const showEmuMaint = showEmulatorStats && emulatorMaintenance;
-
-        if (showUidMaint && showEmuMaint) {
-          return (
-            <div className="mb-[30px] grid grid-cols-1 gap-6 lg:grid-cols-2">
-              <MaintenanceNotice
-                title="UID Bypass is under maintenance"
-                serviceName="UID Bypass"
-                tone="orange"
-                compact
-                reason={uidReason}
-              />
-              <MaintenanceNotice
-                title="Emulator Bypass is under maintenance"
-                description="The Emulator Bypass service is undergoing updates and maintenance. Key generation is temporarily paused until it is back. Existing keys keep working."
-                serviceName="Emulator Bypass"
-                tone="pink"
-                icon={<GamepadIcon className="size-7" />}
-                compact
-                reason={emulatorReason}
-              />
-            </div>
-          );
-        }
-
-        if (showUidMaint) {
-          return (
-            <div className="mb-[30px]">
-              <MaintenanceNotice
-                title="UID Bypass is under maintenance"
-                serviceName="UID Bypass"
-                tone="orange"
-                reason={uidReason}
-              />
-            </div>
-          );
-        }
-
-        if (showEmuMaint) {
-          return (
-            <div className="mb-[30px]">
-              <MaintenanceNotice
-                title="Emulator Bypass is under maintenance"
-                description="The Emulator Bypass service is undergoing updates and maintenance. Key generation is temporarily paused until it is back. Existing keys keep working."
-                serviceName="Emulator Bypass"
-                tone="pink"
-                icon={<GamepadIcon className="size-7" />}
-                reason={emulatorReason}
-              />
-            </div>
-          );
-        }
-
-        return null;
-      })()}
-
       <div
         className={cn(
           "grid gap-[30px]",
-          showUidStats && !maintenance && showEmulatorStats && !emulatorMaintenance
+          showUidStats && !maintenance && showEmulatorStats && !emulator.all
             ? "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3"
-            : (showUidStats && !maintenance) || (showEmulatorStats && !emulatorMaintenance)
+            : (showUidStats && !maintenance) || (showEmulatorStats && !emulator.all)
               ? "grid-cols-1 lg:grid-cols-2"
               : "grid-cols-1",
         )}
@@ -352,7 +296,7 @@ export default function UidBypassOverviewPage() {
           </Card>
         )}
 
-        {showEmulatorStats && !emulatorMaintenance && (
+        {showEmulatorStats && !emulator.all && (
           <Card flat>
             <CardHeader
               title="Emulator Bypass Usage"
@@ -397,6 +341,68 @@ export default function UidBypassOverviewPage() {
           </Card>
         )}
       </div>
+
+      {/* Maintenance Notices -- kept last, so they read as a status
+          line under the account's own numbers rather than as the first
+          thing on the page. Only rendered when something is actually
+          down. */}
+      {(() => {
+        const notices: React.ReactNode[] = [];
+
+        if (showUidStats && uidMaintenance) {
+          notices.push(
+            <MaintenanceNotice
+              key="uid"
+              title="UID Whitelist is under maintenance"
+              serviceName="UID Bypass"
+              tone="orange"
+              reason={uidReason}
+            />,
+          );
+        }
+
+        if (showEmulatorStats && emulator.any) {
+          notices.push(
+            <MaintenanceNotice
+              key="emu"
+              title={
+                emulator.all
+                  ? "Lib Bypass is under maintenance"
+                  : emulator.v1
+                    ? "Lib Bypass V1 is under maintenance"
+                    : "Lib Bypass V2 is under maintenance"
+              }
+              description={
+                emulator.all
+                  ? "Both Lib Bypass engines are under maintenance. Key generation is paused until they are back. Existing keys keep working."
+                  : emulator.v1
+                    ? "Version 1 (Discord Bot Engine) is under maintenance. Version 2 (Sensix Cloud) is online and working — generate with V2."
+                    : "Version 2 (Sensix Cloud) is under maintenance. Version 1 (Discord Bot Engine) is online and working — generate with V1."
+              }
+              serviceName={
+                emulator.all ? "Lib Bypass" : emulator.v1 ? "Lib Bypass V1" : "Lib Bypass V2"
+              }
+              tone="red"
+              icon={<GamepadIcon className="size-7" />}
+              compact
+              reason={emulator.reason}
+            />,
+          );
+        }
+
+        if (notices.length === 0) return null;
+
+        return (
+          <div
+            className={cn(
+              "mt-[30px] grid grid-cols-1 gap-6",
+              notices.length > 1 && "lg:grid-cols-2",
+            )}
+          >
+            {notices}
+          </div>
+        );
+      })()}
     </>
   );
 }

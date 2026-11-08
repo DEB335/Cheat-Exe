@@ -3,25 +3,26 @@
 import { useDashboard } from "@/lib/store";
 import { LibBypassGeneratorPanel } from "@/components/emulator-bypass/LibBypassGeneratorPanel";
 import { ActiveLibBypassTable } from "@/components/emulator-bypass/ActiveLibBypassTable";
+import { deriveEmulatorStatus } from "@/lib/emulator-status";
 import { cn } from "@/lib/utils";
 
 export default function EmulatorBypassPage() {
   const db = useDashboard((s) => s.db);
-  const maint = db.emulatorBypassMaintenance;
-  const isMaintenance = Boolean(maint?.active);
-  const maintenanceReason = maint?.reason;
 
-  const isV2Maintenance = maint?.v2Maintenance !== undefined 
-    ? Boolean(maint.v2Maintenance) 
-    : Boolean(maint?.active && (maint?.engine === "V2" || maint?.engine === "ALL"));
-  const isV1Maintenance = maint?.v1Maintenance !== undefined 
-    ? Boolean(maint.v1Maintenance) 
-    : true;
+  // Per-engine verdict, read once here and mirrored by the generator below.
+  // A learned maintenance lapses on its own (see `lib/emulator-status`), so
+  // this clears without a reload the moment the engine is offered again --
+  // and re-raises if the next attempt proves it is still down.
+  const status = deriveEmulatorStatus(db.emulatorBypassMaintenance);
+  const isV1Maintenance = status.v1;
+  const isV2Maintenance = status.v2;
+  const isMaintenance = status.any;
+  const maintenanceReason = status.reason;
 
   return (
     <div className="space-y-8 pb-10">
       {/* Dynamic Engine Status Overview Banner with glowing neon hover effect */}
-      {(isV1Maintenance || isV2Maintenance || isMaintenance) && (
+      {isMaintenance && (
         <div className="relative overflow-hidden rounded-2xl border border-[rgba(255,45,90,0.35)] bg-[radial-gradient(ellipse_at_top_left,rgba(255,45,90,0.14),transparent_70%),linear-gradient(180deg,#18050c_0%,#0e0207_100%)] p-4 sm:p-5 shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-300 hover:border-[rgba(255,45,90,0.6)] hover:shadow-[0_0_30px_rgba(255,31,90,0.25)]">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             {/* Left: Icon & Title/Subtitle */}

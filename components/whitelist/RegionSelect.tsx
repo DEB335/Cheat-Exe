@@ -6,6 +6,12 @@ import { NeonHelp, NeonLabel } from "@/components/neon";
 import { WHITELIST_REGIONS, type WhitelistRegion } from "@/lib/packages";
 import { cn } from "@/lib/utils";
 
+export type RegionOption = {
+  readonly code: string;
+  readonly label: string;
+  readonly countryCode?: string;
+};
+
 interface RegionSelectProps {
   id?: string;
   label?: string;
@@ -14,6 +20,7 @@ interface RegionSelectProps {
   help?: React.ReactNode;
   className?: string;
   required?: boolean;
+  regions?: readonly RegionOption[] | RegionOption[];
 }
 
 export function RegionSelect({
@@ -23,12 +30,13 @@ export function RegionSelect({
   onChange,
   help,
   className,
+  regions = WHITELIST_REGIONS,
 }: RegionSelectProps) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const selectedRegion =
-    WHITELIST_REGIONS.find((r) => r.code === value) ?? WHITELIST_REGIONS[0];
+    regions.find((r) => r.code === value) ?? regions[0];
 
   // Close on click outside or escape
   useEffect(() => {
@@ -107,7 +115,7 @@ export function RegionSelect({
             "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[rgba(255,45,90,0.35)]",
           )}
         >
-          {WHITELIST_REGIONS.map((r) => {
+          {regions.map((r) => {
             const isSelected = r.code === selectedRegion.code;
             return (
               <div

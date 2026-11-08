@@ -105,6 +105,7 @@ function emptyDb(adminPassHash: string): Database {
   return {
     cheatExeUsers: {},
     cheatExeKeyHistory: [],
+    cheatExeGloryBots: [],
     cheatExeAuditLogs: [],
     cheatExeDevices: [],
     cheatExeBannedUsers: [],
@@ -141,6 +142,7 @@ function withDefaults(stored: Partial<Database>): Omit<Database, "adminPassHash"
   return {
     cheatExeUsers: stored.cheatExeUsers ?? {},
     cheatExeKeyHistory: stored.cheatExeKeyHistory ?? [],
+    cheatExeGloryBots: stored.cheatExeGloryBots ?? [],
     cheatExeAuditLogs: stored.cheatExeAuditLogs ?? [],
     cheatExeDevices: stored.cheatExeDevices ?? [],
     cheatExeBannedUsers: stored.cheatExeBannedUsers ?? [],
@@ -300,6 +302,7 @@ export function toPublic(db: Database): PublicDatabase {
   return {
     cheatExeUsers: users,
     cheatExeKeyHistory: db.cheatExeKeyHistory,
+    cheatExeGloryBots: db.cheatExeGloryBots ?? [],
     cheatExeAuditLogs: db.cheatExeAuditLogs,
     cheatExeDevices: db.cheatExeDevices,
     cheatExeBannedUsers: db.cheatExeBannedUsers,

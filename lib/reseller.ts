@@ -1,4 +1,5 @@
 import type { Reseller, ResellerStatus } from "./types";
+import { isCreatorMatch } from "./utils";
 
 /**
  * Validity and quota for reseller accounts.
@@ -56,6 +57,42 @@ export function emulatorCreditsRemaining(
 ): number | null {
   if (typeof user.emulatorCredits !== "number" || user.emulatorCredits <= 0) return null;
   return Math.max(0, user.emulatorCredits - used);
+}
+
+/** Glory credits remaining, or null when uncapped. */
+export function gloryCreditsRemaining(
+  user: Pick<Reseller, "gloryCredits">,
+  used: number,
+): number | null {
+  if (typeof user.gloryCredits !== "number" || user.gloryCredits <= 0) return null;
+  return Math.max(0, user.gloryCredits - used);
+}
+
+/**
+ * Credits an account has spent, read from the Guild Glory bot records.
+ *
+ * Paired with the stored `gloryCreditsUsed` counter as a high-water mark
+ * (`max`), exactly like the emulator bypass reads its key history: the
+ * counter is a memory, these records are the fact, so the larger wins and
+ * credits can never be walked back by clearing the local bot list.
+ */
+export function gloryCreditsSpent(
+  bots: { creator?: string; credits?: number }[],
+  username: string | null | undefined,
+): number {
+  if (!username) return 0;
+  return bots
+    .filter((b) => isCreatorMatch(b.creator, username))
+    .reduce((sum, b) => sum + (Number(b.credits) || 0), 0);
+}
+
+/** The effective used count: the counter, or the records, whichever is higher. */
+export function gloryCreditsUsed(
+  stored: number | undefined,
+  bots: { creator?: string; credits?: number }[],
+  username: string | null | undefined,
+): number {
+  return Math.max(stored ?? 0, gloryCreditsSpent(bots, username));
 }
 
 /**

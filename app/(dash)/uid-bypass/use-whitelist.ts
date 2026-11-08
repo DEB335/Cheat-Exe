@@ -9,6 +9,14 @@ import type { WhitelistEntry } from "@/lib/types";
 export const AUTO_REFRESH_MS = 10_000;
 
 /**
+ * How often the service health is checked, independent of the Auto
+ * toggle. Short enough to feel live (~a couple of seconds at worst),
+ * and cheap: the route answers it from a small server-side cache, and
+ * it only ever moves the maintenance flag -- it never returns the list.
+ */
+export const STATUS_POLL_MS = 2_000;
+
+/**
  * Whether a whitelist entry is still good, and for how much longer.
  *
  * Upstream dates are plain "YYYY-MM-DD" with no timezone, and it treats
@@ -53,6 +61,15 @@ async function fetchState(): Promise<Snapshot> {
   const data = await api<WhitelistPayload>("/api/uid-bypass");
   return {
     entries: data.entries ?? [],
+    maintenance: data.maintenance === true,
+    reason: data.reason ?? null,
+  };
+}
+
+/** The health probe: the maintenance flag only, never the list. */
+async function fetchStatus(): Promise<Pick<Snapshot, "maintenance" | "reason">> {
+  const data = await api<WhitelistPayload>("/api/uid-bypass?status=1");
+  return {
     maintenance: data.maintenance === true,
     reason: data.reason ?? null,
   };
@@ -185,6 +202,62 @@ export function useWhitelist(auto: boolean, enabled: boolean = true): WhitelistS
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [auto, enabled, reload]);
+
+  // Service health, checked on its own timer -- on even when the Auto
+  // toggle is off, because maintenance is a state of the service, not of
+  // this list. Separate from `reload` on purpose: a change moves only the
+  // flag, so the list stays on screen instead of blinking empty while a
+  // fresh read is in flight. Visibility-gated and overlap-guarded so a
+  // slow provider cannot pile up requests. A failed probe changes
+  // nothing -- the full read is what decides maintenance; a probe that
+  // simply could not be reached is not itself a maintenance.
+  useEffect(() => {
+    if (!enabled) return;
+
+    let alive = true;
+    let inFlight = false;
+    let timer = 0;
+
+    const tick = async () => {
+      if (inFlight || document.hidden) return;
+      inFlight = true;
+      try {
+        const health = await fetchStatus();
+        if (alive) {
+          setMaintenance(health.maintenance);
+          setReason(health.reason);
+        }
+      } catch {
+        // Leave the current flag alone; see above.
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const start = () => {
+      if (!timer) timer = window.setInterval(() => void tick(), STATUS_POLL_MS);
+    };
+    const stop = () => {
+      window.clearInterval(timer);
+      timer = 0;
+    };
+    const onVisibility = () => {
+      if (document.hidden) {
+        stop();
+        return;
+      }
+      void tick();
+      start();
+    };
+
+    if (!document.hidden) start();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      alive = false;
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [enabled]);
 
   return { entries, loading, error, maintenance, reason, reload, mutate };
 }

@@ -503,3 +503,56 @@ export const GlobeIcon = (p: IconProps) => (
     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
   </Stroke>
 );
+
+export const TrophyIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M6 9H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <path d="M18 9h2a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2h-2" />
+    <path d="M4 22h16" />
+    <path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1 .45-1 1v1c0 .55.45 1 1 1h10c.55 0 1-.45 1-1v-1c0-.55-.45-1-1-1h-2c-.55 0-1-.45-1-1v-2.34" />
+    <path d="M6 3h12v7a6 6 0 0 1-12 0V3z" />
+  </Stroke>
+);
+
+export const CrownIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14" />
+  </Stroke>
+);
+
+export const FlameIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+  </Stroke>
+);
+
+export const AwardIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <circle cx="12" cy="8" r="7" />
+    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+  </Stroke>
+);
+
+export const BotIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M12 2v3" />
+    <rect x="4" y="5" width="16" height="12" rx="3" />
+    <path d="M2 11h2" />
+    <path d="M20 11h2" />
+    <circle cx="9" cy="11" r="1" fill="currentColor" />
+    <circle cx="15" cy="11" r="1" fill="currentColor" />
+    <path d="M9 14h6" />
+    <path d="M9 17v3" />
+    <path d="M15 17v3" />
+  </Stroke>
+);
+
+export const SaveIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+    <polyline points="17 21 17 13 7 13 7 21" />
+    <polyline points="7 3 7 8 15 8" />
+  </Stroke>
+);
+
+

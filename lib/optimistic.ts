@@ -1,6 +1,7 @@
 "use client";
 
 import type { PublicAnnouncement, PublicDatabase, ResellerStatus } from "./types";
+import { inClearScope, type HistoryActor, type HistoryScope } from "./key-history";
 
 /**
  * Local edits that mirror what the server is about to do.
@@ -58,6 +59,18 @@ export function applyReadAll(db: PublicDatabase): PublicDatabase {
   return {
     ...db,
     cheatExeMessages: db.cheatExeMessages.map((m) => (m.read ? m : { ...m, read: true })),
+  };
+}
+
+/** Mirrors DELETE /api/history?scope=... -- drops exactly the rows the route drops. */
+export function applyKeyHistoryClear(
+  db: PublicDatabase,
+  scope: HistoryScope,
+  actor: HistoryActor,
+): PublicDatabase {
+  return {
+    ...db,
+    cheatExeKeyHistory: db.cheatExeKeyHistory.filter((k) => !inClearScope(k, scope, actor)),
   };
 }
 

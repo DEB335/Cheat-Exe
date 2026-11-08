@@ -29,7 +29,7 @@ import {
   type TitleGradient,
   type TitleIcon,
 } from "@/lib/nav";
-import { UID_BYPASS_PACKAGE, canManageWhitelist } from "@/lib/packages";
+import { UID_BYPASS_PACKAGE, canAccessEmulatorBypass, canAccessGlory, canManageWhitelist } from "@/lib/packages";
 import { useDashboard, useEffectiveUser, useMyPackages } from "@/lib/store";
 import { useTheme } from "@/lib/use-theme";
 import { cn, formatStampForDisplay } from "@/lib/utils";
@@ -477,6 +477,11 @@ function QuickSearch() {
       // already taken away -- typing "uid" would still offer it.
       if (item.pkg === UID_BYPASS_PACKAGE && user) {
         if (!canManageWhitelist(user)) return false;
+      }
+      if (user && user.role !== "OWNER") {
+        if (item.gate === "emulator" && !canAccessEmulatorBypass(user)) return false;
+        if (item.gate === "glory" && !canAccessGlory(user)) return false;
+        if (item.gate === "uid" && !canManageWhitelist(user)) return false;
       }
       return item.name.toLowerCase().includes(q) || item.keywords.some((k) => k.includes(q));
     });

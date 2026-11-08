@@ -19,6 +19,33 @@ export interface LibBypassEnvelope {
   recommended_version?: string;
 }
 
+/**
+ * A generation refused because the requested engine is under maintenance.
+ *
+ * Distinguished from every other failure so the route can record which
+ * engine is down and which one the provider suggests instead: the reply
+ * carries `target` and `recommended_version`, and losing them turns a
+ * "V1 is down, use V2" into a bare 503 the panel cannot act on.
+ */
+export class LibMaintenanceError extends HttpError {
+  constructor(
+    message: string,
+    readonly engine: "V1" | "V2",
+    readonly recommended: "V1" | "V2" | null,
+  ) {
+    super(503, message);
+    this.name = "LibMaintenanceError";
+  }
+}
+
+/** "v1"/"V1"/"version 1" -> "V1"; anything else -> null. */
+function asEngine(value: string | undefined): "V1" | "V2" | null {
+  const v = (value ?? "").trim().toLowerCase();
+  if (v === "v1" || v === "1") return "V1";
+  if (v === "v2" || v === "2") return "V2";
+  return null;
+}
+
 export interface GenerateLibKeyResponse extends LibBypassEnvelope {
   count?: number;
   keys?: string[];
@@ -113,10 +140,15 @@ export async function generateLibKey(options: {
   });
 
   if (!res.success) {
-    throw new HttpError(
-      res.maintenance ? 503 : 400,
-      res.message || `Failed to generate ${options.engine} Lib Bypass key.`,
-    );
+    if (res.maintenance) {
+      const engine = asEngine(res.target) ?? options.engine;
+      throw new LibMaintenanceError(
+        res.message || `Lib Bypass (${engine}) is under maintenance.`,
+        engine,
+        asEngine(res.recommended_version),
+      );
+    }
+    throw new HttpError(400, res.message || `Failed to generate ${options.engine} Lib Bypass key.`);
   }
 
   return res;

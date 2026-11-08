@@ -354,3 +354,47 @@ export function daysUntil(expireDate: string): number | null {
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   return Math.round((expiry - today) / 86_400_000);
 }
+
+/**
+ * A short-lived answer to "is the whitelist up right now?".
+ *
+ * The provider exposes no status action, so the only honest test is the
+ * read itself: it answers while the service is up and fails with a 5xx
+ * when it is not. The overview and the whitelist page poll this so a
+ * maintenance that starts (or ends) shows up without a reload -- and the
+ * cache, a few seconds wide, keeps that poll from turning into a request
+ * per tab per second against a third party.
+ *
+ * A 4xx is not maintenance: it is an answer about the request, so the
+ * service reads as up and the full read surfaces the real error.
+ */
+let whitelistHealthCache: { at: number; maintenance: boolean; reason: string | null } | null =
+  null;
+
+export async function whitelistHealth(
+  maxAgeMs = 2_000,
+): Promise<{ maintenance: boolean; reason: string | null }> {
+  if (MAINTENANCE) {
+    return {
+      maintenance: true,
+      reason: "Switched on here with UID_BYPASS_MAINTENANCE.",
+    };
+  }
+
+  const now = Date.now();
+  if (whitelistHealthCache && now - whitelistHealthCache.at < maxAgeMs) {
+    return whitelistHealthCache;
+  }
+
+  try {
+    await listWhitelist();
+    whitelistHealthCache = { at: Date.now(), maintenance: false, reason: null };
+  } catch (err) {
+    whitelistHealthCache =
+      err instanceof HttpError && err.status >= 500
+        ? { at: Date.now(), maintenance: true, reason: err.message }
+        : { at: Date.now(), maintenance: false, reason: null };
+  }
+
+  return whitelistHealthCache;
+}

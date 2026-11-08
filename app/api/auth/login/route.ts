@@ -51,11 +51,23 @@ export const POST = route(async (request: Request) => {
       throw new HttpError(403, LOGIN_ERROR[outcome.reason]);
     }
 
+    const resellerObj = outcome.role === "RESELLER" ? findReseller(db, outcome.username)?.user : null;
     const resolved: SessionUser = {
       username: outcome.username,
       role: outcome.role,
       packages: outcome.packages,
       sessionId,
+      uidBypassAccess: outcome.role === "OWNER" ? true : Boolean(resellerObj?.uidBypassAccess),
+      emulatorBypassAccess: outcome.role === "OWNER" ? true : Boolean(resellerObj?.emulatorBypassAccess),
+      guildGloryAccess: outcome.role === "OWNER" ? true : Boolean(resellerObj?.guildGloryAccess),
+      emulatorCredits: outcome.role === "OWNER" ? 999999 : (resellerObj?.emulatorCredits ?? 0),
+      gloryCredits: outcome.role === "OWNER" ? 999999 : (resellerObj?.gloryCredits ?? 0),
+      emulatorAllowedDays:
+        outcome.role === "OWNER"
+          ? [1, 3, 7, 30, 60, 90, 180, 365]
+          : (resellerObj?.emulatorAllowedDays ?? [1, 3, 7]),
+      emulatorCreditsUsed: resellerObj?.emulatorCreditsUsed ?? 0,
+      gloryCreditsUsed: resellerObj?.gloryCreditsUsed ?? 0,
     };
 
     pushAudit(db, {

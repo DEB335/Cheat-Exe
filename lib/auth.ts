@@ -120,6 +120,9 @@ async function authorize<T extends AccessState>(
     emulatorCredits: user.role === "OWNER" ? 999999 : (resellerRec?.emulatorCredits ?? 0),
     emulatorAllowedDays: user.role === "OWNER" ? [1, 3, 7, 30, 60, 90, 180, 365] : (resellerRec?.emulatorAllowedDays ?? [1, 3, 7]),
     emulatorCreditsUsed: resellerRec?.emulatorCreditsUsed ?? 0,
+    guildGloryAccess: user.role === "OWNER" ? true : Boolean(resellerRec?.guildGloryAccess),
+    gloryCredits: user.role === "OWNER" ? 999999 : (resellerRec?.gloryCredits ?? 0),
+    gloryCreditsUsed: resellerRec?.gloryCreditsUsed ?? 0,
   };
 
   const blocked = accountBlock(db, user.username, user.role);
@@ -178,6 +181,9 @@ export async function withLivePackages(user: SessionUser): Promise<SessionUser> 
       emulatorBypassAccess: true,
       emulatorCredits: 999999,
       emulatorAllowedDays: [1, 3, 7, 30, 60, 90, 180, 365],
+      guildGloryAccess: true,
+      gloryCredits: 999999,
+      gloryCreditsUsed: 0,
     };
   }
   const db = await readSlice(["cheatExeUsers"]);
@@ -190,6 +196,9 @@ export async function withLivePackages(user: SessionUser): Promise<SessionUser> 
     emulatorCredits: resellerRec?.emulatorCredits ?? 0,
     emulatorAllowedDays: resellerRec?.emulatorAllowedDays ?? [1, 3, 7],
     emulatorCreditsUsed: resellerRec?.emulatorCreditsUsed ?? 0,
+    guildGloryAccess: Boolean(resellerRec?.guildGloryAccess),
+    gloryCredits: resellerRec?.gloryCredits ?? 0,
+    gloryCreditsUsed: resellerRec?.gloryCreditsUsed ?? 0,
   };
 }
 

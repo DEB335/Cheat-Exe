@@ -44,10 +44,12 @@ export default function ResellersPage() {
   const [renewLimit, setRenewLimit] = useState("");
   const [renewEmulatorCredits, setRenewEmulatorCredits] = useState("0");
   const [renewEmulatorAllowedDays, setRenewEmulatorAllowedDays] = useState<number[]>([]);
+  const [renewGloryCredits, setRenewGloryCredits] = useState("0");
 
   const [manageFor, setManageFor] = useState<string | null>(null);
   const [manageUidBypass, setManageUidBypass] = useState(false);
   const [manageEmulatorBypass, setManageEmulatorBypass] = useState(false);
+  const [manageGuildGloryAccess, setManageGuildGloryAccess] = useState(false);
 
   const patch = async (name: string, body: Record<string, unknown>, message: string) => {
     const snapshot = patchDb((db) => {
@@ -66,6 +68,12 @@ export default function ResellersPage() {
             : {}),
           ...(body.emulatorCredits !== undefined
             ? { emulatorCredits: Number(body.emulatorCredits) }
+            : {}),
+          ...(body.gloryCredits !== undefined
+            ? { gloryCredits: Number(body.gloryCredits) }
+            : {}),
+          ...(body.guildGloryAccess !== undefined
+            ? { guildGloryAccess: Boolean(body.guildGloryAccess) }
             : {}),
           ...(body.emulatorAllowedDays !== undefined
             ? { emulatorAllowedDays: body.emulatorAllowedDays as number[] }
@@ -126,6 +134,7 @@ export default function ResellersPage() {
       setManageFor(name);
       setManageUidBypass(Boolean(user.uidBypassAccess));
       setManageEmulatorBypass(Boolean(user.emulatorBypassAccess));
+      setManageGuildGloryAccess(Boolean(user.guildGloryAccess));
     },
     openPass: (name) => {
       setPassFor(name);
@@ -140,6 +149,7 @@ export default function ResellersPage() {
       setRenewDays(String(left && left > 0 ? left : 30));
       setRenewLimit(user.keyLimit ? String(user.keyLimit) : "");
       setRenewEmulatorCredits(String(user.emulatorCredits ?? 0));
+      setRenewGloryCredits(String(user.gloryCredits ?? 0));
       setRenewEmulatorAllowedDays([]);
     },
   };
@@ -154,10 +164,12 @@ export default function ResellersPage() {
         days={renewDays}
         limit={renewLimit}
         emulatorCredits={renewEmulatorCredits}
+        gloryCredits={renewGloryCredits}
         emulatorAllowedDays={renewEmulatorAllowedDays}
         onDays={setRenewDays}
         onLimit={setRenewLimit}
         onEmulatorCredits={setRenewEmulatorCredits}
+        onGloryCredits={setRenewGloryCredits}
         onToggleAllowedDay={(day) => {
           setRenewEmulatorAllowedDays((prev) =>
             prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
@@ -167,15 +179,17 @@ export default function ResellersPage() {
         onSave={async () => {
           if (renewFor) {
             const credits = Number(renewEmulatorCredits) || 0;
+            const gCredits = Number(renewGloryCredits) || 0;
             await patch(
               renewFor,
               {
                 validityDays: Number(renewDays) || 0,
                 keyLimit: Number(renewLimit) || 0,
                 emulatorCredits: credits,
+                gloryCredits: gCredits,
                 emulatorAllowedDays: renewEmulatorAllowedDays,
               },
-              `Validity, limits and emulator configuration updated for ${renewFor}.`,
+              `Validity, limits, emulator, and glory configuration updated for ${renewFor}.`,
             );
           }
           setRenewFor(null);
@@ -186,8 +200,10 @@ export default function ResellersPage() {
         name={manageFor}
         uidBypassAccess={manageUidBypass}
         emulatorBypassAccess={manageEmulatorBypass}
+        guildGloryAccess={manageGuildGloryAccess}
         onUidBypassAccess={setManageUidBypass}
         onEmulatorBypassAccess={setManageEmulatorBypass}
+        onGuildGloryAccess={setManageGuildGloryAccess}
         onClose={() => setManageFor(null)}
         onSave={async () => {
           const target = manageFor;
@@ -198,6 +214,7 @@ export default function ResellersPage() {
               {
                 uidBypassAccess: manageUidBypass,
                 emulatorBypassAccess: manageEmulatorBypass,
+                guildGloryAccess: manageGuildGloryAccess,
               },
               `Access updated for ${target}.`,
             );

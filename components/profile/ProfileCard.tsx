@@ -171,6 +171,14 @@ export function ProfileCard({
                   </NeonChip>
                 </MetaRow>
               )}
+
+              {own.guildGloryAccess && (
+                <MetaRow label="Glory Credits">
+                  <NeonChip tone="amber" size="xs" caps={false}>
+                    {Math.max(0, (own.gloryCredits ?? 0) - (own.gloryCreditsUsed ?? 0))} Credits
+                  </NeonChip>
+                </MetaRow>
+              )}
             </>
           )}
         </div>

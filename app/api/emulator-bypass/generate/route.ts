@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 import { HttpError, clientIp, requireUserWithDb } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { findReseller, updateDb } from "@/lib/db";
-import { generateLibKey } from "@/lib/emulator-bypass-api";
+import {
+  LibMaintenanceError,
+  generateLibKey,
+  type GenerateLibKeyResponse,
+} from "@/lib/emulator-bypass-api";
+import { deriveEmulatorStatus, pruneExpiredMaintenance, withEngineMaintenance } from "@/lib/emulator-status";
 import { ping } from "@/lib/realtime";
 import type { KeyRecord } from "@/lib/types";
 import { displayUser, formatTimestamp, isCreatorMatch } from "@/lib/utils";
@@ -67,24 +72,19 @@ export const POST = route(async (request: Request) => {
   }
 
   const engine = (body.engine === "V1" ? "V1" : "V2") as "V1" | "V2";
-  const maint = currentDb.emulatorBypassMaintenance;
-  const isV1Maint = Boolean(
-    maint?.v1Maintenance ||
-      (maint?.active && (maint?.engine === "V1" || maint?.engine === "ALL")),
-  );
-  const isV2Maint = Boolean(
-    maint?.v2Maintenance ||
-      (maint?.active && (maint?.engine === "V2" || maint?.engine === "ALL" || !maint?.engine)),
-  );
+  // Pruned first: a lock that has lapsed is no lock, so a stale flag must
+  // not block an attempt the panel is already willing to offer.
+  const maint = pruneExpiredMaintenance(currentDb.emulatorBypassMaintenance);
+  const stored = deriveEmulatorStatus(maint);
 
   if (user.role !== "OWNER") {
-    if (maint?.active && (maint.engine === "ALL" || !maint.engine)) {
-      throw new HttpError(503, maint.reason || "Emulator Bypass is under maintenance. Key generation is paused.");
+    if (stored.all) {
+      throw new HttpError(503, maint?.reason || "Emulator Bypass is under maintenance. Key generation is paused.");
     }
-    if (engine === "V1" && isV1Maint) {
+    if (engine === "V1" && stored.v1) {
       throw new HttpError(503, "Version 1 (V1) is currently under maintenance.");
     }
-    if (engine === "V2" && isV2Maint) {
+    if (engine === "V2" && stored.v2) {
       throw new HttpError(503, "Version 2 (V2) is currently under maintenance.");
     }
   }
@@ -104,13 +104,34 @@ export const POST = route(async (request: Request) => {
     : `Lib Bypass Client [${engine === "V2" ? "V2 Sensix" : "V1 Bot"}]`;
 
   // Upstream Live API Call to prtvshow.online
-  const upstream = await generateLibKey({
-    engine,
-    days,
-    count: 1,
-    customKey: customName,
-    note,
-  });
+  let upstream: GenerateLibKeyResponse;
+  try {
+    upstream = await generateLibKey({
+      engine,
+      days,
+      count: 1,
+      customKey: customName,
+      note,
+    });
+  } catch (err) {
+    // A maintenance refusal is the only moment the provider tells us which
+    // engine is down -- and which one it recommends instead. Record it and
+    // ring the doorbell, so the overview and the emulator page raise their
+    // notices the instant this returns, with no reload anywhere. The error
+    // is rethrown unchanged: the caller still gets the 503 and its message.
+    if (err instanceof LibMaintenanceError) {
+      await updateDb(async (db, tx) => {
+        db.emulatorBypassMaintenance = withEngineMaintenance(
+          db.emulatorBypassMaintenance,
+          err.engine,
+          true,
+          { reason: err.message, recommended: err.recommended },
+        );
+        await ping("reseller", tx);
+      });
+    }
+    throw err;
+  }
 
   const generatedKey = upstream.keys?.[0] || customName || "";
   if (!generatedKey) {
@@ -118,6 +139,15 @@ export const POST = route(async (request: Request) => {
   }
 
   await updateDb(async (db, tx) => {
+    // A key this engine just minted is proof it is up. Clear any
+    // maintenance we were holding for it, so the notices come down
+    // everywhere as soon as that is known.
+    db.emulatorBypassMaintenance = withEngineMaintenance(
+      db.emulatorBypassMaintenance,
+      engine,
+      false,
+    );
+
     const record: KeyRecord = {
       key: generatedKey,
       keyName: customName || generatedKey,

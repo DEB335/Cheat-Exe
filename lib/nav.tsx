@@ -13,8 +13,12 @@ import {
   SettingsIcon,
   SlidersIcon,
   UserPlusIcon,
+  TrophyIcon,
+  CrownIcon,
+  BoltIcon,
+  BotIcon,
 } from "@/components/icons";
-import { UID_BYPASS_PACKAGE, canManageWhitelist, canAccessEmulatorBypass } from "./packages";
+import { UID_BYPASS_PACKAGE, canManageWhitelist, canAccessEmulatorBypass, canAccessGlory } from "./packages";
 import type { Role, SessionUser } from "./types";
 
 export interface NavItem {
@@ -203,6 +207,44 @@ export const NAV_GROUPS: NavGroup[] = [
       },
     ],
   },
+  {
+    label: "Glory",
+    roles: ["OWNER", "RESELLER"],
+    items: [
+      {
+        href: "/glory",
+        label: "Overview",
+        icon: TrophyIcon,
+        color: "#f97316",
+        roles: ["OWNER", "RESELLER"],
+        section: "GLORY",
+      },
+      {
+        href: "/glory/guild",
+        label: "Guild Analytics",
+        icon: CrownIcon,
+        color: "#f97316",
+        roles: ["OWNER", "RESELLER"],
+        section: "GLORY",
+      },
+      {
+        href: "/glory/matchmaking",
+        label: "Matchmaking",
+        icon: BoltIcon,
+        color: "#f97316",
+        roles: ["OWNER", "RESELLER"],
+        section: "GLORY",
+      },
+      {
+        href: "/glory/bots",
+        label: "Bot Generate",
+        icon: BotIcon,
+        color: "#f97316",
+        roles: ["OWNER", "RESELLER"],
+        section: "GLORY",
+      },
+    ],
+  },
 ];
 
 /**
@@ -226,6 +268,9 @@ export function canSeeItem(
   }
   if (item.pkg === UID_BYPASS_PACKAGE) {
     return user !== null && canManageWhitelist(user);
+  }
+  if (item.href.startsWith("/glory")) {
+    return user !== null && canAccessGlory(user);
   }
   return true;
 }
@@ -359,6 +404,28 @@ export const PAGE_TITLES: Record<string, PageTitle> = {
     parts: [{ text: "Emulator " }, { text: "Bypass", gradient: "pink-violet" }],
     eyebrowTone: "violet",
   },
+  "/glory": {
+    title: "Overview",
+    section: "GLORY",
+  },
+  "/glory/guild": {
+    title: "Guild Analytics",
+    section: "GLORY",
+    subtitle:
+      "Each guild is displayed in its own card. Click Show Members on any guild card to expand its bot roster.",
+  },
+  "/glory/matchmaking": {
+    title: "Matchmaking",
+    section: "GLORY",
+    subtitle:
+      "Select an active guild to launch a 10-Hour Nonstop Squad Session (costs 1 Credit per squad). Bots must belong to a guild.",
+  },
+  "/glory/bots": {
+    title: "Bot Accounts",
+    section: "GLORY",
+    subtitle:
+      "Guest bot accounts bound to your guilds. Generating bot accounts requires a mandatory Guild ID and costs 1 Credit.",
+  },
 };
 
 export function navColor(pathname: string): string {
@@ -373,6 +440,11 @@ export const SEARCH_ITEMS: Array<{
   ownerOnly?: boolean;
   /** Same gate as the sidebar item: without the grant, not offered. */
   pkg?: string;
+  /**
+   * Section gate matching the sidebar, so search is not a way into a
+   * section the grant has already taken away.
+   */
+  gate?: "uid" | "emulator" | "glory";
 }> = [
   {
     name: "Overview / Dashboard",
@@ -470,10 +542,35 @@ export const SEARCH_ITEMS: Array<{
     name: "Emulator Bypass",
     href: "/emulator-bypass",
     keywords: ["emulator bypass", "emulator", "bypass", "credits", "generate key", "uid bypass"],
+    gate: "emulator",
   },
   {
     name: "Profile Settings",
     href: "/profile",
     keywords: ["profile settings", "change password", "avatar url", "display name", "save changes"],
+  },
+  {
+    name: "Glory Overview",
+    href: "/glory",
+    keywords: ["glory", "glory overview", "tournament", "score", "points", "ranking"],
+    gate: "glory",
+  },
+  {
+    name: "Guild Analytics",
+    href: "/glory/guild",
+    keywords: ["guild analytics", "guild", "bot guilds", "clan id", "inspect guild id", "query id", "live glory"],
+    gate: "glory",
+  },
+  {
+    name: "Matchmaking",
+    href: "/glory/matchmaking",
+    keywords: ["matchmaking", "squad", "10-hour nonstop", "automated loop", "bot matrix", "formation"],
+    gate: "glory",
+  },
+  {
+    name: "Bot Generate",
+    href: "/glory/bots",
+    keywords: ["bot generate", "bot accounts", "guest bots", "guild id", "generate accounts"],
+    gate: "glory",
   },
 ];

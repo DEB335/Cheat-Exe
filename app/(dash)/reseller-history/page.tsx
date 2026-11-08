@@ -6,13 +6,16 @@ import { KeyHistoryPanel } from "@/components/key-history/KeyHistoryPanel";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { del } from "@/lib/client-api";
+import { applyKeyHistoryClear } from "@/lib/optimistic";
 import { useDashboard } from "@/lib/store";
 
 export default function ResellerHistoryPage() {
   const toast = useToast();
   const refresh = useDashboard((s) => s.refresh);
-  const isOwner = useDashboard((s) => s.user?.role === "OWNER");
+  const patchDb = useDashboard((s) => s.patch);
+  const restore = useDashboard((s) => s.restore);
   const user = useDashboard((s) => s.user);
+  const isOwner = user?.role === "OWNER";
   const [showConfirm, setShowConfirm] = useState(false);
   const [clearing, setClearing] = useState(false);
 
@@ -42,12 +45,20 @@ export default function ResellerHistoryPage() {
 
   const handleClear = async () => {
     setClearing(true);
+    // Paint the cleared list immediately; the route clears the same rows in
+    // the shared database, and the license API is left untouched.
+    const snapshot = user
+      ? patchDb((db) =>
+          applyKeyHistoryClear(db, "reseller", { role: user.role, username: user.username }),
+        )
+      : null;
+    setShowConfirm(false);
     try {
       await del("/api/history?scope=reseller");
+      toast(isOwner ? "Reseller key history cleared." : "Your key history cleared.", "success");
       await refresh();
-      toast("Key history cleared successfully.", "success");
-      setShowConfirm(false);
     } catch (err) {
+      if (snapshot) restore(snapshot);
       toast((err as Error).message, "error");
     } finally {
       setClearing(false);
@@ -60,8 +71,12 @@ export default function ResellerHistoryPage() {
         open={showConfirm}
         onClose={() => setShowConfirm(false)}
         onConfirm={handleClear}
-        title="Clear Reseller Key History"
-        description="Are you sure you want to permanently clear all Reseller key history? This cannot be undone."
+        title={isOwner ? "Clear Reseller Key History" : "Clear My Key History"}
+        description={
+          isOwner
+            ? "This removes every reseller key from the panel's list — here and on every other page. The keys themselves stay active on the license API. This cannot be undone."
+            : "This removes your keys from the panel's list — here and everywhere else. The keys themselves stay active on the license API. This cannot be undone."
+        }
         confirmText="Clear History"
         confirmVariant="danger"
         loading={clearing}
@@ -77,8 +92,9 @@ export default function ResellerHistoryPage() {
           await refresh();
           toast("Key history refreshed.", "success");
         }}
-        // Only the owner may clear; a reseller never sees the button.
-        onClear={isOwner ? () => setShowConfirm(true) : undefined}
+        // The owner clears every reseller's history; a reseller clears only
+        // their own rows, which are removed from the shared list for good.
+        onClear={() => setShowConfirm(true)}
       />
     </>
   );

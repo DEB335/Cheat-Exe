@@ -15,6 +15,7 @@ import {
 import { PRESET_VALIDITY_OPTIONS } from "@/components/resellers/ResellerModals";
 import { useToast } from "@/components/ui/Toast";
 import { postJson } from "@/lib/client-api";
+import { deriveEmulatorStatus } from "@/lib/emulator-status";
 import { patchDb, useDashboard } from "@/lib/store";
 import type { KeyRecord } from "@/lib/types";
 import { cn, isCreatorMatch } from "@/lib/utils";
@@ -39,22 +40,23 @@ export function LibBypassGeneratorPanel() {
   const refresh = useDashboard((s) => s.refresh);
   const isOwner = user?.role === "OWNER";
 
-  // Dynamic Engine maintenance calculation (V1 currently in upstream maintenance, V2 operational)
-  const maint = db.emulatorBypassMaintenance;
-  const isV2Maintenance = maint?.v2Maintenance !== undefined 
-    ? Boolean(maint.v2Maintenance) 
-    : Boolean(maint?.active && (maint?.engine === "V2" || maint?.engine === "ALL"));
-  const isV1Maintenance = maint?.v1Maintenance !== undefined 
-    ? Boolean(maint.v1Maintenance) 
-    : true;
+  // Per-engine maintenance, derived once here so the panel, the overview
+  // and the emulator page all agree on which engines are down. It shifts
+  // live: the route records what the provider reports on a generate, the
+  // store re-reads within a second, and the effects below re-pick the
+  // engine without a reload.
+  const status = deriveEmulatorStatus(db.emulatorBypassMaintenance);
+  const isV1Maintenance = status.v1;
+  const isV2Maintenance = status.v2;
 
-  // Recommended engine badge: dynamically V1 or V2
+  // Recommended engine badge: the provider's own pick, else whichever
+  // engine is still up.
   const recommendedEngine = useMemo(() => {
-    if (maint?.recommended) return maint.recommended;
+    if (status.recommended) return status.recommended;
     if (!isV2Maintenance) return "V2";
     if (!isV1Maintenance) return "V1";
     return null;
-  }, [maint?.recommended, isV1Maintenance, isV2Maintenance]);
+  }, [status.recommended, isV1Maintenance, isV2Maintenance]);
 
   // Selected engine: points to whichever engine is active
   const [engine, setEngine] = useState<"V1" | "V2">(() => {
@@ -63,7 +65,11 @@ export function LibBypassGeneratorPanel() {
     return "V2";
   });
 
-  // Automatically update selected engine if maintenance status shifts dynamically
+  // A down engine is not selectable at all -- the card is inert and the
+  // submit is refused -- so no credit can be spent on a mint the provider
+  // has already said it will refuse. The selection therefore always
+  // follows whichever engine is up: V1 down moves it to V2 and back, and
+  // when both are down neither can be chosen.
   useEffect(() => {
     if (isV2Maintenance && !isV1Maintenance && engine === "V2") {
       setEngine("V1");
@@ -367,7 +373,7 @@ export function LibBypassGeneratorPanel() {
                     ) : (
                       <span className="text-[10px] font-bold uppercase text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(16,185,129,0.25)]">
                         <span className="size-1 rounded-full bg-emerald-400" />
-                        Active Engine
+                        Online
                       </span>
                     )}
                   </div>
@@ -420,7 +426,7 @@ export function LibBypassGeneratorPanel() {
                     ) : (
                       <span className="text-[10px] font-bold uppercase text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-[0_0_8px_rgba(16,185,129,0.25)]">
                         <span className="size-1 rounded-full bg-emerald-400" />
-                        Active Engine
+                        Online
                       </span>
                     )}
                   </div>

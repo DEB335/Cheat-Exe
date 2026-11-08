@@ -23,6 +23,8 @@ interface PatchBody {
   emulatorBypassAccess?: boolean;
   emulatorCredits?: number;
   emulatorAllowedDays?: number[];
+  guildGloryAccess?: boolean;
+  gloryCredits?: number;
 }
 
 /** Statuses the owner may set directly. EXPIRED is derived, not assignable. */
@@ -201,6 +203,29 @@ export const PATCH = route(async (request: Request, ctx: Ctx) => {
         pushAudit(db, {
           user: "Owner (OWNER)",
           action: `Updated allowed Emulator Bypass durations for ${match.key}`,
+          ip,
+        });
+      }
+    }
+
+    if (body.guildGloryAccess !== undefined) {
+      changed = true;
+      match.user.guildGloryAccess = body.guildGloryAccess;
+      pushAudit(db, {
+        user: "Owner (OWNER)",
+        action: `${body.guildGloryAccess ? "Granted" : "Revoked"} Guild Glory access for ${match.key}`,
+        ip,
+      });
+    }
+
+    if (body.gloryCredits !== undefined) {
+      const credits = Number(body.gloryCredits);
+      if (Number.isInteger(credits) && credits >= 0) {
+        changed = true;
+        match.user.gloryCredits = credits;
+        pushAudit(db, {
+          user: "Owner (OWNER)",
+          action: `Set Guild Glory credits to ${credits} for ${match.key}`,
           ip,
         });
       }

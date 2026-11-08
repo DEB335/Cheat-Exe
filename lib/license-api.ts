@@ -124,10 +124,12 @@ export async function callLicenseApi<T extends LicenseEnvelope>(
  * Every dashboard refresh -- after each action, and on every realtime
  * ping, in every open tab -- asks for both of these, and each one was a
  * fresh round trip to the provider. The package list changes when the
- * provider adds or renames a package, which is rare, so five minutes
- * costs nothing. The counts move with every key issued anywhere, so they
- * are held only long enough to absorb a burst of refreshes -- and a
- * change made through this instance drops them at once (forgetCounts).
+ * provider adds or renames a package, and the panel re-reads it on a
+ * 30 s timer so a new package appears without a reload, so it is held
+ * only long enough to collapse those repeat reads into one. The counts
+ * move with every key issued anywhere, so they are held only long
+ * enough to absorb a burst of refreshes -- and a change made through
+ * this instance drops them at once (forgetCounts).
  *
  * Nothing else is cached. Every other action either changes something
  * or, like key_info, is a lookup someone asked for by hand, where an
@@ -140,7 +142,7 @@ export async function callLicenseApi<T extends LicenseEnvelope>(
  * asks again.
  */
 const CACHE_TTL_MS: Partial<Record<string, number>> = {
-  get_admin_packages: 5 * 60_000,
+  get_admin_packages: 60_000,
   reseller_stats: 10_000,
 };
 

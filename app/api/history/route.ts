@@ -3,12 +3,24 @@ import { NextResponse } from "next/server";
 import { HttpError, clientIp, requireUser } from "@/lib/auth";
 import { pushAudit, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
+import { clearAuditAction, inClearScope } from "@/lib/key-history";
 import { ping } from "@/lib/realtime";
 import { displayUser } from "@/lib/utils";
 
 /**
  * DELETE /api/history?scope=owner|reseller
+ *
  * Owners may clear either list. A reseller may only clear their own keys.
+ *
+ * This empties the panel's own list -- the shared database every page
+ * reads -- and nothing else. The keys themselves are left alone at the
+ * provider: a cleared row means the panel has let go of it, not that the
+ * license stopped working. A key is terminated at the license API only
+ * through the explicit per-key Delete action in Manage.
+ *
+ * The scope is defined once, in `inClearScope`, and shared with the
+ * client's optimistic mirror so the row that disappears is the row the
+ * route drops. Every other tab and page hears about it over realtime.
  */
 export const DELETE = route(async (request: Request) => {
   const user = await requireUser();
@@ -21,54 +33,26 @@ export const DELETE = route(async (request: Request) => {
     throw new HttpError(403, "Owner access required");
   }
 
+  const actor = { role: user.role, username: user.username };
+
   const ip = await clientIp();
+  let cleared = 0;
   await updateDb(async (db, tx) => {
     const before = db.cheatExeKeyHistory.length;
+    db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => !inClearScope(k, scope, actor));
+    cleared = before - db.cheatExeKeyHistory.length;
 
-    if (scope === "owner") {
-      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => {
-        if (k.package === "EMULATOR BYPASS") return true;
-        const c = (k.creator || "").trim().toLowerCase();
-        const isOwnerKey = c === "admin" || c === "owner" || c.startsWith("owner (") || c.startsWith("owner ");
-        return !isOwnerKey;
-      });
-      if (db.cheatExeKeyHistory.length === before) return;
-      pushAudit(db, {
-        user: displayUser(user.username, user.role),
-        action: "Cleared Owner key history",
-        ip,
-      });
-    } else if (user.role === "OWNER") {
-      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => {
-        if (k.package === "EMULATOR BYPASS") return true;
-        const c = (k.creator || "").trim().toLowerCase();
-        const isOwnerKey = c === "admin" || c === "owner" || c.startsWith("owner (") || c.startsWith("owner ");
-        return isOwnerKey;
-      });
-      if (db.cheatExeKeyHistory.length === before) return;
-      pushAudit(db, {
-        user: displayUser(user.username, user.role),
-        action: "Cleared Reseller key history",
-        ip,
-      });
-    } else {
-      const me = user.username.toLowerCase();
-      db.cheatExeKeyHistory = db.cheatExeKeyHistory.filter((k) => {
-        if (k.package === "EMULATOR BYPASS") return true;
-        const c = (k.creator || "").trim().toLowerCase();
-        const isMyKey = c === me || c.startsWith(`${me} `) || c.startsWith(`${me}(`);
-        return !isMyKey;
-      });
-      if (db.cheatExeKeyHistory.length === before) return;
-      pushAudit(db, {
-        user: displayUser(user.username, user.role),
-        action: "Cleared own key history",
-        ip,
-      });
-    }
+    // Nothing moved: no audit line and no ping, exactly as before.
+    if (cleared === 0) return;
+
+    pushAudit(db, {
+      user: displayUser(user.username, user.role),
+      action: clearAuditAction(scope, actor),
+      ip,
+    });
 
     await ping("key", tx);
   });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, cleared });
 });

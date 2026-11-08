@@ -12,7 +12,7 @@ import { AnnouncementBanner } from "@/components/layout/AnnouncementBanner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useToast } from "@/components/ui/Toast";
-import { canAccessEmulatorBypass, canManageWhitelist } from "@/lib/packages";
+import { canAccessEmulatorBypass, canAccessGlory, canManageWhitelist } from "@/lib/packages";
 import { publishPing } from "@/lib/ping";
 import { SESSION_LIFETIME_MINUTES } from "@/lib/session-lifetime";
 import { isRefreshing, useDashboard, useEffectiveUser, useMyPackages } from "@/lib/store";
@@ -26,9 +26,11 @@ import type { SessionUser } from "@/lib/types";
  *
  * This is also what delivers announcements and what makes a ban, a
  * suspension or a device lock take effect, so it doubles as the panel's
- * worst-case latency for all of them. Polled at 2.5s for fast real-time sync.
+ * worst-case latency for all of them. Polled at 1s for fast real-time
+ * sync: a change made in another tab or by the owner lands without a
+ * reload, at the cost of one small authenticated read per second.
  */
-const SESSION_POLL_MS = 2_000;
+const SESSION_POLL_MS = 1_000;
 
 /** Reason codes /api/auth/session returns when it terminates a session. */
 type Terminated =
@@ -152,6 +154,10 @@ export function Shell({
     } else if (pathname.startsWith("/emulator-bypass")) {
       if (canAccessEmulatorBypass(effectiveUser)) return;
       toast("Emulator Bypass access was revoked from your account.", "error");
+      router.replace("/dashboard");
+    } else if (pathname.startsWith("/glory")) {
+      if (canAccessGlory(effectiveUser)) return;
+      toast("Guild Glory access was revoked from your account.", "error");
       router.replace("/dashboard");
     }
   }, [terminated, effectiveUser, pathname, router, toast]);

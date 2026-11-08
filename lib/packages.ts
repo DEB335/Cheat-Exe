@@ -24,6 +24,7 @@ export const PACKAGES: LicensePackage[] = [
   { id: "3d1c6c948b4715fbd2fada2d", name: "EXTERNAL PANEL", description: "External Package" },
   { id: "d4f0ce93349f236711344cb5", name: "PVT AIMKILL", description: "Private Aimkill" },
   { id: "154d1edaddd7203fbfd847f4", name: "VAULT PANEL", description: "Vault Package" },
+  { id: "2411bc9db9f9a66c6e876ad2", name: "FPS BOOSTER", description: "FPS Booster Package" },
 ];
 
 export const PACKAGE_NAMES = PACKAGES.map((p) => p.name);
@@ -36,6 +37,7 @@ const SHORT_LABELS: Record<string, string> = {
   "EXTERNAL PANEL": "EXTERNAL",
   "PVT AIMKILL": "PVT AIMKILL",
   "VAULT PANEL": "VAULT",
+  "FPS BOOSTER": "FPS",
 };
 
 export function shortPackageLabel(name: string): string {
@@ -138,6 +140,18 @@ export function canAccessEmulatorBypass(
 ): boolean {
   if (!user) return false;
   return user.role === "OWNER" || Boolean(user.emulatorBypassAccess);
+}
+
+/**
+ * Who may access Guild Glory.
+ *
+ * The owner always may. A reseller needs guildGloryAccess granted in Manage.
+ */
+export function canAccessGlory(
+  user: { role: Role; guildGloryAccess?: boolean } | null | undefined,
+): boolean {
+  if (!user) return false;
+  return user.role === "OWNER" || Boolean(user.guildGloryAccess);
 }
 
 export function packageById(id: string): LicensePackage | undefined {

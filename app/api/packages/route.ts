@@ -10,7 +10,13 @@ import type { LicensePackage } from "@/lib/types";
  * Live package list, so a package added upstream shows up without a
  * redeploy. Falls back to the compiled-in list if the API is down, which
  * keeps the generator usable rather than empty.
+ *
+ * LIB BYPASS is the emulator-bypass product and has its own section, so
+ * it is not offered as a license package here. FPS BOOSTER used to be
+ * hidden the same way; it is a normal license package and is now shown.
  */
+const HIDDEN_PACKAGES = new Set(["LIB BYPASS"]);
+
 export const GET = route(async () => {
   await requireUser();
 
@@ -18,7 +24,7 @@ export const GET = route(async () => {
     const data = await getPackages();
     if (data.success && data.packages?.length) {
       const packages: LicensePackage[] = data.packages
-        .filter((p) => !["LIB BYPASS", "FPS BOOSTER"].includes(p.package_name))
+        .filter((p) => !HIDDEN_PACKAGES.has(p.package_name))
         .map((p) => ({
           id: p.package_id,
           name: p.package_name,
@@ -34,6 +40,6 @@ export const GET = route(async () => {
     /* fall through to the bundled list */
   }
 
-  const fallback = PACKAGES.filter((p) => !["LIB BYPASS", "FPS BOOSTER"].includes(p.name));
+  const fallback = PACKAGES.filter((p) => !HIDDEN_PACKAGES.has(p.name));
   return NextResponse.json({ success: true, packages: fallback, source: "fallback" });
 });

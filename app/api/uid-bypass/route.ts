@@ -6,7 +6,7 @@ import { updateDb } from "@/lib/db";
 import { canManageWhitelist, whitelistDaysLabel } from "@/lib/packages";
 import { ping } from "@/lib/realtime";
 import type { SessionUser, WhitelistEntry } from "@/lib/types";
-import { MAINTENANCE, addWhitelist, listWhitelist, removeWhitelist } from "@/lib/uid-api";
+import { MAINTENANCE, addWhitelist, listWhitelist, removeWhitelist, whitelistHealth } from "@/lib/uid-api";
 import { cleanDays, cleanNote, cleanRegion, cleanUid } from "@/lib/whitelist-input";
 import { displayUser } from "@/lib/utils";
 
@@ -79,8 +79,17 @@ function visibleTo(
   });
 }
 
-export const GET = route(async () => {
+export const GET = route(async (request: Request) => {
   const user = await requireWhitelistAccess();
+
+  // A cheap health probe, asked for by the client on a short timer so a
+  // maintenance that starts (or ends) shows up without a reload. It reads
+  // the provider but never returns the list, so it cannot blank the page
+  // the way a full re-read could while one is in flight.
+  if (new URL(request.url).searchParams.get("status") === "1") {
+    return NextResponse.json({ success: true, ...(await whitelistHealth()) });
+  }
+
   const db = await loadDb();
 
   if (MAINTENANCE) {

@@ -10,6 +10,7 @@ import type { LicensePackage, PublicDatabase, SessionUser } from "./types";
 const EMPTY: PublicDatabase = {
   cheatExeUsers: {},
   cheatExeKeyHistory: [],
+  cheatExeGloryBots: [],
   cheatExeAuditLogs: [],
   cheatExeDevices: [],
   cheatExeBannedUsers: [],
@@ -145,11 +146,14 @@ let inFlight = 0;
 
 /**
  * The package catalogue is upstream's product list: it changes with a
- * release, not between clicks, so one good read per page load is enough.
- * The route's bundled fallback (upstream unreachable) does not count, so
- * the next refresh tries again.
+ * release, not between clicks. It is re-read on a timer while the
+ * dashboard is open so a package added upstream appears on its own,
+ * without a reload; the route's own cache absorbs the repeat calls.
+ * When the route answers from its bundled fallback, the same timer
+ * retries rather than hammering the provider on every refresh.
  */
-let packagesLoaded = false;
+const PACKAGES_TTL_MS = 30_000;
+let packagesFetchedAt = 0;
 
 /** Whether a /api/db read is on its way, i.e. fresher data is coming anyway. */
 export function isRefreshing(): boolean {
@@ -181,7 +185,8 @@ export const useDashboard = create<DashboardState>((set, get) => ({
     // load and every mutation. They are best-effort: if the license API
     // is unreachable the dashboard still renders.
     const statsRequest = getJson("/api/stats");
-    const packagesRequest = packagesLoaded ? null : getJson("/api/packages");
+    const packagesRequest =
+      Date.now() - packagesFetchedAt >= PACKAGES_TTL_MS ? getJson("/api/packages") : null;
 
     try {
       try {
@@ -248,7 +253,7 @@ export const useDashboard = create<DashboardState>((set, get) => ({
       }
       const list = packages?.packages as LicensePackage[] | undefined;
       if (list?.length) {
-        packagesLoaded = packages?.source !== "fallback";
+        packagesFetchedAt = Date.now();
         const held = get().packages;
         const next = share(held, list);
         if (next !== held) set({ packages: next });
@@ -313,6 +318,9 @@ export function useEffectiveUser(): SessionUser | null {
             emulatorCredits: dbUser.emulatorCredits ?? user.emulatorCredits,
             emulatorAllowedDays: dbUser.emulatorAllowedDays ?? user.emulatorAllowedDays,
             emulatorCreditsUsed: dbUser.emulatorCreditsUsed ?? user.emulatorCreditsUsed,
+            guildGloryAccess: dbUser.guildGloryAccess ?? user.guildGloryAccess,
+            gloryCredits: dbUser.gloryCredits ?? user.gloryCredits,
+            gloryCreditsUsed: dbUser.gloryCreditsUsed ?? user.gloryCreditsUsed,
           }
         : {}),
     };

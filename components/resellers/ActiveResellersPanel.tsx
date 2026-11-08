@@ -21,12 +21,12 @@ import {
 } from "@/components/neon";
 import { useToast } from "@/components/ui/Toast";
 import { TintButton } from "@/components/ui/buttons";
-import { daysLeft, effectiveStatus, emulatorCreditsRemaining, formatExpiry, keysRemaining } from "@/lib/reseller";
+import { daysLeft, effectiveStatus, emulatorCreditsRemaining, formatExpiry, gloryCreditsRemaining, keysRemaining } from "@/lib/reseller";
 import { useDashboard } from "@/lib/store";
 import type { PublicDatabase, ResellerStatus } from "@/lib/types";
 import { cleanCreatorUsername, cn } from "@/lib/utils";
 
-const COLUMNS = ["Username", "Status", "Validity", "Keys", "Bypass Credits", "Device", "Allowed Packages", "Actions"];
+const COLUMNS = ["Username", "Status", "Validity", "Keys", "Bypass Credits", "Glory Credits", "Device", "Allowed Packages", "Actions"];
 
 /** Pill colour per status: live green, suspended red, waiting amber, lapsed grey. */
 const STATUS_LOOK: Record<ResellerStatus, NeonStatus> = {
@@ -60,6 +60,7 @@ export function ActiveResellersPanel({ actions }: { actions: ResellerActions }) 
   const refresh = useDashboard((s) => s.refresh);
   const users = useDashboard((s) => s.db.cheatExeUsers);
   const history = useDashboard((s) => s.db.cheatExeKeyHistory);
+  const gloryBots = useDashboard((s) => s.db.cheatExeGloryBots);
   // Until the first /api/db read lands the store holds an empty
   // database, and "No reseller accounts yet" would be a claim it cannot
   // make yet.
@@ -83,6 +84,18 @@ export function ActiveResellersPanel({ actions }: { actions: ResellerActions }) 
     return { keysUsed: regular, emulatorKeysUsed: emulator };
   }, [history]);
 
+  // Glory credits spent per reseller, from the bot audit trail -- the same
+  // high-water reconciliation the server applies before it lets a
+  // generation through.
+  const glorySpent = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const record of gloryBots) {
+      const creator = cleanCreatorUsername(record.creator || "").toLowerCase();
+      map[creator] = (map[creator] ?? 0) + (Number(record.credits) || 0);
+    }
+    return map;
+  }, [gloryBots]);
+
   return (
     <NeonPanel rim="aurora">
       <PanelHeader
@@ -104,7 +117,7 @@ export function ActiveResellersPanel({ actions }: { actions: ResellerActions }) 
 
       <NeonTable
         columns={COLUMNS}
-        minWidth={1520}
+        minWidth={1660}
         empty={
           <NeonEmpty icon={<UsersIcon />}>{loading ? "Loading resellers…" : "No reseller accounts yet."}</NeonEmpty>
         }
@@ -117,6 +130,7 @@ export function ActiveResellersPanel({ actions }: { actions: ResellerActions }) 
             user={user}
             used={keysUsed[name.toLowerCase()] ?? 0}
             emulatorUsed={Math.max(user.emulatorCreditsUsed ?? 0, emulatorKeysUsed[name.toLowerCase()] ?? 0)}
+            gloryUsed={Math.max(user.gloryCreditsUsed ?? 0, glorySpent[name.toLowerCase()] ?? 0)}
             actions={actions}
           />
         ))}
@@ -131,6 +145,7 @@ function ResellerRow({
   user,
   used,
   emulatorUsed,
+  gloryUsed,
   actions,
 }: {
   index: number;
@@ -138,6 +153,7 @@ function ResellerRow({
   user: ResellerView;
   used: number;
   emulatorUsed: number;
+  gloryUsed: number;
   actions: ResellerActions;
 }) {
   // effectiveStatus, not user.status: the stored value can still say
@@ -147,6 +163,7 @@ function ResellerRow({
   const left = daysLeft(user);
   const remaining = keysRemaining(user, used);
   const emulatorRemaining = emulatorCreditsRemaining(user, emulatorUsed);
+  const gloryRemaining = gloryCreditsRemaining(user, gloryUsed);
 
   return (
     <NeonRow index={index}>
@@ -226,6 +243,32 @@ function ResellerRow({
                 <span className="font-medium text-[#ff8aa0] lt:text-rose-600">none left</span>
               ) : (
                 `${emulatorRemaining} left`
+              )}
+            </div>
+          </>
+        ) : (
+          <div>
+            <div className="text-[14.5px] font-semibold text-[#8f9bc4]/50 lt:text-slate-400">—</div>
+            <div className="mt-0.5 text-[11.5px] font-medium tracking-wide uppercase text-[#ff8aa0]/60 lt:text-rose-500/70">
+              Disabled
+            </div>
+          </div>
+        )}
+      </NeonCell>
+
+      <NeonCell>
+        {user.guildGloryAccess ? (
+          <>
+            <div className="text-[15px] font-bold whitespace-nowrap text-white lt:text-slate-900">
+              {user.gloryCredits ? `${gloryUsed} / ${user.gloryCredits}` : gloryUsed}
+            </div>
+            <div className={cn("mt-0.5 whitespace-nowrap", MUTED)}>
+              {gloryRemaining === null ? (
+                <span className="font-medium text-[#38ef7d] lt:text-emerald-600">unlimited</span>
+              ) : gloryRemaining === 0 ? (
+                <span className="font-medium text-[#ff8aa0] lt:text-rose-600">none left</span>
+              ) : (
+                `${gloryRemaining} left`
               )}
             </div>
           </>

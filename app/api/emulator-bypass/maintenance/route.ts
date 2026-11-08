@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { HttpError, clientIp, loadDb, requireOwner, requireUser } from "@/lib/auth";
 import { pushAudit, readJson, route } from "@/lib/api-helpers";
 import { updateDb } from "@/lib/db";
+import { pruneExpiredMaintenance } from "@/lib/emulator-status";
 import { ping } from "@/lib/realtime";
 import { displayUser } from "@/lib/utils";
 
@@ -26,10 +27,11 @@ export function checkEmulatorMaintenance(envVal?: string, dbActive?: boolean, db
 export const GET = route(async () => {
   await requireUser();
   const db = await loadDb();
+  const stored = pruneExpiredMaintenance(db.emulatorBypassMaintenance);
   const maintenance = checkEmulatorMaintenance(
     undefined,
-    db.emulatorBypassMaintenance?.active,
-    db.emulatorBypassMaintenance?.reason,
+    stored?.active,
+    stored?.reason,
   );
   return NextResponse.json({ success: true, ...maintenance });
 });

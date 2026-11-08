@@ -10,6 +10,7 @@ import {
   KeyIcon,
   LockIcon,
   SlidersIcon,
+  TrophyIcon,
 } from "@/components/icons";
 import {
   IconTile,
@@ -78,10 +79,12 @@ export function RenewModal({
   limit,
   emulatorCredits,
   emulatorAllowedDays,
+  gloryCredits,
   onDays,
   onLimit,
   onEmulatorCredits,
   onToggleAllowedDay,
+  onGloryCredits,
   onSave,
   onClose,
 }: {
@@ -90,10 +93,12 @@ export function RenewModal({
   limit: string;
   emulatorCredits?: string;
   emulatorAllowedDays?: number[];
+  gloryCredits?: string;
   onDays: (value: string) => void;
   onLimit: (value: string) => void;
   onEmulatorCredits?: (value: string) => void;
   onToggleAllowedDay?: (day: number) => void;
+  onGloryCredits?: (value: string) => void;
   onSave: () => void;
   onClose: () => void;
 }) {
@@ -133,6 +138,21 @@ export function RenewModal({
           onChange={(event) => onLimit(event.target.value)}
           help="0 = unlimited."
         />
+        {onGloryCredits && (
+          <NeonInput
+            id="renewGloryCredits"
+            label="Guild Glory Credits"
+            tone="red"
+            leftIcon={<TrophyIcon />}
+            type="number"
+            min={0}
+            stepper
+            value={gloryCredits ?? "0"}
+            onChange={(event) => onGloryCredits(event.target.value)}
+            help="Credits for Guild Glory Bot Accounts generation (1 Credit = 4 Bots). 0 = unlimited."
+          />
+        )}
+
         {onEmulatorCredits && (
           <NeonInput
             id="renewEmulatorCredits"
@@ -205,16 +225,20 @@ export function ManageModal({
   name,
   uidBypassAccess,
   emulatorBypassAccess,
+  guildGloryAccess,
   onUidBypassAccess,
   onEmulatorBypassAccess,
+  onGuildGloryAccess,
   onSave,
   onClose,
 }: {
   name: string | null;
   uidBypassAccess: boolean;
   emulatorBypassAccess: boolean;
+  guildGloryAccess: boolean;
   onUidBypassAccess: (val: boolean) => void;
   onEmulatorBypassAccess: (val: boolean) => void;
+  onGuildGloryAccess: (val: boolean) => void;
   onSave: () => void;
   onClose: () => void;
 }) {
@@ -310,6 +334,49 @@ export function ManageModal({
               boxed={false}
               checked={emulatorBypassAccess}
               onChange={onEmulatorBypassAccess}
+            />
+          </div>
+        </div>
+
+        {/* Guild Glory Toggle Card */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onGuildGloryAccess(!guildGloryAccess)}
+          onKeyDown={(e) => {
+            if (e.key === " " || e.key === "Enter") {
+              e.preventDefault();
+              onGuildGloryAccess(!guildGloryAccess);
+            }
+          }}
+          className={cn(
+            "flex cursor-pointer select-none items-center justify-between rounded-xl border p-4 shadow-[0_4px_16px_rgba(0,0,0,0.3)] transition-all",
+            guildGloryAccess
+              ? "border-[rgba(255,45,90,0.65)] bg-[rgba(32,4,12,0.85)] shadow-[0_0_20px_rgba(255,45,90,0.25)] lt:border-rose-300 lt:bg-rose-50"
+              : "border-[rgba(255,45,90,0.2)] bg-[rgba(16,3,8,0.7)] hover:border-[rgba(255,45,90,0.4)] lt:border-slate-200 lt:bg-slate-50",
+          )}
+        >
+          <div className="flex items-center gap-3.5 pr-3">
+            <IconTile tone="red" variant="ring" size="sm">
+              <TrophyIcon />
+            </IconTile>
+            <div>
+              <h4 className="text-[14.5px] font-bold text-white lt:text-slate-900">
+                Guild Glory Access
+              </h4>
+              <p className="mt-0.5 text-[12.5px] text-[#ff8ba7] lt:text-slate-500">
+                Enable Guild Glory section: Overview, Analytics, Matchmaking &amp; Bot Generate.
+              </p>
+            </div>
+          </div>
+          <div onClick={(e) => e.stopPropagation()}>
+            <NeonToggle
+              id="manage-guild-glory"
+              title=""
+              tone="red"
+              boxed={false}
+              checked={guildGloryAccess}
+              onChange={onGuildGloryAccess}
             />
           </div>
         </div>
